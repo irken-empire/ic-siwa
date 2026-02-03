@@ -161,11 +161,15 @@ jobs:
         run: |
           candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
 
-          if ! diff -q canisters/ic_siwa_provider/ic_siwa_provider.did /tmp/extracted.did > /dev/null 2>&1; then
+          # Normalize whitespace for comparison (trim trailing spaces)
+          sed 's/[[:space:]]*$//' canisters/ic_siwa_provider/ic_siwa_provider.did > /tmp/committed.did
+          sed 's/[[:space:]]*$//' /tmp/extracted.did > /tmp/extracted_normalized.did
+
+          if ! diff -q /tmp/committed.did /tmp/extracted_normalized.did > /dev/null 2>&1; then
             echo "ERROR: Candid interface is out of sync!"
             echo "Run 'ic-siwa candid' to regenerate."
             echo ""
-            diff canisters/ic_siwa_provider/ic_siwa_provider.did /tmp/extracted.did || true
+            diff /tmp/committed.did /tmp/extracted_normalized.did || true
             exit 1
           fi
 

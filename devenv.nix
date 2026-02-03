@@ -395,6 +395,15 @@ in
         files = "(^Cargo\\.toml$|^package\\.json$|libs/ic_siwa_ts/package\\.json$|canisters/test_canister_ts/package\\.json$)";
         pass_filenames = false;
       };
+      # Regenerate Candid when Rust canister code changes
+      candid-gen = {
+        enable = true;
+        name = "candid-gen";
+        description = "Regenerate Candid interface from canister code";
+        entry = "ic-siwa candid";
+        files = "^canisters/ic_siwa_provider/src/.*\\.rs$";
+        pass_filenames = false;
+      };
     };
   };
 
