@@ -1,0 +1,15 @@
+# Build artifacts
+target/
+dist/
+node_modules/
+
+# DFX artifacts
+.dfx/
+
+# Astro generated files
+.astro/
+**/.astro/
+
+# Lock files
+bun.lockb
+Cargo.lock

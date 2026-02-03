@@ -23,6 +23,9 @@ node_modules/
 dist/
 bun.lockb
 
+# Astro generated files
+.astro/
+
 # Environment and secrets
 .env*
 !.env.example

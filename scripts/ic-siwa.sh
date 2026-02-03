@@ -342,12 +342,15 @@ cmd_start() {
 		log_success "DFX replica started on port ${DFX_PORT}"
 		;;
 	juno)
-		log_info "Juno network is external - ensure Juno is running on port ${JUNO_PORT}"
-		if ! is_dfx_running "${JUNO_PORT}"; then
+		log_warn "You cannot start Juno from this project"
+		log_info "Please start Juno from your Juno project, then run: ic-siwa deploy --network juno"
+		log_info ""
+		if is_dfx_running "${JUNO_PORT}"; then
+			log_success "Juno is running on port ${JUNO_PORT} - ready to deploy"
+		else
 			log_error "Juno not detected on port ${JUNO_PORT}"
 			return 1
 		fi
-		log_success "Juno detected on port ${JUNO_PORT}"
 		;;
 	ic)
 		log_info "IC mainnet does not require starting"
