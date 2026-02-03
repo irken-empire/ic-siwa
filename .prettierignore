@@ -10,6 +10,10 @@ node_modules/
 .astro/
 **/.astro/
 
+# Generated Candid files
+*.did
+**/candid/*.ts
+
 # Lock files
 bun.lockb
 Cargo.lock
