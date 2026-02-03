@@ -1,0 +1,110 @@
+name: "Verify Canister"
+description: "Run verification tests against a deployed canister"
+
+inputs:
+  canister:
+    description: "Canister name (e.g., ic_siwa_provider)"
+    required: true
+  network:
+    description: "DFX network (ic, local)"
+    required: true
+    default: "ic"
+  canister_id:
+    description: "Canister ID (optional, will be looked up if not provided)"
+    required: false
+    default: ""
+
+outputs:
+  success:
+    description: "Whether verification passed"
+    value: ${{ steps.verify.outputs.success }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify ic_siwa_provider
+      id: verify
+      if: inputs.canister == 'ic_siwa_provider'
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        echo "Verifying ${{ inputs.canister }} on network: ${{ inputs.network }}..."
+        echo ""
+
+        CANISTER_ID="${{ inputs.canister_id }}"
+        if [ -z "$CANISTER_ID" ]; then
+          CANISTER_ID=$(dfx canister --network ${{ inputs.network }} id ${{ inputs.canister }})
+        fi
+
+        PASSED=0
+        FAILED=0
+
+        # Test 1: siwa_prepare_login
+        echo "Test 1: siwa_prepare_login..."
+        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} siwa_prepare_login '("0x0000000000000000000000000000000000000000")' 2>&1)
+        if echo "$RESULT" | grep -q "Ok"; then
+          echo "  PASSED: siwa_prepare_login returns Ok"
+          PASSED=$((PASSED + 1))
+        else
+          echo "  FAILED: siwa_prepare_login"
+          echo "  Result: $RESULT"
+          FAILED=$((FAILED + 1))
+        fi
+
+        # Test 2: get_principal (should return Err for unknown address)
+        echo "Test 2: get_principal (unknown address)..."
+        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} get_principal '("0x0000000000000000000000000000000000000000")' 2>&1)
+        if echo "$RESULT" | grep -q "Err"; then
+          echo "  PASSED: get_principal correctly returns Err for unknown address"
+          PASSED=$((PASSED + 1))
+        else
+          echo "  FAILED: get_principal should return Err"
+          echo "  Result: $RESULT"
+          FAILED=$((FAILED + 1))
+        fi
+
+        # Test 3: get_caller_address (should return Err for anonymous)
+        echo "Test 3: get_caller_address (anonymous)..."
+        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} get_caller_address '()' 2>&1)
+        if echo "$RESULT" | grep -q "Err"; then
+          echo "  PASSED: get_caller_address correctly returns Err for anonymous caller"
+          PASSED=$((PASSED + 1))
+        else
+          echo "  FAILED: get_caller_address should return Err"
+          echo "  Result: $RESULT"
+          FAILED=$((FAILED + 1))
+        fi
+
+        echo ""
+        echo "Results: $PASSED passed, $FAILED failed"
+        echo ""
+
+        if [ $FAILED -gt 0 ]; then
+          echo "success=false" >> $GITHUB_OUTPUT
+          exit 1
+        else
+          echo "success=true" >> $GITHUB_OUTPUT
+          echo "All verification tests passed!"
+          echo ""
+          echo "Canister ID: $CANISTER_ID"
+          if [ "${{ inputs.network }}" == "ic" ]; then
+            echo "Candid UI: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=$CANISTER_ID"
+          fi
+        fi
+
+    - name: Verify test_canister_rs
+      if: inputs.canister == 'test_canister_rs'
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        echo "Verifying ${{ inputs.canister }} on network: ${{ inputs.network }}..."
+
+        # Test: health check
+        echo "Test: whoami..."
+        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} whoami '()' 2>&1)
+        if echo "$RESULT" | grep -q "principal"; then
+          echo "  PASSED: whoami returns principal"
+        else
+          echo "  FAILED: whoami"
+          exit 1
+        fi
+
+        echo "Verification passed!"
