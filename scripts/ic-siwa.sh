@@ -361,10 +361,28 @@ cmd_start() {
 
 # Stop DFX replica
 cmd_stop() {
-	log_info "Stopping DFX replica..."
+	local network="${1:-local}"
 	cd "${PROJECT_ROOT}"
-	dfx stop || true
-	log_success "DFX replica stopped"
+
+	case "${network}" in
+	juno)
+		log_warn "Juno is managed separately - ic-siwa does not control Juno's lifecycle"
+		log_info "Canisters deployed to Juno will persist until Juno is restarted"
+		log_info ""
+		log_info "Options:"
+		log_info "  - To delete ic-siwa canisters from Juno: ic-siwa cleanup --prune --network juno"
+		log_info "  - To stop Juno entirely: run 'juno stop' from your Juno project"
+		;;
+	ic)
+		log_info "Network 'ic' is the Internet Computer mainnet - nothing to stop locally"
+		log_info "Use 'cleanup --prune --network ic' to delete canisters (DANGER: permanent!)"
+		;;
+	*)
+		log_info "Stopping DFX local replica..."
+		dfx stop || true
+		log_success "DFX replica stopped"
+		;;
+	esac
 }
 
 # Build init argument for canister
@@ -633,21 +651,42 @@ cmd_cleanup() {
 	if [[ ${prune} == "true" ]]; then
 		log_warn "Pruning canisters on network: ${network}"
 
-		# List of canisters to delete
-		local canisters=("ic_siwa_provider" "test_canister_rs" "test_canister_ts")
+		# List of canisters to delete (name and env var suffix)
+		local -A canisters=(
+			["ic_siwa_provider"]="IC_SIWA_PROVIDER"
+			["test_canister_rs"]="TEST_CANISTER_RS"
+			["test_canister_ts"]="TEST_CANISTER_TS"
+		)
 
-		for canister in "${canisters[@]}"; do
-			local canister_id
+		for canister in "${!canisters[@]}"; do
+			local env_suffix="${canisters[$canister]}"
+			local canister_id=""
+
+			# Try to get canister ID from dfx first
 			canister_id=$(dfx canister id "${canister}" --network "${network}" 2>/dev/null) || canister_id=""
+
+			# If not found, try to get from .env file (useful for Juno where .dfx state may be cleared)
+			if [[ -z ${canister_id} && -f "${PROJECT_ROOT}/.env" ]]; then
+				canister_id=$(grep "^CANISTER_ID_${env_suffix}=" "${PROJECT_ROOT}/.env" 2>/dev/null | cut -d'=' -f2 | tr -d "'" | tr -d '"') || canister_id=""
+			fi
 
 			if [[ -n ${canister_id} ]]; then
 				log_info "Deleting canister ${canister} (${canister_id})..."
-				dfx canister stop "${canister}" --network "${network}" 2>/dev/null || true
-				dfx canister delete "${canister}" --network "${network}" --yes 2>/dev/null || log_warn "Could not delete ${canister}"
+				# Stop and delete using canister ID directly (works even without canister_ids.json)
+				dfx canister stop "${canister_id}" --network "${network}" 2>/dev/null || true
+				dfx canister delete "${canister_id}" --network "${network}" --yes 2>/dev/null || log_warn "Could not delete ${canister}"
 			else
 				log_info "Canister ${canister} not found on ${network}, skipping..."
 			fi
 		done
+
+		# Clear .env canister entries after pruning
+		if [[ -f "${PROJECT_ROOT}/.env" ]]; then
+			log_info "Clearing canister IDs from .env..."
+			sed -i '/^CANISTER_ID_/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+			sed -i '/^CANISTER_CANDID_PATH/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+			sed -i '/^DFX_/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+		fi
 	fi
 
 	log_info "Cleaning Cargo artifacts..."
@@ -781,7 +820,7 @@ parse_args() {
 		cmd_start "${NETWORK}"
 		;;
 	stop)
-		cmd_stop
+		cmd_stop "${NETWORK}"
 		;;
 	help | --help | -h)
 		show_help
