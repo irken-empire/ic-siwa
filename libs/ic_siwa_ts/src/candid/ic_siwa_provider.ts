@@ -4,7 +4,6 @@
  */
 
 import type {ActorMethod} from "@dfinity/agent";
-import type {IDL} from "@dfinity/candid";
 import type {Principal} from "@dfinity/principal";
 
 export interface InitArgs {
@@ -47,17 +46,8 @@ export interface _SERVICE {
   get_caller_address: ActorMethod<[], AddressResponse>;
 }
 
-export const idlFactory = ({IDL}: {IDL: IDL}): IDL.ServiceClass => {
-  const InitArgs = IDL.Record({
-    domain: IDL.Text,
-    uri: IDL.Text,
-    salt: IDL.Text,
-    chain_id: IDL.Nat64,
-    session_expiration_time: IDL.Nat64,
-    allowed_domains: IDL.Opt(IDL.Vec(IDL.Text)),
-    allowed_canisters: IDL.Opt(IDL.Vec(IDL.Principal)),
-  });
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const idlFactory = ({IDL}: {IDL: any}) => {
   const SignedDelegation = IDL.Record({
     delegation: IDL.Vec(IDL.Nat8),
     signature: IDL.Vec(IDL.Nat8),
@@ -106,7 +96,8 @@ export const idlFactory = ({IDL}: {IDL: IDL}): IDL.ServiceClass => {
   });
 };
 
-export const init = ({IDL}: {IDL: IDL}): IDL.Type[] => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const init = ({IDL}: {IDL: any}) => {
   const InitArgs = IDL.Record({
     domain: IDL.Text,
     uri: IDL.Text,

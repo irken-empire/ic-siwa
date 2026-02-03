@@ -2,8 +2,12 @@
  * SIWA Client for browser-based authentication
  */
 
-import {Actor, HttpAgent, type Identity} from "@dfinity/agent";
-import {DelegationChain, Ed25519KeyIdentity} from "@dfinity/identity";
+import {Actor, HttpAgent, type Identity, type Signature} from "@dfinity/agent";
+import {
+  Delegation,
+  DelegationChain,
+  Ed25519KeyIdentity,
+} from "@dfinity/identity";
 import {Principal} from "@dfinity/principal";
 import {
   idlFactory,
@@ -320,9 +324,13 @@ export class SiwaClient {
 
   /**
    * Build delegation chain from canister response
+   *
+   * @param _delegationBytes - CBOR-encoded delegation (unused, we construct from session key)
+   * @param signatureBytes - Signature from canister
+   * @param expiration - Delegation expiration time in nanoseconds
    */
   private buildDelegationChain(
-    delegationBytes: Uint8Array,
+    _delegationBytes: Uint8Array,
     signatureBytes: Uint8Array,
     expiration: bigint
   ): DelegationChain {
@@ -333,23 +341,26 @@ export class SiwaClient {
       );
     }
 
-    // The delegation from the canister contains the public key and expiration
-    // We need to construct a proper DelegationChain
-    const delegation = {
-      pubkey: this.sessionKey.getPublicKey().toDer(),
-      expiration,
-      targets: undefined,
-    };
+    // The delegation from the canister is for our session key
+    // We construct a Delegation instance with the session key's public key
+    const pubkey = this.sessionKey.getPublicKey().toDer();
+    const delegation = new Delegation(pubkey, expiration);
 
     // Create delegation chain with single delegation signed by canister
+    // Convert signature to ArrayBuffer and cast to branded Signature type
+    const signatureBuffer = signatureBytes.buffer.slice(
+      signatureBytes.byteOffset,
+      signatureBytes.byteOffset + signatureBytes.byteLength
+    ) as Signature;
+
     return DelegationChain.fromDelegations(
       [
         {
           delegation,
-          signature: signatureBytes,
+          signature: signatureBuffer,
         },
       ],
-      this.sessionKey.getPublicKey().toDer()
+      pubkey
     );
   }
 

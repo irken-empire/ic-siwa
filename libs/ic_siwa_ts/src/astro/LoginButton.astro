@@ -1,0 +1,364 @@
+---
+/**
+ * SIWA Login Button Component
+ *
+ * A reusable Astro component for "Sign in with Avalanche" authentication.
+ * Uses DaisyUI for styling and emits custom events for state changes.
+ *
+ * @example
+ * ```astro
+ * <LoginButton
+ *   canisterId="xxxxx-xxxxx-xxxxx-xxxxx-xxx"
+ *   label="Sign in with Avalanche"
+ *   size="md"
+ * />
+ * ```
+ */
+
+export interface Props {
+  /** Canister ID of the ic_siwa_provider */
+  canisterId: string;
+  /** IC host URL (default: https://ic0.app) */
+  host?: string;
+  /** Button label text */
+  label?: string;
+  /** Button size: xs, sm, md, lg, xl */
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  /** Button color variant */
+  variant?: "primary" | "secondary" | "accent" | "neutral";
+  /** Button style */
+  style?: "solid" | "outline" | "soft" | "ghost";
+  /** Additional CSS classes */
+  class?: string;
+  /** Show wallet address when logged in */
+  showAddress?: boolean;
+  /** Custom ID for the button element */
+  id?: string;
+}
+
+const {
+  canisterId,
+  host = "https://ic0.app",
+  label = "Sign in with Avalanche",
+  size = "md",
+  variant = "primary",
+  style = "solid",
+  class: className = "",
+  showAddress = true,
+  id = "siwa-login-btn",
+} = Astro.props;
+
+// Build button classes
+const sizeClass = size !== "md" ? `btn-${size}` : "";
+const variantClass = variant !== "primary" ? `btn-${variant}` : "btn-primary";
+const styleClass = style !== "solid" ? `btn-${style}` : "";
+const btnClasses = ["btn", variantClass, sizeClass, styleClass, className]
+  .filter(Boolean)
+  .join(" ");
+---
+
+<div class="siwa-login-container" data-canister-id={canisterId} data-host={host}>
+  <!-- Login Button -->
+  <button
+    id={id}
+    type="button"
+    class={btnClasses}
+    data-state="idle"
+  >
+    <span class="siwa-btn-content">
+      <slot name="icon">
+        <!-- Avalanche Logo SVG -->
+        <svg
+          class="siwa-icon"
+          width="20"
+          height="20"
+          viewBox="0 0 254 254"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M127 254C197.14 254 254 197.14 254 127C254 56.86 197.14 0 127 0C56.86 0 0 56.86 0 127C0 197.14 56.86 254 127 254Z"
+            fill="currentColor"
+            fill-opacity="0.1"
+          />
+          <path
+            d="M171.8 170.68H193.36C197.04 170.68 198.88 170.68 199.84 169.88C200.92 169 201.36 167.6 200.88 166.32C200.4 165.08 188.04 143.24 181.88 132.52C175.72 121.8 169.44 110.88 163.24 100.08C157.04 89.28 153.36 89.28 149.68 89.28H128.12C124.44 89.28 122.6 89.28 121.64 90.08C120.56 90.96 120.12 92.36 120.6 93.64C121.08 94.88 133.44 116.72 139.6 127.44C145.76 138.16 152.04 149.08 158.24 159.88C164.44 170.68 168.12 170.68 171.8 170.68Z"
+            fill="currentColor"
+          />
+          <path
+            d="M82.2 170.68H60.64C56.96 170.68 55.12 170.68 54.16 169.88C53.08 169 52.64 167.6 53.12 166.32C53.6 165.08 65.96 143.24 72.12 132.52C78.28 121.8 84.56 110.88 90.76 100.08C96.96 89.28 100.64 89.28 104.32 89.28H125.88C129.56 89.28 131.4 89.28 132.36 90.08C133.44 90.96 133.88 92.36 133.4 93.64C132.92 94.88 120.56 116.72 114.4 127.44C108.24 138.16 101.96 149.08 95.76 159.88C89.56 170.68 85.88 170.68 82.2 170.68Z"
+            fill="currentColor"
+          />
+        </svg>
+      </slot>
+      <span class="siwa-label">{label}</span>
+    </span>
+    <span class="siwa-loading hidden">
+      <span class="loading loading-spinner loading-sm"></span>
+      <span class="siwa-loading-text">Connecting...</span>
+    </span>
+  </button>
+
+  <!-- Logged in state (hidden by default) -->
+  {showAddress && (
+    <div id={`${id}-logged-in`} class="siwa-logged-in hidden">
+      <div class="flex items-center gap-2">
+        <span class="badge badge-success badge-sm">Connected</span>
+        <span class="siwa-address text-sm font-mono truncate max-w-32"></span>
+        <button
+          id={`${id}-logout`}
+          type="button"
+          class="btn btn-ghost btn-xs"
+          title="Disconnect"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  )}
+
+  <!-- Error display -->
+  <div id={`${id}-error`} class="siwa-error hidden mt-2">
+    <div role="alert" class="alert alert-error alert-soft text-sm py-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span class="siwa-error-message"></span>
+      <button type="button" class="siwa-error-dismiss btn btn-ghost btn-xs">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .siwa-login-container {
+    display: inline-block;
+  }
+
+  .siwa-icon {
+    width: 1.25em;
+    height: 1.25em;
+  }
+
+  .siwa-btn-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .siwa-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .siwa-logged-in {
+    display: flex;
+    align-items: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  [data-state="loading"] .siwa-btn-content {
+    display: none;
+  }
+
+  [data-state="loading"] .siwa-loading {
+    display: flex !important;
+  }
+
+  [data-state="authenticated"] {
+    display: none;
+  }
+</style>
+
+<script>
+  import { SiwaClient } from "../client";
+
+  /**
+   * Custom events emitted by the login button:
+   * - siwa:login-start - Login process started
+   * - siwa:login-success - Login successful (detail: { principal, address })
+   * - siwa:login-error - Login failed (detail: { error })
+   * - siwa:logout - User logged out
+   */
+
+  interface SiwaLoginDetail {
+    principal?: string;
+    address?: string;
+    error?: string;
+  }
+
+  // Initialize all SIWA login buttons on the page
+  document.querySelectorAll(".siwa-login-container").forEach((container) => {
+    const canisterId = container.getAttribute("data-canister-id");
+    const host = container.getAttribute("data-host") || "https://ic0.app";
+
+    if (!canisterId) {
+      console.error("SIWA: Missing canister-id attribute");
+      return;
+    }
+
+    const loginBtn = container.querySelector<HTMLButtonElement>("[data-state]");
+    const loggedInDiv = container.querySelector<HTMLElement>(".siwa-logged-in");
+    const addressSpan = container.querySelector<HTMLElement>(".siwa-address");
+    const errorDiv = container.querySelector<HTMLElement>(".siwa-error");
+    const errorMessage = container.querySelector<HTMLElement>(".siwa-error-message");
+    const errorDismiss = container.querySelector<HTMLElement>(".siwa-error-dismiss");
+    const logoutBtn = container.querySelector<HTMLElement>("[id$='-logout']");
+
+    if (!loginBtn) return;
+
+    // Create SIWA client
+    const client = new SiwaClient({
+      canisterId,
+      host,
+    });
+
+    // Helper to emit custom events
+    const emit = (name: string, detail?: SiwaLoginDetail) => {
+      container.dispatchEvent(
+        new CustomEvent(name, { bubbles: true, detail })
+      );
+    };
+
+    // Helper to show error
+    const showError = (message: string) => {
+      if (errorDiv && errorMessage) {
+        errorMessage.textContent = message;
+        errorDiv.classList.remove("hidden");
+      }
+      emit("siwa:login-error", { error: message });
+    };
+
+    // Helper to hide error
+    const hideError = () => {
+      if (errorDiv) {
+        errorDiv.classList.add("hidden");
+      }
+    };
+
+    // Helper to update UI state
+    const updateState = (state: "idle" | "loading" | "authenticated") => {
+      loginBtn.setAttribute("data-state", state);
+
+      if (state === "authenticated" && loggedInDiv) {
+        loginBtn.classList.add("hidden");
+        loggedInDiv.classList.remove("hidden");
+      } else if (loggedInDiv) {
+        loginBtn.classList.remove("hidden");
+        loggedInDiv.classList.add("hidden");
+      }
+    };
+
+    // Check if already authenticated
+    const checkAuth = async () => {
+      try {
+        const isAuth = await client.isAuthenticated();
+        if (isAuth) {
+          const address = await client.getAddress();
+          const principal = await client.getPrincipal();
+          if (address && addressSpan) {
+            addressSpan.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+          }
+          updateState("authenticated");
+          emit("siwa:login-success", {
+            principal: principal?.toText(),
+            address: address || undefined,
+          });
+        }
+      } catch (e) {
+        console.error("SIWA: Auth check failed", e);
+      }
+    };
+
+    // Login handler
+    const handleLogin = async () => {
+      hideError();
+      updateState("loading");
+      emit("siwa:login-start");
+
+      try {
+        // Check if window.ethereum is available (MetaMask, Core, etc.)
+        const ethereum = (window as any).ethereum;
+        if (!ethereum) {
+          throw new Error("No Avalanche wallet detected. Please install Core or MetaMask.");
+        }
+
+        // Request account access
+        const accounts = await ethereum.request({
+          method: "eth_requestAccounts",
+        });
+
+        if (!accounts || accounts.length === 0) {
+          throw new Error("No account selected");
+        }
+
+        const address = accounts[0] as string;
+
+        // Prepare login message
+        const prepared = await client.prepareLogin(address);
+
+        // Sign message with wallet
+        const signature = await ethereum.request({
+          method: "personal_sign",
+          params: [prepared.message, address],
+        });
+
+        // Complete login
+        const result = await client.login(signature, address);
+
+        // Update UI
+        if (addressSpan) {
+          addressSpan.textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+        }
+        updateState("authenticated");
+
+        emit("siwa:login-success", {
+          principal: result.principal.toText(),
+          address: result.address,
+        });
+      } catch (e: any) {
+        console.error("SIWA: Login failed", e);
+        updateState("idle");
+
+        const message =
+          e?.message || "Login failed. Please try again.";
+        showError(message);
+      }
+    };
+
+    // Logout handler
+    const handleLogout = async () => {
+      try {
+        await client.logout();
+        updateState("idle");
+        hideError();
+        emit("siwa:logout");
+      } catch (e) {
+        console.error("SIWA: Logout failed", e);
+      }
+    };
+
+    // Event listeners
+    loginBtn.addEventListener("click", handleLogin);
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", handleLogout);
+    }
+
+    if (errorDismiss) {
+      errorDismiss.addEventListener("click", hideError);
+    }
+
+    // Check auth on load
+    checkAuth();
+  });
+</script>

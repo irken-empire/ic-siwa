@@ -327,7 +327,7 @@ in
       #};
       markdownlint = {
         excludes = [
-          "^docs/todo/.*\\.md$" # Ignore todo notes.
+          "^docs/tickets/todo/.*\\.md$" # Ignore todo notes.
         ];
         enable = true;
         settings = {

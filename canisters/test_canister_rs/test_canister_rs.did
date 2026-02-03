@@ -1,32 +1,26 @@
-// Test Canister (Rust) Candid Interface
-// For integration testing of IC-SIWA
+// Test Canister Candid Interface
+// Used for integration testing of IC-SIWA
 
-type LoginResponse = variant {
-    Ok : principal;
-    Err : text;
-};
-
-type PrepareLoginResponse = variant {
-    Ok : text;
-    Err : text;
-};
-
-type ProtectedDataResponse = variant {
-    Ok : text;
-    Err : text;
+type SignedDelegation = record {
+    delegation : blob;
+    signature : blob;
 };
 
 service : {
     // Health check
     health : () -> (text) query;
 
-    // Identity
+    // Get caller principal
     whoami : () -> (principal) query;
 
-    // Protected endpoint
-    protected_data : () -> (ProtectedDataResponse) query;
+    // Protected endpoint (requires authentication)
+    protected_data : () -> (variant { Ok : text; Err : text }) query;
 
     // SIWA integration tests
-    test_prepare_login : (provider_id : principal, address : text) -> (PrepareLoginResponse);
-    test_login : (provider_id : principal, signature : text, address : text, session_key : blob) -> (LoginResponse);
+    test_prepare_login : (provider_id : principal, address : text) -> (variant { Ok : text; Err : text });
+    test_login : (provider_id : principal, signature : text, address : text, session_key : blob) -> (variant { Ok : principal; Err : text });
+    test_get_delegation : (provider_id : principal, address : text, session_key : blob, expiration : nat64) -> (variant { Ok : SignedDelegation; Err : text });
+
+    // HTML test page
+    get_test_page : () -> (text) query;
 }

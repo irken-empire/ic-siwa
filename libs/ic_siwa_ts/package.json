@@ -10,10 +10,15 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./astro": {
+      "import": "./src/astro/LoginButton.astro",
+      "types": "./dist/astro/index.d.ts"
     }
   },
   "files": [
     "dist",
+    "src/astro",
     "README.md"
   ],
   "scripts": {

@@ -3,8 +3,6 @@
 //! These tests exercise the canister's service layer logic.
 //! For true end-to-end tests with IC runtime, use PocketIC or dfx-based testing.
 
-use candid::Principal;
-
 // Test helpers
 mod helpers {
     use candid::Principal;
@@ -21,10 +19,6 @@ mod helpers {
     pub fn test_principal() -> Principal {
         Principal::from_slice(&[1, 2, 3, 4, 5])
     }
-
-    pub fn zero_address() -> String {
-        "0x0000000000000000000000000000000000000000".to_string()
-    }
 }
 
 // Note: These tests are designed to test the library logic.
@@ -33,7 +27,7 @@ mod helpers {
 #[cfg(test)]
 mod library_tests {
     use ic_siwa::siwa::{derive_principal, hash_session_key, validate_address};
-    use ic_siwa::types::{DomainPattern, DomainValidator};
+    use ic_siwa::types::DomainValidator;
     use ic_siwa::{CanisterGuard, SecurityMode, Settings};
 
     use super::helpers::*;

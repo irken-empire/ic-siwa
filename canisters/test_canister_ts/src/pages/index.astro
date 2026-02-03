@@ -1,66 +1,250 @@
 ---
-// IC-SIWA Test Canister - Login Page
+/**
+ * IC-SIWA Test Canister - Login Page
+ *
+ * This page demonstrates the SIWA login flow using the ic-siwa library.
+ * It uses the LoginButton component for authentication.
+ */
+import "../styles/global.css";
+
+// Note: In production, get this from environment/config
+// For local testing, this will be set after deployment
+const SIWA_PROVIDER_CANISTER_ID = import.meta.env.PUBLIC_SIWA_PROVIDER_CANISTER_ID || "be2us-64aaa-aaaaa-qaabq-cai";
+const IC_HOST = import.meta.env.PUBLIC_IC_HOST || "http://localhost:4943";
+
 const title = "IC-SIWA Test";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
-  <body class="min-h-screen bg-base-200 flex items-center justify-center">
-    <div class="card w-96 bg-base-100 shadow-xl">
-      <div class="card-body items-center text-center">
-        <h1 class="card-title text-2xl mb-4">IC-SIWA Test</h1>
-        <p class="mb-4 text-base-content/70">
-          Test Sign in with Avalanche authentication
-        </p>
-
-        <div id="login-section">
-          <button id="login-btn" class="btn btn-primary btn-wide">
-            Login with Avalanche
-          </button>
-        </div>
-
-        <div id="authenticated-section" class="hidden">
-          <div class="alert alert-success mb-4">
-            <span id="principal-display">Logged in!</span>
-          </div>
-          <button id="logout-btn" class="btn btn-outline btn-wide">
-            Logout
-          </button>
-        </div>
-
-        <div id="error-section" class="hidden">
-          <div class="alert alert-error">
-            <span id="error-display"></span>
-          </div>
-        </div>
-
-        <div id="loading-section" class="hidden">
-          <span class="loading loading-spinner loading-lg"></span>
-          <p class="mt-2">Connecting...</p>
-        </div>
+  <body class="min-h-screen bg-base-200">
+    <!-- Header -->
+    <div class="navbar bg-base-100 shadow-lg">
+      <div class="flex-1">
+        <a class="btn btn-ghost text-xl">IC-SIWA Test</a>
+      </div>
+      <div class="flex-none">
+        <span class="badge badge-outline">Local Test</span>
       </div>
     </div>
 
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+      <div class="flex flex-col items-center justify-center min-h-[70vh]">
+
+        <!-- Login Card -->
+        <div class="card w-full max-w-md bg-base-100 shadow-xl">
+          <div class="card-body items-center text-center">
+            <h1 class="card-title text-2xl mb-2">Sign in with Avalanche</h1>
+            <p class="text-base-content/70 mb-6">
+              Test the IC-SIWA authentication flow
+            </p>
+
+            <!-- Login Section -->
+            <div id="auth-container" class="w-full">
+              <button
+                id="login-btn"
+                class="btn btn-primary btn-wide gap-2"
+                data-canister-id={SIWA_PROVIDER_CANISTER_ID}
+                data-host={IC_HOST}
+              >
+                <svg width="20" height="20" viewBox="0 0 254 254" fill="currentColor">
+                  <path d="M127 254C197.14 254 254 197.14 254 127C254 56.86 197.14 0 127 0C56.86 0 0 56.86 0 127C0 197.14 56.86 254 127 254Z" fill="currentColor" fill-opacity="0.1"/>
+                  <path d="M171.8 170.68H193.36C197.04 170.68 198.88 170.68 199.84 169.88C200.92 169 201.36 167.6 200.88 166.32C200.4 165.08 188.04 143.24 181.88 132.52C175.72 121.8 169.44 110.88 163.24 100.08C157.04 89.28 153.36 89.28 149.68 89.28H128.12C124.44 89.28 122.6 89.28 121.64 90.08C120.56 90.96 120.12 92.36 120.6 93.64C121.08 94.88 133.44 116.72 139.6 127.44C145.76 138.16 152.04 149.08 158.24 159.88C164.44 170.68 168.12 170.68 171.8 170.68Z" fill="currentColor"/>
+                  <path d="M82.2 170.68H60.64C56.96 170.68 55.12 170.68 54.16 169.88C53.08 169 52.64 167.6 53.12 166.32C53.6 165.08 65.96 143.24 72.12 132.52C78.28 121.8 84.56 110.88 90.76 100.08C96.96 89.28 100.64 89.28 104.32 89.28H125.88C129.56 89.28 131.4 89.28 132.36 90.08C133.44 90.96 133.88 92.36 133.4 93.64C132.92 94.88 120.56 116.72 114.4 127.44C108.24 138.16 101.96 149.08 95.76 159.88C89.56 170.68 85.88 170.68 82.2 170.68Z" fill="currentColor"/>
+                </svg>
+                Connect Wallet
+              </button>
+
+              <!-- Loading State -->
+              <div id="loading-state" class="hidden">
+                <span class="loading loading-spinner loading-lg"></span>
+                <p class="mt-2 text-base-content/70">Connecting...</p>
+              </div>
+
+              <!-- Authenticated State -->
+              <div id="authenticated-state" class="hidden w-full">
+                <div class="alert alert-success mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h3 class="font-bold">Connected!</h3>
+                    <div class="text-xs" id="principal-display"></div>
+                  </div>
+                </div>
+
+                <div class="stats shadow w-full mb-4">
+                  <div class="stat">
+                    <div class="stat-title">Address</div>
+                    <div class="stat-value text-sm font-mono" id="address-display"></div>
+                  </div>
+                </div>
+
+                <button id="logout-btn" class="btn btn-outline btn-wide">
+                  Disconnect
+                </button>
+              </div>
+
+              <!-- Error State -->
+              <div id="error-state" class="hidden w-full mt-4">
+                <div class="alert alert-error">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span id="error-message"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card w-full max-w-md bg-base-100 shadow-xl mt-4">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Configuration</h2>
+            <div class="overflow-x-auto">
+              <table class="table table-xs">
+                <tbody>
+                  <tr>
+                    <td class="font-semibold">Provider Canister</td>
+                    <td class="font-mono text-xs">{SIWA_PROVIDER_CANISTER_ID}</td>
+                  </tr>
+                  <tr>
+                    <td class="font-semibold">IC Host</td>
+                    <td class="font-mono text-xs">{IC_HOST}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer footer-center p-4 bg-base-300 text-base-content">
+      <div>
+        <p>IC-SIWA Test Canister - For development use only</p>
+      </div>
+    </footer>
+
     <script>
-      // TODO: Implement login flow with ic-siwa library
-      const loginBtn = document.getElementById("login-btn");
+      import { SiwaClient } from "ic-siwa";
+
+      // Get configuration from data attributes
+      const loginBtn = document.getElementById("login-btn") as HTMLButtonElement;
+      const canisterId = loginBtn?.dataset.canisterId || "";
+      const host = loginBtn?.dataset.host || "https://ic0.app";
+
+      // UI Elements
+      const loadingState = document.getElementById("loading-state");
+      const authenticatedState = document.getElementById("authenticated-state");
+      const errorState = document.getElementById("error-state");
+      const principalDisplay = document.getElementById("principal-display");
+      const addressDisplay = document.getElementById("address-display");
+      const errorMessage = document.getElementById("error-message");
       const logoutBtn = document.getElementById("logout-btn");
 
-      loginBtn?.addEventListener("click", async () => {
-        console.log("Login clicked - TODO: Implement with ic-siwa");
-        alert("Login not yet implemented - see ticket 028");
-      });
+      // Create SIWA client
+      const client = new SiwaClient({ canisterId, host });
 
-      logoutBtn?.addEventListener("click", async () => {
-        console.log("Logout clicked - TODO: Implement with ic-siwa");
-        alert("Logout not yet implemented - see ticket 028");
-      });
+      // Helper to update UI state
+      function showState(state: "login" | "loading" | "authenticated" | "error", error?: string) {
+        loginBtn?.classList.toggle("hidden", state !== "login");
+        loadingState?.classList.toggle("hidden", state !== "loading");
+        authenticatedState?.classList.toggle("hidden", state !== "authenticated");
+        errorState?.classList.toggle("hidden", state !== "error");
+
+        if (state === "error" && errorMessage && error) {
+          errorMessage.textContent = error;
+        }
+      }
+
+      // Check if already authenticated
+      async function checkAuth() {
+        try {
+          if (await client.isAuthenticated()) {
+            const principal = await client.getPrincipal();
+            const address = await client.getAddress();
+
+            if (principalDisplay) principalDisplay.textContent = principal?.toText() || "";
+            if (addressDisplay) addressDisplay.textContent = address || "";
+
+            showState("authenticated");
+          }
+        } catch (e) {
+          console.error("Auth check failed:", e);
+        }
+      }
+
+      // Login handler
+      async function handleLogin() {
+        showState("loading");
+
+        try {
+          // Check for wallet
+          const ethereum = (window as any).ethereum;
+          if (!ethereum) {
+            throw new Error("No Avalanche wallet detected. Please install Core or MetaMask.");
+          }
+
+          // Request accounts
+          const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+          if (!accounts || accounts.length === 0) {
+            throw new Error("No account selected");
+          }
+
+          const address = accounts[0];
+
+          // Prepare login
+          const prepared = await client.prepareLogin(address);
+
+          // Sign message
+          const signature = await ethereum.request({
+            method: "personal_sign",
+            params: [prepared.message, address],
+          });
+
+          // Complete login
+          const result = await client.login(signature, address);
+
+          // Update UI
+          if (principalDisplay) principalDisplay.textContent = result.principal.toText();
+          if (addressDisplay) addressDisplay.textContent = result.address;
+
+          showState("authenticated");
+        } catch (e: any) {
+          console.error("Login failed:", e);
+          showState("error", e?.message || "Login failed");
+
+          // Show login button again after error
+          setTimeout(() => showState("login"), 3000);
+        }
+      }
+
+      // Logout handler
+      async function handleLogout() {
+        try {
+          await client.logout();
+          showState("login");
+        } catch (e) {
+          console.error("Logout failed:", e);
+        }
+      }
+
+      // Event listeners
+      loginBtn?.addEventListener("click", handleLogin);
+      logoutBtn?.addEventListener("click", handleLogout);
+
+      // Check auth on load
+      checkAuth();
     </script>
   </body>
 </html>

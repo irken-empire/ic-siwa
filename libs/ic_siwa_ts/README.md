@@ -116,6 +116,98 @@ try {
 }
 ```
 
+## Astro Component
+
+The library includes a ready-to-use Astro component for the login button.
+
+### Basic Usage
+
+```astro
+---
+import LoginButton from 'ic-siwa/astro';
+---
+
+<LoginButton canisterId="xxxxx-xxxxx-xxxxx-xxxxx-xxx" />
+```
+
+### Props
+
+| Prop          | Type                                  | Default                  | Description                  |
+| ------------- | ------------------------------------- | ------------------------ | ---------------------------- |
+| `canisterId`  | `string`                              | required                 | IC-SIWA Provider canister ID |
+| `host`        | `string`                              | `https://ic0.app`        | IC host URL                  |
+| `label`       | `string`                              | `Sign in with Avalanche` | Button text                  |
+| `size`        | `xs\|sm\|md\|lg\|xl`                  | `md`                     | Button size                  |
+| `variant`     | `primary\|secondary\|accent\|neutral` | `primary`                | Color variant                |
+| `style`       | `solid\|outline\|soft\|ghost`         | `solid`                  | Button style                 |
+| `showAddress` | `boolean`                             | `true`                   | Show address when logged in  |
+| `class`       | `string`                              | `""`                     | Additional CSS classes       |
+| `id`          | `string`                              | `siwa-login-btn`         | Custom element ID            |
+
+### Custom Styling
+
+```astro
+<LoginButton
+  canisterId="xxxxx-xxxxx-xxxxx-xxxxx-xxx"
+  label="Connect Wallet"
+  variant="accent"
+  style="outline"
+  size="lg"
+  class="my-custom-class"
+/>
+```
+
+### Events
+
+The component emits custom events you can listen to:
+
+```astro
+---
+import LoginButton from 'ic-siwa/astro';
+---
+
+<div id="auth-container">
+  <LoginButton canisterId="xxxxx-xxxxx-xxxxx-xxxxx-xxx" />
+</div>
+
+<script>
+  const container = document.getElementById('auth-container');
+
+  container.addEventListener('siwa:login-start', () => {
+    console.log('Login started...');
+  });
+
+  container.addEventListener('siwa:login-success', (e) => {
+    console.log('Logged in as:', e.detail.principal);
+    console.log('Address:', e.detail.address);
+  });
+
+  container.addEventListener('siwa:login-error', (e) => {
+    console.error('Login failed:', e.detail.error);
+  });
+
+  container.addEventListener('siwa:logout', () => {
+    console.log('User logged out');
+  });
+</script>
+```
+
+### Custom Icon
+
+You can replace the default Avalanche logo with a custom icon:
+
+```astro
+<LoginButton canisterId="xxxxx-xxxxx-xxxxx-xxxxx-xxx">
+  <svg slot="icon" ...>...</svg>
+</LoginButton>
+```
+
+## Requirements
+
+- DaisyUI and Tailwind CSS for the Astro component styling
+- An Avalanche-compatible wallet (Core, MetaMask, etc.)
+- Deployed `ic_siwa_provider` canister
+
 ## License
 
 MIT
