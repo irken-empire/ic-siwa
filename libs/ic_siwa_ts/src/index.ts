@@ -47,7 +47,7 @@ export type {
 // Candid types (for advanced usage)
 export {
   idlFactory as siwaProviderIdlFactory,
-  type SiwaProviderService,
+  type _SERVICE as SiwaProviderService,
   type InitArgs as SiwaProviderInitArgs,
 } from "./candid";
 

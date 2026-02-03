@@ -29,6 +29,7 @@ show_help() {
 
 		Commands:
 		  build              Build the project (Rust canisters)
+		  candid             Generate TypeScript declarations from .did files
 		  test               Run unit tests (cargo test, bun test)
 		  test-integration   Run integration tests (dfx canister calls)
 		  fmt                Format code (cargo fmt)
@@ -37,7 +38,7 @@ show_help() {
 		  upgrade            Upgrade deployed canisters
 		  urls               Show deployed canister URLs
 		  cleanup            Clean up build artifacts (add --prune to delete canisters)
-		  loop               Full development loop: fmt, lint, build, test, deploy
+		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
 		  help               Show this help message
@@ -102,6 +103,88 @@ cmd_build() {
 	cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider
 
 	log_success "Build complete!"
+}
+
+# Generate TypeScript declarations from Candid files
+cmd_candid() {
+	log_info "Generating Candid interface and TypeScript declarations..."
+	cd "${PROJECT_ROOT}"
+
+	# Check if candid-extractor is available
+	if ! command -v candid-extractor &>/dev/null; then
+		log_error "candid-extractor not found. Install via: cargo install candid-extractor"
+		return 1
+	fi
+
+	# Check if didc is available
+	if ! command -v didc &>/dev/null; then
+		log_error "didc not found. Install the Candid compiler for TypeScript generation."
+		log_info "  Install via: cargo install didc"
+		log_info "  Or add to devenv/nix: didc"
+		return 1
+	fi
+
+	local wasm_file="${PROJECT_ROOT}/target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm"
+	local did_file="${PROJECT_ROOT}/canisters/ic_siwa_provider/ic_siwa_provider.did"
+	local ts_output_dir="${PROJECT_ROOT}/libs/ic_siwa_ts/src/candid"
+	local ts_file="${ts_output_dir}/ic_siwa_provider.ts"
+
+	# Build the WASM if it doesn't exist or is older than source
+	if [[ ! -f ${wasm_file} ]]; then
+		log_info "WASM not found, building..."
+		cargo build --target wasm32-unknown-unknown --release -p ic_siwa_provider || {
+			log_error "Failed to build WASM"
+			return 1
+		}
+	fi
+
+	# Step 1: Extract .did from WASM using candid-extractor
+	log_info "Extracting Candid interface from WASM..."
+	candid-extractor "${wasm_file}" >"${did_file}.extracted" || {
+		log_error "Failed to extract Candid from WASM"
+		return 1
+	}
+
+	# Replace the .did file with extracted version
+	mv "${did_file}.extracted" "${did_file}"
+	log_success "Candid interface extracted: ${did_file}"
+
+	# Create output directory
+	mkdir -p "${ts_output_dir}"
+
+	# Step 2: Generate TypeScript from .did using didc
+	log_info "Generating TypeScript module..."
+	{
+		echo '// @ts-nocheck'
+		echo '/**'
+		echo ' * Auto-generated Candid bindings for ic_siwa_provider canister'
+		echo ' * Generated from: canisters/ic_siwa_provider/ic_siwa_provider.did'
+		echo ' * DO NOT EDIT MANUALLY - regenerate with: ic-siwa candid'
+		echo ' */'
+		echo ''
+		echo '/* eslint-disable @typescript-eslint/no-explicit-any */'
+		echo ''
+		# Get TypeScript types, but fix the IDL import to be a value import (not type)
+		# and skip the declare lines at the end - we provide real implementations
+		didc bind "${did_file}" -t ts | grep -v "^export declare" | sed 's/import type { IDL }/import { IDL }/'
+		echo ''
+		# Get IDL factory from JS output, add TypeScript typing
+		didc bind "${did_file}" -t js | sed 's/{ IDL }/{ IDL }: { IDL: any }/g'
+	} >"${ts_file}" || {
+		log_error "Failed to generate TypeScript module"
+		return 1
+	}
+
+	# Update index.ts to re-export
+	cat <<-EOF >"${ts_output_dir}/index.ts"
+		/**
+		 * Candid TypeScript declarations
+		 * Auto-generated - DO NOT EDIT MANUALLY
+		 */
+		export * from './ic_siwa_provider';
+	EOF
+
+	log_success "TypeScript module generated: ${ts_file}"
 }
 
 # Run unit tests
@@ -371,8 +454,18 @@ cmd_deploy() {
 		return 1
 	}
 
+	# Determine IC host URL based on network
+	local ic_host
+	case "${network}" in
+	dfx) ic_host="http://127.0.0.1:${DFX_PORT}" ;;
+	juno) ic_host="http://127.0.0.1:${JUNO_PORT}" ;;
+	ic) ic_host="https://ic0.app" ;;
+	esac
+
 	# Build and deploy TypeScript test canister
 	log_info "Building test_canister_ts..."
+	log_info "  Provider Canister ID: ${provider_id}"
+	log_info "  IC Host: ${ic_host}"
 	cd "${PROJECT_ROOT}/canisters/test_canister_ts"
 
 	if [[ ! -d "node_modules" ]]; then
@@ -381,7 +474,9 @@ cmd_deploy() {
 	fi
 
 	log_info "Building Astro app..."
-	bun run build
+	PUBLIC_SIWA_PROVIDER_CANISTER_ID="${provider_id}" \
+		PUBLIC_IC_HOST="${ic_host}" \
+		bun run build
 
 	cd "${PROJECT_ROOT}"
 
@@ -391,9 +486,13 @@ cmd_deploy() {
 		return 1
 	}
 
-	# Show URLs
 	log_success "All canisters deployed!"
-	show_canister_urls "${network}"
+
+	# Remind about direnv if .env was updated
+	if [[ -f "${PROJECT_ROOT}/.env" ]]; then
+		log_info ""
+		log_warn "If using direnv, run 'direnv reload' to pick up new .env values"
+	fi
 }
 
 # Show canister URLs
@@ -463,9 +562,9 @@ cmd_upgrade() {
 		return 1
 	}
 
-	log_info "Found canister: ${canister_id}"
+	log_info "Found ic_siwa_provider: ${canister_id}"
 
-	# Build first
+	# Build Rust canisters first
 	cmd_build
 
 	# Get init argument
@@ -476,10 +575,50 @@ cmd_upgrade() {
 	log_info "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
 	log_info "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
 
-	# Upgrade
+	# Upgrade ic_siwa_provider
+	log_info "Upgrading ic_siwa_provider..."
 	dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --argument "${init_arg}"
 
-	log_success "Upgrade complete!"
+	# Upgrade test_canister_rs
+	log_info "Upgrading test_canister_rs..."
+	dfx deploy test_canister_rs --network "${network}" --mode upgrade
+
+	# Determine IC host URL based on network
+	local ic_host
+	case "${network}" in
+	dfx) ic_host="http://127.0.0.1:${DFX_PORT}" ;;
+	juno) ic_host="http://127.0.0.1:${JUNO_PORT}" ;;
+	ic) ic_host="https://ic0.app" ;;
+	esac
+
+	# Rebuild and upgrade test_canister_ts
+	log_info "Rebuilding test_canister_ts..."
+	log_info "  Provider Canister ID: ${canister_id}"
+	log_info "  IC Host: ${ic_host}"
+	cd "${PROJECT_ROOT}/canisters/test_canister_ts"
+
+	if [[ ! -d "node_modules" ]]; then
+		log_info "Installing dependencies..."
+		bun install
+	fi
+
+	log_info "Building Astro app..."
+	PUBLIC_SIWA_PROVIDER_CANISTER_ID="${canister_id}" \
+		PUBLIC_IC_HOST="${ic_host}" \
+		bun run build
+
+	cd "${PROJECT_ROOT}"
+
+	log_info "Upgrading test_canister_ts..."
+	dfx deploy test_canister_ts --network "${network}" --mode upgrade
+
+	log_success "All canisters upgraded!"
+
+	# Remind about direnv if .env was updated
+	if [[ -f "${PROJECT_ROOT}/.env" ]]; then
+		log_info ""
+		log_warn "If using direnv, run 'direnv reload' to pick up new .env values"
+	fi
 }
 
 # Clean up artifacts
@@ -539,6 +678,11 @@ cmd_loop() {
 		return 1
 	}
 
+	cmd_candid || {
+		log_error "Candid generation failed"
+		return 1
+	}
+
 	cmd_build || {
 		log_error "Build failed"
 		return 1
@@ -564,6 +708,8 @@ cmd_loop() {
 		log_error "Integration tests failed"
 		return 1
 	}
+
+	show_canister_urls "${network}"
 
 	log_success "Development loop complete!"
 }
@@ -600,6 +746,9 @@ parse_args() {
 	case "${cmd}" in
 	build)
 		cmd_build
+		;;
+	candid)
+		cmd_candid
 		;;
 	test)
 		cmd_test

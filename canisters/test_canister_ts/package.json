@@ -17,9 +17,10 @@
     "@walletconnect/ethereum-provider": "^2.17.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.6",
     "@astrojs/tailwind": "^6.0.0",
     "daisyui": "^4.0.0",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3"
   }
 }

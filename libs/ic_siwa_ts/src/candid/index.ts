@@ -1,16 +1,5 @@
 /**
- * Candid interfaces
+ * Candid TypeScript declarations
+ * Auto-generated - DO NOT EDIT MANUALLY
  */
-
-export {
-  idlFactory,
-  init,
-  type _SERVICE as SiwaProviderService,
-  type InitArgs,
-  type SignedDelegation as CandidSignedDelegation,
-  type GetDelegationResponse,
-  type LoginResponse,
-  type PrepareLoginResponse,
-  type AddressResponse,
-  type PrincipalResponse,
-} from "./ic_siwa_provider";
+export * from "./ic_siwa_provider";

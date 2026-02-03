@@ -11,10 +11,11 @@ import {
 import {Principal} from "@dfinity/principal";
 import {
   idlFactory,
-  type SiwaProviderService,
+  type _SERVICE,
   type GetDelegationResponse,
   type LoginResponse,
   type PrepareLoginResponse,
+  type Delegation as CandidDelegation,
 } from "./candid";
 import {SiwaError, SiwaErrorCode} from "./errors";
 import {
@@ -150,11 +151,9 @@ export class SiwaClient {
   /**
    * Create an actor for the SIWA provider canister
    */
-  private async createProviderActor(
-    agent?: HttpAgent
-  ): Promise<SiwaProviderService> {
+  private async createProviderActor(agent?: HttpAgent): Promise<_SERVICE> {
     const actorAgent = agent ?? (await this.createAnonymousAgent());
-    return Actor.createActor<SiwaProviderService>(idlFactory, {
+    return Actor.createActor<_SERVICE>(idlFactory, {
       agent: actorAgent,
       canisterId: this.canisterId,
     });
@@ -177,24 +176,13 @@ export class SiwaClient {
         );
       }
 
-      const message = response.Ok;
-
-      // Extract nonce from message (format: "Nonce: <nonce>")
-      const nonceMatch = message.match(/Nonce: ([a-zA-Z0-9]+)/);
-      const nonce = nonceMatch ? nonceMatch[1] : "";
-
-      // Extract expiration from message (format: "Expiration Time: <iso8601>")
-      const expirationMatch = message.match(
-        /Expiration Time: (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)/
-      );
-      const expirationTime = expirationMatch
-        ? new Date(expirationMatch[1]).getTime() * 1_000_000 // Convert to nanoseconds
-        : BigInt(Date.now() + 5 * 60 * 1000) * BigInt(1_000_000); // Default: 5 minutes
+      // Response.Ok is now a record with message, nonce, expiration
+      const {message, nonce, expiration} = response.Ok;
 
       return {
         message,
         nonce,
-        expiration: BigInt(expirationTime),
+        expiration,
       };
     } catch (error) {
       if (error instanceof SiwaError) {
@@ -219,9 +207,9 @@ export class SiwaClient {
     try {
       // Generate session key if not provided
       this.sessionKey = sessionKey ?? generateSessionKey();
-      const sessionKeyBytes = new Uint8Array(
-        this.sessionKey.getPublicKey().toDer()
-      );
+      const sessionKeyDer = this.sessionKey.getPublicKey().toDer();
+      // Convert to number[] for Candid encoding (blob = vec nat8)
+      const sessionKeyBytes = Array.from(new Uint8Array(sessionKeyDer));
 
       // Call siwa_login
       const actor = await this.createProviderActor();
@@ -239,10 +227,13 @@ export class SiwaClient {
         );
       }
 
-      const principal = loginResponse.Ok;
+      // LoginOk contains user_principal and expiration
+      const {user_principal: principal, expiration: loginExpiration} =
+        loginResponse.Ok;
 
-      // Get delegation with expiration (30 minutes from now in nanoseconds)
+      // Use the expiration from login response, or default to 30 minutes
       const expirationNs =
+        loginExpiration ??
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
 
       const delegationResponse: GetDelegationResponse =
@@ -257,24 +248,19 @@ export class SiwaClient {
       }
 
       // Create delegation chain from canister response
-      const {delegation, signature: delegationSignature} =
+      const {delegation: candidDelegation, signature: delegationSignature} =
         delegationResponse.Ok;
 
-      // Convert to proper Uint8Array if needed
-      const delegationBytes =
-        delegation instanceof Uint8Array
-          ? delegation
-          : new Uint8Array(delegation);
+      // Convert signature to proper Uint8Array if needed
       const signatureBytes =
         delegationSignature instanceof Uint8Array
           ? delegationSignature
           : new Uint8Array(delegationSignature);
 
-      // Build delegation chain
+      // Build delegation chain from the canister's delegation
       const delegationChain = this.buildDelegationChain(
-        delegationBytes,
-        signatureBytes,
-        expirationNs
+        candidDelegation,
+        signatureBytes
       );
 
       // Calculate expiration in milliseconds
@@ -325,14 +311,12 @@ export class SiwaClient {
   /**
    * Build delegation chain from canister response
    *
-   * @param _delegationBytes - CBOR-encoded delegation (unused, we construct from session key)
+   * @param candidDelegation - Delegation record from canister
    * @param signatureBytes - Signature from canister
-   * @param expiration - Delegation expiration time in nanoseconds
    */
   private buildDelegationChain(
-    _delegationBytes: Uint8Array,
-    signatureBytes: Uint8Array,
-    expiration: bigint
+    candidDelegation: CandidDelegation,
+    signatureBytes: Uint8Array
   ): DelegationChain {
     if (!this.sessionKey) {
       throw new SiwaError(
@@ -341,26 +325,38 @@ export class SiwaClient {
       );
     }
 
-    // The delegation from the canister is for our session key
-    // We construct a Delegation instance with the session key's public key
-    const pubkey = this.sessionKey.getPublicKey().toDer();
-    const delegation = new Delegation(pubkey, expiration);
+    // Convert pubkey from the canister response to ArrayBuffer
+    const pubkeyBytes =
+      candidDelegation.pubkey instanceof Uint8Array
+        ? candidDelegation.pubkey
+        : new Uint8Array(candidDelegation.pubkey);
+
+    // Create a proper ArrayBuffer copy from the Uint8Array
+    const pubkeyBuffer = new ArrayBuffer(pubkeyBytes.length);
+    new Uint8Array(pubkeyBuffer).set(pubkeyBytes);
+
+    // Create Delegation instance from canister response
+    // Note: targets are optional in the candid type
+    const targets = candidDelegation.targets[0]; // opt vec principal -> [] | [Principal[]]
+    const delegation = new Delegation(
+      pubkeyBuffer,
+      candidDelegation.expiration,
+      targets
+    );
 
     // Create delegation chain with single delegation signed by canister
-    // Convert signature to ArrayBuffer and cast to branded Signature type
-    const signatureBuffer = signatureBytes.buffer.slice(
-      signatureBytes.byteOffset,
-      signatureBytes.byteOffset + signatureBytes.byteLength
-    ) as Signature;
+    // Convert signature to ArrayBuffer
+    const signatureBuffer = new ArrayBuffer(signatureBytes.length);
+    new Uint8Array(signatureBuffer).set(signatureBytes);
 
     return DelegationChain.fromDelegations(
       [
         {
           delegation,
-          signature: signatureBuffer,
+          signature: signatureBuffer as Signature,
         },
       ],
-      pubkey
+      pubkeyBuffer
     );
   }
 
@@ -374,8 +370,9 @@ export class SiwaClient {
     }
 
     const address = identity.getAddress();
-    const sessionKeyBytes = new Uint8Array(
-      this.sessionKey.getPublicKey().toDer()
+    // Convert to number[] for Candid encoding (blob = vec nat8)
+    const sessionKeyBytes = Array.from(
+      new Uint8Array(this.sessionKey.getPublicKey().toDer())
     );
 
     try {
@@ -393,22 +390,17 @@ export class SiwaClient {
         return null;
       }
 
-      const {delegation, signature: delegationSignature} =
+      const {delegation: candidDelegation, signature: delegationSignature} =
         delegationResponse.Ok;
 
-      const delegationBytes =
-        delegation instanceof Uint8Array
-          ? delegation
-          : new Uint8Array(delegation);
       const signatureBytes =
         delegationSignature instanceof Uint8Array
           ? delegationSignature
           : new Uint8Array(delegationSignature);
 
       const delegationChain = this.buildDelegationChain(
-        delegationBytes,
-        signatureBytes,
-        expirationNs
+        candidDelegation,
+        signatureBytes
       );
 
       const expirationMs = Number(expirationNs / BigInt(1_000_000));
