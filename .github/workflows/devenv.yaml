@@ -10,8 +10,6 @@ name: Devenv
 on:  # yamllint disable-line rule:truthy
   pull_request:
     branches:
-      - "main"
-      - "master"
       - "trunk"
     paths:
       - .github/workflows/devenv.yaml
@@ -40,10 +38,6 @@ env:
 
   # SecretSpec
   SECRETSPEC_PROVIDER: env
-
-  # Dummy secrets needed for SecretSpec tests to pass.
-  # These are only needed for local development
-  EXAMPLE_DEV_SECRET: DUMMY_SECRET
 
 defaults:
   run:

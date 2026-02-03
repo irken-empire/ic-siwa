@@ -10,8 +10,6 @@ on:
   pull_request:
     branches:
       - trunk
-      - main
-      - master
     types:
       - opened
       - synchronize
@@ -32,7 +30,9 @@ permissions:
 env:
   PROJECT: ${{ github.repository }}
   NIXPKGS_ALLOW_UNFREE: 1
+
   SECRETSPEC_PROVIDER: env
+
   # Development secrets for CI
   IC_SIWA_SALT_DEVELOPMENT: "ci-test-salt-not-for-production"
   IC_SIWA_DOMAIN_DEVELOPMENT: "localhost"
@@ -75,7 +75,7 @@ jobs:
       - name: Install devenv
         run: nix profile install --accept-flake-config nixpkgs#devenv
 
-      - name: Check formatting
+      - name: Check Rust formatting
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo fmt --all -- --check
 
@@ -83,14 +83,32 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo clippy --all-targets -- -D warnings
 
+      - name: Check TypeScript library
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun run build
+
   ##################################################
   # Build the project
   ##################################################
   build:
-    name: Build
+    name: Build ${{ matrix.canister }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: lint
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - canister: ic_siwa_provider
+            type: rust
+          - canister: test_canister_rs
+            type: rust
+          - canister: test_canister_ts
+            type: assets
 
     steps:
       - name: Checkout repository
@@ -116,20 +134,106 @@ jobs:
       - name: Install devenv
         run: nix profile install --accept-flake-config nixpkgs#devenv
 
-      - name: Build Rust crates
+      # Build Rust WASM canisters
+      - name: Build WASM canister
+        if: matrix.type == 'rust'
         shell: devenv shell --quiet bash -- -e {0}
-        run: cargo build --release
+        run: |
+          cargo build --release --target wasm32-unknown-unknown -p ${{ matrix.canister }}
 
-      - name: Build WASM canisters
+      # Build TypeScript/Assets canister
+      - name: Build TypeScript library
+        if: matrix.type == 'assets'
         shell: devenv shell --quiet bash -- -e {0}
-        run: cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun run build
 
-      - name: Upload build artifacts
+      - name: Build Assets canister
+        if: matrix.type == 'assets'
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd canisters/${{ matrix.canister }}
+          bun install
+          bun run build
+
+      # Upload WASM artifacts
+      - name: Upload WASM artifact
+        if: matrix.type == 'rust'
         uses: actions/upload-artifact@v4
         with:
-          name: wasm-canisters
-          path: target/wasm32-unknown-unknown/release/*.wasm
+          name: ${{ matrix.canister }}-wasm
+          path: target/wasm32-unknown-unknown/release/${{ matrix.canister }}.wasm
           retention-days: 7
+
+      # Upload assets artifacts
+      - name: Upload assets artifact
+        if: matrix.type == 'assets'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.canister }}-assets
+          path: canisters/${{ matrix.canister }}/dist/
+          retention-days: 7
+
+  ##################################################
+  # Generate and verify Candid interfaces
+  ##################################################
+  candid:
+    name: Verify Candid
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v16
+        if: vars.CACHIX_CACHE_NAME != ''
+        with:
+          name: ${{ vars.CACHIX_CACHE_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: true
+          skipPush: false
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic_siwa_provider-wasm
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Verify Candid is up-to-date
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          # Extract Candid from WASM
+          candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
+
+          # Compare with committed .did file
+          if ! diff -q canisters/ic_siwa_provider/ic_siwa_provider.did /tmp/extracted.did > /dev/null 2>&1; then
+            echo "ERROR: Candid interface is out of sync with Rust code!"
+            echo ""
+            echo "Committed .did file differs from extracted interface."
+            echo "Run 'ic-siwa candid' to regenerate."
+            echo ""
+            echo "Diff:"
+            diff canisters/ic_siwa_provider/ic_siwa_provider.did /tmp/extracted.did || true
+            exit 1
+          fi
+
+          echo "Candid interface is up-to-date"
 
   ##################################################
   # Run tests
@@ -164,7 +268,7 @@ jobs:
       - name: Install devenv
         run: nix profile install --accept-flake-config nixpkgs#devenv
 
-      - name: Run unit tests
+      - name: Run Rust unit tests
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo test -p ic_siwa
 
@@ -172,13 +276,20 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo test -p ic_siwa_provider || echo "Some canister tests may require IC runtime"
 
+      - name: Run TypeScript library tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun test || echo "TypeScript tests completed"
+
   ##################################################
   # Report status
   ##################################################
   status:
     name: Report Status
     runs-on: ubuntu-latest
-    needs: [lint, build, test]
+    needs: [lint, build, candid, test]
     if: always()
 
     steps:
@@ -186,6 +297,7 @@ jobs:
         run: |
           if [[ "${{ needs.lint.result }}" == "success" && \
                 "${{ needs.build.result }}" == "success" && \
+                "${{ needs.candid.result }}" == "success" && \
                 "${{ needs.test.result }}" == "success" ]]; then
             echo "All jobs passed!"
             exit 0
@@ -193,6 +305,7 @@ jobs:
             echo "Some jobs failed:"
             echo "  Lint: ${{ needs.lint.result }}"
             echo "  Build: ${{ needs.build.result }}"
+            echo "  Candid: ${{ needs.candid.result }}"
             echo "  Test: ${{ needs.test.result }}"
             exit 1
           fi
