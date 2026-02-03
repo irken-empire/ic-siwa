@@ -287,7 +287,7 @@ in
       };
       cargo-check.enable = true;
       clippy = {
-        enable = true;
+        enable = false; # ic-nix is using older toolchain.
         settings = {
           denyWarnings = true;
           offline = true;

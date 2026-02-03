@@ -137,7 +137,7 @@ jobs:
     needs: [build, verify-candid]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: mainnet
+    environment: Mainnet
     outputs:
       canister_id: ${{ steps.deploy.outputs.canister_id }}
 

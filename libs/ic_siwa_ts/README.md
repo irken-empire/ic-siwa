@@ -210,4 +210,4 @@ You can replace the default Avalanche logo with a custom icon:
 
 ## License
 
-MIT
+Unlicense

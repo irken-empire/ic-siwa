@@ -41,7 +41,7 @@
     "wallet"
   ],
   "author": "Irken Empire <dev@irkenempire.tech>",
-  "license": "MIT",
+  "license": "Unlicense",
   "repository": {
     "type": "git",
     "url": "https://github.com/irken-empire/ic-siwa"

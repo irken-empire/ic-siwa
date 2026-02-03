@@ -383,7 +383,7 @@ ic-siwa version --bump
 
 ## License
 
-MIT - See [LICENSE](LICENSE) for details.
+Unlicense - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 

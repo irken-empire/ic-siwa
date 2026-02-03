@@ -98,7 +98,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: testnet
+    environment: Testnet
     outputs:
       canister_id: ${{ steps.deploy.outputs.canister_id }}
 
@@ -170,7 +170,7 @@ jobs:
     needs: [deploy-provider, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: testnet
+    environment: Testnet
     if: vars.DEPLOY_TEST_CANISTERS == 'true'
 
     steps:

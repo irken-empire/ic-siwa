@@ -18,8 +18,8 @@ ic:
     ic_siwa_provider: null # Set after first deploy
 
 security:
-  # Allow any canister in development
-  allowed_canisters: []
+  allowed_canisters:
+    - "auamu-4x777-77775-aaaaa-cai" # Juno default Satellite
   # 30 minute sessions
   session_expiration_seconds: 1800
   # 5 minute login window
