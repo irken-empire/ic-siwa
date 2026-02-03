@@ -1,0 +1,230 @@
+---
+##################################################
+# Name: deploy-mainnet.yml
+# Description: Deploy to IC Mainnet (Avalanche Mainnet config)
+##################################################
+
+name: Deploy Mainnet
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'deploy-mainnet' to confirm"
+        required: true
+
+concurrency:
+  group: deploy-mainnet
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DFX_NETWORK: ic
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Validate deployment request
+  ##################################################
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy-mainnet" ]; then
+            echo "Confirmation failed. Please type 'deploy-mainnet' to confirm."
+            exit 1
+          fi
+
+      - name: Validate release (release trigger)
+        if: github.event_name == 'release'
+        run: |
+          echo "Deploying release: ${{ github.event.release.tag_name }}"
+          if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+            echo "Warning: This is a pre-release"
+          fi
+
+  ##################################################
+  # Build canisters for production
+  ##################################################
+  build:
+    name: Build Canisters
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v16
+        if: vars.CACHIX_CACHE_NAME != ''
+        with:
+          name: ${{ vars.CACHIX_CACHE_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: true
+          skipPush: false
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Build WASM canisters
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider
+
+      - name: Optimize WASM (optional)
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          if command -v ic-wasm &> /dev/null; then
+            ic-wasm target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm -o target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm shrink
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: canisters-mainnet
+          path: target/wasm32-unknown-unknown/release/*.wasm
+          retention-days: 30
+
+  ##################################################
+  # Deploy to IC Mainnet
+  ##################################################
+  deploy:
+    name: Deploy to IC Mainnet
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: mainnet
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: canisters-mainnet
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v16
+        if: vars.CACHIX_CACHE_NAME != ''
+        with:
+          name: ${{ vars.CACHIX_CACHE_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: true
+          skipPush: false
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Configure DFX identity
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > identity.pem
+          dfx identity import --storage-mode=plaintext deploy identity.pem
+          dfx identity use deploy
+          rm identity.pem
+
+      - name: Deploy ic_siwa_provider
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          dfx deploy --network $DFX_NETWORK ic_siwa_provider --argument '(record {
+            domain = "${{ secrets.IC_SIWA_DOMAIN_MAINNET }}";
+            uri = "${{ secrets.IC_SIWA_URI_MAINNET }}";
+            salt = "${{ secrets.IC_SIWA_SALT_MAINNET }}";
+            chain_id = 43114 : nat64;
+            session_expiration_time = 1800000000000 : nat64;
+            allowed_domains = opt vec {};
+            allowed_canisters = opt vec {};
+          })'
+
+      - name: Output canister ID
+        id: canister_id
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          CANISTER_ID=$(dfx canister --network $DFX_NETWORK id ic_siwa_provider)
+          echo "Deployed ic_siwa_provider: $CANISTER_ID"
+          echo "CANISTER_ID=$CANISTER_ID" >> $GITHUB_OUTPUT
+
+  ##################################################
+  # Post-deployment verification
+  ##################################################
+  verify:
+    name: Post-Deploy Verification
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Verify canister is responding
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          echo "Verifying mainnet canister health..."
+          # Basic canister call test with a test address
+          dfx canister --network ic call ic_siwa_provider siwa_prepare_login '("0x0000000000000000000000000000000000000000")' || {
+            echo "Verification failed - canister may not be responding"
+            exit 1
+          }
+          echo "Mainnet verification passed!"
+
+  ##################################################
+  # Update release notes with deployment info
+  ##################################################
+  update-release:
+    name: Update Release
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Update release body
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          append_body: true
+          body: |
+            ---
+            ## Deployment Status
+            - **Network**: IC Mainnet
+            - **Chain ID**: 43114 (Avalanche Mainnet)
+            - **Deployed**: ${{ github.event.release.created_at }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

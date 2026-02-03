@@ -1,0 +1,31 @@
+[package]
+name = "ic_siwa_provider"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "IC-SIWA Provider Canister - Sign in with Avalanche for the Internet Computer"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Workspace dependencies
+candid.workspace = true
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+ic-stable-structures.workspace = true
+ic-certified-map.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+hex.workspace = true
+sha2.workspace = true
+k256.workspace = true
+thiserror.workspace = true
+time.workspace = true
+getrandom.workspace = true
+
+# Local dependencies
+ic_siwa = { path = "../../libs/ic_siwa" }
+
+[dev-dependencies]

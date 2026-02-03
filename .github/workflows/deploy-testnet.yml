@@ -1,0 +1,238 @@
+---
+##################################################
+# Name: deploy-testnet.yml
+# Description: Deploy to IC Mainnet (Avalanche Fuji Testnet config)
+##################################################
+
+name: Deploy Testnet
+
+on:
+  push:
+    branches:
+      - trunk
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-testnet
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DFX_NETWORK: ic
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Wait for build workflow to complete
+  ##################################################
+  wait-for-build:
+    name: Wait for Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for build workflow
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: "Report Status"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+          allowed-conclusions: success
+
+  ##################################################
+  # Build canisters for deployment
+  ##################################################
+  build:
+    name: Build Canisters
+    needs: wait-for-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v16
+        if: vars.CACHIX_CACHE_NAME != ''
+        with:
+          name: ${{ vars.CACHIX_CACHE_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: true
+          skipPush: false
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Build WASM canisters
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: canisters-testnet
+          path: target/wasm32-unknown-unknown/release/*.wasm
+          retention-days: 7
+
+  ##################################################
+  # Deploy to IC (Testnet configuration)
+  ##################################################
+  deploy:
+    name: Deploy to IC
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: testnet
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: canisters-testnet
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v16
+        if: vars.CACHIX_CACHE_NAME != ''
+        with:
+          name: ${{ vars.CACHIX_CACHE_NAME }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          useDaemon: true
+          skipPush: false
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Configure DFX identity
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          echo "${{ secrets.DFX_IDENTITY_PEM }}" > identity.pem
+          dfx identity import --storage-mode=plaintext deploy identity.pem
+          dfx identity use deploy
+          rm identity.pem
+
+      - name: Deploy ic_siwa_provider
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          dfx deploy --network $DFX_NETWORK ic_siwa_provider --argument '(record {
+            domain = "${{ secrets.IC_SIWA_DOMAIN_TESTNET }}";
+            uri = "${{ secrets.IC_SIWA_URI_TESTNET }}";
+            salt = "${{ secrets.IC_SIWA_SALT_TESTNET }}";
+            chain_id = 43113 : nat64;
+            session_expiration_time = 1800000000000 : nat64;
+            allowed_domains = opt vec {};
+            allowed_canisters = opt vec {};
+          })'
+
+      - name: Output canister ID
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          CANISTER_ID=$(dfx canister --network $DFX_NETWORK id ic_siwa_provider)
+          echo "Deployed ic_siwa_provider: $CANISTER_ID"
+          echo "CANISTER_ID=$CANISTER_ID" >> $GITHUB_OUTPUT
+
+  ##################################################
+  # Run smoke tests
+  ##################################################
+  smoke-test:
+    name: Smoke Tests
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Run smoke tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          echo "Testing canister health..."
+          # Basic canister call test
+          dfx canister --network ic call ic_siwa_provider siwa_prepare_login '("0x0000000000000000000000000000000000000000")' || {
+            echo "Smoke test failed - canister may not be responding"
+            exit 1
+          }
+          echo "Smoke tests passed!"
+
+  ##################################################
+  # Create draft release
+  ##################################################
+  draft-release:
+    name: Create Draft Release
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install devenv
+        run: nix profile install --accept-flake-config nixpkgs#devenv
+
+      - name: Generate release notes
+        id: release_notes
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          # Get version from Cargo.toml
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "VERSION=v${VERSION}" >> $GITHUB_OUTPUT
+
+          # Generate changelog using convco if available
+          if command -v convco &> /dev/null; then
+            convco changelog --max-versions 1 > RELEASE_NOTES.md
+          else
+            echo "## What's Changed" > RELEASE_NOTES.md
+            git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~10)..HEAD >> RELEASE_NOTES.md || true
+          fi
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_notes.outputs.VERSION }}-testnet
+          name: "${{ steps.release_notes.outputs.VERSION }} (Testnet)"
+          body_path: RELEASE_NOTES.md
+          draft: true
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

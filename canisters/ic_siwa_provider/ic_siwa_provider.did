@@ -1,0 +1,54 @@
+// IC-SIWA Provider Candid Interface
+// Sign in with Avalanche for the Internet Computer
+
+type InitArgs = record {
+    domain : text;
+    uri : text;
+    salt : text;
+    chain_id : nat64;
+    session_expiration_time : nat64;
+    allowed_domains : opt vec text;
+    allowed_canisters : opt vec principal;
+};
+
+type SignedDelegation = record {
+    delegation : blob;
+    signature : blob;
+};
+
+type GetDelegationResponse = variant {
+    Ok : SignedDelegation;
+    Err : text;
+};
+
+type LoginResponse = variant {
+    Ok : principal;
+    Err : text;
+};
+
+type PrepareLoginResponse = variant {
+    Ok : text;
+    Err : text;
+};
+
+type AddressResponse = variant {
+    Ok : text;
+    Err : text;
+};
+
+type PrincipalResponse = variant {
+    Ok : principal;
+    Err : text;
+};
+
+service : (InitArgs) -> {
+    // Authentication flow
+    siwa_prepare_login : (address : text) -> (PrepareLoginResponse);
+    siwa_login : (signature : text, address : text, session_key : blob) -> (LoginResponse);
+    siwa_get_delegation : (address : text, session_key : blob, expiration : nat64) -> (GetDelegationResponse) query;
+
+    // Address/Principal lookups
+    get_principal : (address : text) -> (PrincipalResponse) query;
+    get_address : (principal : principal) -> (AddressResponse) query;
+    get_caller_address : () -> (AddressResponse) query;
+}

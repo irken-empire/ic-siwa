@@ -1,0 +1,22 @@
+[package]
+name = "test_canister_rs"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Test canister for IC-SIWA integration testing (Rust)"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Workspace dependencies
+candid.workspace = true
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+serde.workspace = true
+
+# Local dependencies
+ic_siwa = { path = "../../libs/ic_siwa" }
+
+[dev-dependencies]

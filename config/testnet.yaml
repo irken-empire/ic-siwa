@@ -1,0 +1,43 @@
+# IC-SIWA Testnet Configuration
+# For IC Mainnet deployment with Avalanche Fuji Testnet
+
+domains:
+  allowed:
+    # Primary domains
+    - "irkenempire.tech"
+    - "*.irkenempire.tech"
+    - "mahdtech.com"
+    - "*.mahdtech.com"
+    - "saltlabs.cloud"
+    - "*.saltlabs.cloud"
+    - "saltlabs.tech"
+    - "*.saltlabs.tech"
+    # Game domains
+    - "tresr.community"
+    - "*.tresr.community"
+    # IC raw domains
+    - "*.raw.icp0.io"
+    - "*.icp0.io"
+
+avalanche:
+  # Avalanche Fuji Testnet
+  chain_id: 43113
+  rpc_url: "https://api.avax-test.network/ext/bc/C/rpc"
+
+ic:
+  network: "ic"
+  canisters:
+    # TODO: Set after testnet deployment
+    ic_siwa_provider: null
+
+security:
+  # Allowed canisters for inter-canister calls
+  # TODO: Add canister IDs after deployment
+  allowed_canisters: []
+  # 30 minute sessions
+  session_expiration_seconds: 1800
+  # 5 minute login window
+  login_expiration_seconds: 300
+
+library:
+  timeout_ms: 30000

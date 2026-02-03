@@ -1,0 +1,57 @@
+{
+  "name": "ic-siwa",
+  "version": "0.1.0",
+  "description": "Sign in with Avalanche for the Internet Computer",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch",
+    "test": "bun test",
+    "lint": "eslint src",
+    "format": "prettier --write src"
+  },
+  "keywords": [
+    "icp",
+    "internet-computer",
+    "avalanche",
+    "siwa",
+    "authentication",
+    "web3",
+    "wallet"
+  ],
+  "author": "Irken Empire <dev@irkenempire.tech>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irken-empire/ic-siwa"
+  },
+  "dependencies": {
+    "@dfinity/agent": "^2.0.0",
+    "@dfinity/candid": "^2.0.0",
+    "@dfinity/identity": "^2.0.0",
+    "@dfinity/principal": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0",
+    "eslint": "^9.0.0"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0"
+  }
+}

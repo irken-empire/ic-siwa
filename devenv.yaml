@@ -1,0 +1,30 @@
+inputs:
+  fenix:
+    url: github:nix-community/fenix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  foundry:
+    url: github:shazow/foundry.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  nixpkgs-unstable:
+    url: github:nixos/nixpkgs/nixos-unstable
+  rust-overlay:
+    url: github:oxalica/rust-overlay
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+allowUnfree: true
+clean:
+  enabled: false
+  keep:
+    - EDITOR
+    - USER
+    - GITHUB_TOKEN
+impure: true
+secretspec:
+  enable: true

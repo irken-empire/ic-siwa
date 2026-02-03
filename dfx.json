@@ -1,0 +1,40 @@
+{
+  "canisters": {
+    "ic_siwa_provider": {
+      "type": "rust",
+      "package": "ic_siwa_provider",
+      "candid": "canisters/ic_siwa_provider/ic_siwa_provider.did"
+    },
+    "test_canister_rs": {
+      "type": "rust",
+      "package": "test_canister_rs",
+      "candid": "canisters/test_canister_rs/test_canister_rs.did"
+    },
+    "test_canister_ts": {
+      "type": "assets",
+      "source": ["canisters/test_canister_ts/dist"]
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    },
+    "juno": {
+      "bind": "127.0.0.1:5987",
+      "type": "ephemeral"
+    },
+    "ic": {
+      "providers": ["https://ic0.app"],
+      "type": "persistent"
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

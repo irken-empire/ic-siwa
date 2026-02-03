@@ -1,0 +1,32 @@
+// Test Canister (Rust) Candid Interface
+// For integration testing of IC-SIWA
+
+type LoginResponse = variant {
+    Ok : principal;
+    Err : text;
+};
+
+type PrepareLoginResponse = variant {
+    Ok : text;
+    Err : text;
+};
+
+type ProtectedDataResponse = variant {
+    Ok : text;
+    Err : text;
+};
+
+service : {
+    // Health check
+    health : () -> (text) query;
+
+    // Identity
+    whoami : () -> (principal) query;
+
+    // Protected endpoint
+    protected_data : () -> (ProtectedDataResponse) query;
+
+    // SIWA integration tests
+    test_prepare_login : (provider_id : principal, address : text) -> (PrepareLoginResponse);
+    test_login : (provider_id : principal, signature : text, address : text, session_key : blob) -> (LoginResponse);
+}

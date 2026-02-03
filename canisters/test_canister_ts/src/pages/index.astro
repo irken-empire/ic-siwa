@@ -1,0 +1,66 @@
+---
+// IC-SIWA Test Canister - Login Page
+const title = "IC-SIWA Test";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-base-200 flex items-center justify-center">
+    <div class="card w-96 bg-base-100 shadow-xl">
+      <div class="card-body items-center text-center">
+        <h1 class="card-title text-2xl mb-4">IC-SIWA Test</h1>
+        <p class="mb-4 text-base-content/70">
+          Test Sign in with Avalanche authentication
+        </p>
+
+        <div id="login-section">
+          <button id="login-btn" class="btn btn-primary btn-wide">
+            Login with Avalanche
+          </button>
+        </div>
+
+        <div id="authenticated-section" class="hidden">
+          <div class="alert alert-success mb-4">
+            <span id="principal-display">Logged in!</span>
+          </div>
+          <button id="logout-btn" class="btn btn-outline btn-wide">
+            Logout
+          </button>
+        </div>
+
+        <div id="error-section" class="hidden">
+          <div class="alert alert-error">
+            <span id="error-display"></span>
+          </div>
+        </div>
+
+        <div id="loading-section" class="hidden">
+          <span class="loading loading-spinner loading-lg"></span>
+          <p class="mt-2">Connecting...</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // TODO: Implement login flow with ic-siwa library
+      const loginBtn = document.getElementById("login-btn");
+      const logoutBtn = document.getElementById("logout-btn");
+
+      loginBtn?.addEventListener("click", async () => {
+        console.log("Login clicked - TODO: Implement with ic-siwa");
+        alert("Login not yet implemented - see ticket 028");
+      });
+
+      logoutBtn?.addEventListener("click", async () => {
+        console.log("Logout clicked - TODO: Implement with ic-siwa");
+        alert("Logout not yet implemented - see ticket 028");
+      });
+    </script>
+  </body>
+</html>

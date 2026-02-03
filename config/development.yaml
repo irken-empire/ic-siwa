@@ -1,0 +1,29 @@
+# IC-SIWA Development Configuration
+# For local development with dfx replica
+
+domains:
+  allowed:
+    - "localhost"
+    - "127.0.0.1"
+    - "*.localhost"
+
+avalanche:
+  # Avalanche Fuji Testnet for development
+  chain_id: 43113
+  rpc_url: "https://api.avax-test.network/ext/bc/C/rpc"
+
+ic:
+  network: "local"
+  canisters:
+    ic_siwa_provider: null # Set after first deploy
+
+security:
+  # Allow any canister in development
+  allowed_canisters: []
+  # 30 minute sessions
+  session_expiration_seconds: 1800
+  # 5 minute login window
+  login_expiration_seconds: 300
+
+library:
+  timeout_ms: 30000
