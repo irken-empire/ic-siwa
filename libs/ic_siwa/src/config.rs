@@ -106,9 +106,7 @@ impl Config {
         self.security
             .allowed_canisters
             .iter()
-            .map(|id| {
-                Principal::from_text(id).map_err(|e| SiwaError::ConfigError(e.to_string()))
-            })
+            .map(|id| Principal::from_text(id).map_err(|e| SiwaError::ConfigError(e.to_string())))
             .collect()
     }
 

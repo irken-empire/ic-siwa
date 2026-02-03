@@ -62,13 +62,15 @@ impl State {
     /// Clean up expired login sessions
     pub fn cleanup_expired_logins(&mut self) {
         let now = ic_cdk::api::time();
-        self.login_sessions.retain(|_, session| session.expires_at > now);
+        self.login_sessions
+            .retain(|_, session| session.expires_at > now);
     }
 
     /// Clean up expired auth sessions
     pub fn cleanup_expired_auth(&mut self) {
         let now = ic_cdk::api::time();
-        self.auth_sessions.retain(|_, session| session.expires_at > now);
+        self.auth_sessions
+            .retain(|_, session| session.expires_at > now);
     }
 }
 
@@ -118,7 +120,9 @@ pub fn store_login_session(session: LoginSession) {
         // Clean up expired sessions first
         state.cleanup_expired_logins();
         // Store the new session
-        state.login_sessions.insert(session.address.to_lowercase(), session);
+        state
+            .login_sessions
+            .insert(session.address.to_lowercase(), session);
     });
 }
 
@@ -143,11 +147,12 @@ pub fn store_auth_session(key_hash: String, session: AuthSession) {
         state.cleanup_expired_auth();
         state.auth_sessions.insert(key_hash, session.clone());
         // Also store the address-principal mappings
-        state.address_to_principal.insert(
-            session.address.to_lowercase(),
-            session.principal,
-        );
-        state.principal_to_address.insert(session.principal, session.address);
+        state
+            .address_to_principal
+            .insert(session.address.to_lowercase(), session.principal);
+        state
+            .principal_to_address
+            .insert(session.principal, session.address);
     });
 }
 
@@ -161,7 +166,12 @@ pub fn get_auth_session(key_hash: &str) -> Option<AuthSession> {
 
 /// Get principal for address
 pub fn get_principal_for_address(address: &str) -> Option<Principal> {
-    with_state(|state| state.address_to_principal.get(&address.to_lowercase()).copied())
+    with_state(|state| {
+        state
+            .address_to_principal
+            .get(&address.to_lowercase())
+            .copied()
+    })
 }
 
 /// Get address for principal

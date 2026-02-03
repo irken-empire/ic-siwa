@@ -21,13 +21,26 @@ type GetDelegationResponse = variant {
     Err : text;
 };
 
-type LoginResponse = variant {
-    Ok : principal;
-    Err : text;
+// PrepareLoginResponse contains the message to sign and metadata
+type PrepareLoginOk = record {
+    message : text;
+    nonce : text;
+    expiration : nat64;
 };
 
 type PrepareLoginResponse = variant {
-    Ok : text;
+    Ok : PrepareLoginOk;
+    Err : text;
+};
+
+// LoginResponse contains the derived principal and session info
+type LoginOk = record {
+    user_principal : principal;
+    expiration : nat64;
+};
+
+type LoginResponse = variant {
+    Ok : LoginOk;
     Err : text;
 };
 
@@ -49,6 +62,6 @@ service : (InitArgs) -> {
 
     // Address/Principal lookups
     get_principal : (address : text) -> (PrincipalResponse) query;
-    get_address : (principal : principal) -> (AddressResponse) query;
+    get_address : (user_principal : principal) -> (AddressResponse) query;
     get_caller_address : () -> (AddressResponse) query;
 }

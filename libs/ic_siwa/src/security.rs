@@ -6,18 +6,13 @@ use crate::error::SiwaError;
 use candid::Principal;
 
 /// Security mode for access control
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum SecurityMode {
     /// Development mode - permissive, logs warnings but allows all callers
     Development,
     /// Production mode - strict, rejects unauthorized callers
+    #[default]
     Production,
-}
-
-impl Default for SecurityMode {
-    fn default() -> Self {
-        SecurityMode::Production
-    }
 }
 
 /// Canister access guard for validating inter-canister calls

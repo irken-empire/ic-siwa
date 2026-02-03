@@ -219,7 +219,8 @@ fn get_test_page() -> String {
         };
     </script>
 </body>
-</html>"#.to_string()
+</html>"#
+        .to_string()
 }
 
 // Export Candid interface

@@ -28,6 +28,7 @@ k256.workspace = true
 hex.workspace = true
 thiserror.workspace = true
 time.workspace = true
+getrandom.workspace = true
 
 [dev-dependencies]
 

@@ -13,6 +13,7 @@ use ic_siwa::SiwaMessage;
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct LoginResponse {
     /// The derived ICP principal for the user
+    #[serde(rename = "user_principal")]
     pub principal: Principal,
     /// Session expiration timestamp in nanoseconds
     pub expiration: u64,

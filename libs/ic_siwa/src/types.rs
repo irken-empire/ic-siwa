@@ -72,8 +72,8 @@ impl DomainPattern {
     /// Parse a domain pattern string
     pub fn parse(pattern: &str) -> Self {
         let pattern_lower = pattern.to_lowercase();
-        if pattern_lower.starts_with("*.") {
-            DomainPattern::Wildcard(pattern_lower[2..].to_string())
+        if let Some(suffix) = pattern_lower.strip_prefix("*.") {
+            DomainPattern::Wildcard(suffix.to_string())
         } else {
             DomainPattern::Exact(pattern_lower)
         }
@@ -128,11 +128,7 @@ impl DomainValidator {
             .unwrap_or(origin);
 
         // Remove port and path
-        let domain = without_protocol
-            .split(':')
-            .next()?
-            .split('/')
-            .next()?;
+        let domain = without_protocol.split(':').next()?.split('/').next()?;
 
         if domain.is_empty() {
             None
@@ -149,10 +145,7 @@ impl DomainValidator {
         if self.is_allowed(&domain) {
             Ok(domain)
         } else {
-            Err(format!(
-                "Domain '{}' is not in the allowed list",
-                domain
-            ))
+            Err(format!("Domain '{}' is not in the allowed list", domain))
         }
     }
 

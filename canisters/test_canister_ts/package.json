@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "astro": "^5.0.0",
-    "ic-siwa": "file:../../libs/ic_siwa_ts"
+    "ic-siwa": "file:../../libs/ic_siwa_ts",
+    "viem": "^2.21.0",
+    "@walletconnect/modal": "^2.7.0",
+    "@walletconnect/ethereum-provider": "^2.17.0"
   },
   "devDependencies": {
     "@astrojs/tailwind": "^6.0.0",

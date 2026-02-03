@@ -33,7 +33,7 @@ impl Settings {
             salt: salt.to_string(),
             chain_id: 43114, // Avalanche C-Chain mainnet
             session_expiration_time: 30 * 60 * 1_000_000_000, // 30 minutes in nanoseconds
-            login_expiration_time: 5 * 60 * 1_000_000_000,    // 5 minutes in nanoseconds
+            login_expiration_time: 5 * 60 * 1_000_000_000, // 5 minutes in nanoseconds
             allowed_domains: vec![],
             allowed_canisters: vec![],
         }
@@ -145,12 +145,12 @@ mod tests {
     fn test_settings_builder_chain() {
         let settings = Settings::new("app.com", "https://app.com", "secret")
             .with_chain_id(43113)
-            .with_session_expiration(3600_000_000_000)
+            .with_session_expiration(3_600_000_000_000)
             .with_allowed_domains(vec!["*.app.com".to_string()]);
 
         assert_eq!(settings.domain, "app.com");
         assert_eq!(settings.chain_id, 43113);
-        assert_eq!(settings.session_expiration_time, 3600_000_000_000);
+        assert_eq!(settings.session_expiration_time, 3_600_000_000_000);
         assert_eq!(settings.allowed_domains, vec!["*.app.com".to_string()]);
     }
 

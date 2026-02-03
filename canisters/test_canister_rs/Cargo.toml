@@ -15,6 +15,7 @@ candid.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 serde.workspace = true
+getrandom.workspace = true
 
 # Local dependencies
 ic_siwa = { path = "../../libs/ic_siwa" }

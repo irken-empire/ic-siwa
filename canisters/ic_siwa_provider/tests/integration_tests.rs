@@ -201,11 +201,11 @@ mod library_tests {
     fn test_settings_builder() {
         let settings = Settings::new("app.com", "https://app.com", "salt")
             .with_chain_id(43113) // Fuji testnet
-            .with_session_expiration(3600_000_000_000)
+            .with_session_expiration(3_600_000_000_000)
             .with_allowed_domains(vec!["*.app.com".to_string()]);
 
         assert_eq!(settings.chain_id, 43113);
-        assert_eq!(settings.session_expiration_time, 3600_000_000_000);
+        assert_eq!(settings.session_expiration_time, 3_600_000_000_000);
         assert_eq!(settings.allowed_domains, vec!["*.app.com"]);
     }
 }

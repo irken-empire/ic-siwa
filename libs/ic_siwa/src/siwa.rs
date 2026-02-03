@@ -177,7 +177,9 @@ fn recover_address(message_hash: &[u8; 32], signature: &[u8; 65]) -> Result<Stri
 
     // Recover the public key
     let verifying_key = VerifyingKey::recover_from_prehash(message_hash, &signature, recovery_id)
-        .map_err(|e| SiwaError::InvalidSignature(format!("Failed to recover public key: {}", e)))?;
+        .map_err(|e| {
+        SiwaError::InvalidSignature(format!("Failed to recover public key: {}", e))
+    })?;
 
     // Derive address from public key
     let address = derive_address_from_pubkey(&verifying_key)?;
@@ -323,7 +325,7 @@ fn days_to_ymd(days: u64) -> (u64, u64, u64) {
 
 /// Check if a year is a leap year
 fn is_leap_year(year: u64) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
 }
 
 /// Generate a random nonce using IC randomness
@@ -627,8 +629,8 @@ mod tests {
     fn test_is_leap_year() {
         assert!(!is_leap_year(1970));
         assert!(!is_leap_year(1900)); // Divisible by 100 but not 400
-        assert!(is_leap_year(2000));  // Divisible by 400
-        assert!(is_leap_year(2024));  // Divisible by 4
+        assert!(is_leap_year(2000)); // Divisible by 400
+        assert!(is_leap_year(2024)); // Divisible by 4
         assert!(!is_leap_year(2023)); // Not divisible by 4
     }
 
