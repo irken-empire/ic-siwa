@@ -41,6 +41,14 @@ show_help() {
 		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
+		  update             Update all dependencies (cargo, bun) and pin versions
+		  version            Show current version (from Cargo.toml)
+		  version --bump     Bump version based on conventional commits
+		  version --check    Check if all versions are in sync
+		  version --sync     Sync all versions to match Cargo.toml
+		  version --major    Force bump major version (x.0.0)
+		  version --minor    Force bump minor version (0.x.0)
+		  version --patch    Force bump patch version (0.0.x)
 		  help               Show this help message
 
 		Options:
@@ -56,6 +64,8 @@ show_help() {
 		  ic-siwa test
 		  ic-siwa loop --network juno
 		  ic-siwa cleanup --network juno --prune
+		  ic-siwa update
+		  ic-siwa version --bump
 
 		Environment Variables (via secretspec):
 		  IC_SIWA_SALT_DEVELOPMENT    Salt for development deployments
@@ -89,6 +99,257 @@ is_dfx_running() {
 		return 0
 	fi
 	return 1
+}
+
+# Version management
+# Source of truth: Cargo.toml [workspace.package.version]
+cmd_version() {
+	local bump="${1:-false}"
+	cd "${PROJECT_ROOT}"
+
+	# Check for required tools
+	if ! command -v convco &>/dev/null; then
+		log_error "convco not found. Install via: cargo install convco"
+		return 1
+	fi
+
+	# Get current version from Cargo.toml (source of truth)
+	local current_version
+	current_version=$(toml get Cargo.toml workspace.package.version --raw)
+
+	if [[ ${bump} == "false" ]]; then
+		# Just show current version
+		echo "${current_version}"
+		return 0
+	fi
+
+	# Get next version from convco based on conventional commits
+	local next_version
+	next_version=$(convco version --bump 2>/dev/null || echo "")
+
+	if [[ -z ${next_version} ]]; then
+		log_warn "No version bump needed based on commits, or no previous tag found"
+		log_info "Current version: ${current_version}"
+		log_info "Use --major, --minor, or --patch to force a bump"
+		return 0
+	fi
+
+	# Remove 'v' prefix if present (convco may add it)
+	next_version="${next_version#v}"
+
+	if [[ ${current_version} == "${next_version}" ]]; then
+		log_info "Version already at ${current_version}, no bump needed"
+		return 0
+	fi
+
+	log_info "Bumping version: ${current_version} -> ${next_version}"
+
+	# All package.json files to update
+	local -a npm_packages=(
+		"package.json"
+		"libs/ic_siwa_ts/package.json"
+		"canisters/test_canister_ts/package.json"
+	)
+
+	# Update Cargo.toml (workspace version - source of truth)
+	log_info "Updating Cargo.toml..."
+	toml set Cargo.toml workspace.package.version "${next_version}" >Cargo.toml.tmp
+	mv Cargo.toml.tmp Cargo.toml
+
+	# Update all npm package.json files
+	for npm_package in "${npm_packages[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_package}"
+		if [[ -f ${full_path} ]]; then
+			log_info "Updating ${npm_package}..."
+			jq --arg v "${next_version}" '.version = $v' "${full_path}" >"${full_path}.tmp"
+			mv "${full_path}.tmp" "${full_path}"
+		fi
+	done
+
+	# Update Cargo.lock by running cargo check
+	log_info "Updating Cargo.lock..."
+	cargo check --quiet 2>/dev/null || true
+
+	log_success "Version bumped to ${next_version}"
+	log_info ""
+	log_info "Files updated:"
+	log_info "  - Cargo.toml (workspace.package.version)"
+	for npm_package in "${npm_packages[@]}"; do
+		log_info "  - ${npm_package}"
+	done
+	log_info "  - Cargo.lock"
+	log_info ""
+	log_info "Next steps:"
+	log_info "  1. Review changes: git diff"
+	log_info "  2. Commit: git commit -am 'chore(release): ${next_version}'"
+	log_info "  3. Tag: git tag v${next_version}"
+	log_info "  4. Push: git push && git push --tags"
+}
+
+# Force version bump (major/minor/patch)
+cmd_version_force() {
+	local bump_type="${1:-patch}"
+	cd "${PROJECT_ROOT}"
+
+	local current_version
+	current_version=$(toml get Cargo.toml workspace.package.version --raw)
+
+	# Parse version components
+	IFS='.' read -r major minor patch <<<"${current_version}"
+
+	case "${bump_type}" in
+	major)
+		major=$((major + 1))
+		minor=0
+		patch=0
+		;;
+	minor)
+		minor=$((minor + 1))
+		patch=0
+		;;
+	patch)
+		patch=$((patch + 1))
+		;;
+	*)
+		log_error "Invalid bump type: ${bump_type}. Use major, minor, or patch"
+		return 1
+		;;
+	esac
+
+	local next_version="${major}.${minor}.${patch}"
+	log_info "Force bumping version: ${current_version} -> ${next_version} (${bump_type})"
+
+	# All package.json files to update
+	local -a npm_packages=(
+		"package.json"
+		"libs/ic_siwa_ts/package.json"
+		"canisters/test_canister_ts/package.json"
+	)
+
+	# Update Cargo.toml
+	toml set Cargo.toml workspace.package.version "${next_version}" >Cargo.toml.tmp
+	mv Cargo.toml.tmp Cargo.toml
+
+	# Update all npm package.json files
+	for npm_package in "${npm_packages[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_package}"
+		if [[ -f ${full_path} ]]; then
+			jq --arg v "${next_version}" '.version = $v' "${full_path}" >"${full_path}.tmp"
+			mv "${full_path}.tmp" "${full_path}"
+		fi
+	done
+
+	cargo check --quiet 2>/dev/null || true
+
+	log_success "Version bumped to ${next_version}"
+}
+
+# Check if versions are in sync
+cmd_version_check() {
+	cd "${PROJECT_ROOT}"
+
+	local cargo_version
+	cargo_version=$(toml get Cargo.toml workspace.package.version --raw)
+
+	# All package.json files to check
+	local -a npm_packages=(
+		"package.json"
+		"libs/ic_siwa_ts/package.json"
+		"canisters/test_canister_ts/package.json"
+	)
+
+	local has_error=false
+
+	log_info "Version check (source: Cargo.toml workspace.package.version)"
+	echo "  Cargo.toml (workspace):        ${cargo_version}"
+
+	for npm_package in "${npm_packages[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_package}"
+		if [[ -f ${full_path} ]]; then
+			local npm_version
+			npm_version=$(jq -r '.version' "${full_path}")
+			if [[ ${cargo_version} == "${npm_version}" ]]; then
+				echo "  ${npm_package}: ${npm_version} ✓"
+			else
+				echo "  ${npm_package}: ${npm_version} ✗ (mismatch!)"
+				has_error=true
+			fi
+		fi
+	done
+
+	if [[ ${has_error} == "true" ]]; then
+		log_error "Version mismatch detected! Run 'ic-siwa version --sync' to fix."
+		return 1
+	fi
+
+	log_success "All versions in sync: ${cargo_version}"
+}
+
+# Sync versions to match Cargo.toml
+cmd_version_sync() {
+	cd "${PROJECT_ROOT}"
+
+	local cargo_version
+	cargo_version=$(toml get Cargo.toml workspace.package.version --raw)
+
+	# All package.json files to sync
+	local -a npm_packages=(
+		"package.json"
+		"libs/ic_siwa_ts/package.json"
+		"canisters/test_canister_ts/package.json"
+	)
+
+	log_info "Syncing all versions to ${cargo_version}..."
+
+	for npm_package in "${npm_packages[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_package}"
+		if [[ -f ${full_path} ]]; then
+			jq --arg v "${cargo_version}" '.version = $v' "${full_path}" >"${full_path}.tmp"
+			mv "${full_path}.tmp" "${full_path}"
+			log_info "Updated ${npm_package}"
+		fi
+	done
+
+	log_success "Versions synced to ${cargo_version}"
+}
+
+# Update all dependencies
+cmd_update() {
+	cd "${PROJECT_ROOT}"
+	log_info "Updating all dependencies..."
+
+	# All package.json directories to update
+	local -a npm_dirs=(
+		"."
+		"libs/ic_siwa_ts"
+		"canisters/test_canister_ts"
+	)
+
+	# Update Cargo dependencies
+	log_info "Updating Cargo dependencies..."
+	cargo update
+	log_success "Cargo dependencies updated"
+
+	# Update bun packages with exact versions (no ^ or ~ prefixes)
+	for npm_dir in "${npm_dirs[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_dir}"
+		if [[ -d ${full_path} ]]; then
+			log_info "Updating bun packages in ${npm_dir}..."
+			(
+				cd "${full_path}"
+				# --save-exact ensures no ^ or ~ prefixes are added
+				bun update --save-exact
+			)
+			log_success "Updated ${npm_dir}"
+		fi
+	done
+
+	log_success "All dependencies updated!"
+	log_info ""
+	log_info "Next steps:"
+	log_info "  1. Review changes: git diff"
+	log_info "  2. Test: ic-siwa test"
+	log_info "  3. Commit: git commit -am 'chore(deps): update dependencies'"
 }
 
 # Build the project
@@ -761,6 +1022,9 @@ parse_args() {
 	local cmd="${1:-help}"
 	shift || true
 
+	# Version sub-options
+	local VERSION_ACTION=""
+
 	# Parse options
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -770,6 +1034,30 @@ parse_args() {
 			;;
 		--prune)
 			PRUNE="true"
+			shift
+			;;
+		--bump)
+			VERSION_ACTION="bump"
+			shift
+			;;
+		--check)
+			VERSION_ACTION="check"
+			shift
+			;;
+		--sync)
+			VERSION_ACTION="sync"
+			shift
+			;;
+		--major)
+			VERSION_ACTION="major"
+			shift
+			;;
+		--minor)
+			VERSION_ACTION="minor"
+			shift
+			;;
+		--patch)
+			VERSION_ACTION="patch"
 			shift
 			;;
 		--help | -h)
@@ -824,6 +1112,28 @@ parse_args() {
 		;;
 	stop)
 		cmd_stop "${NETWORK}"
+		;;
+	update)
+		cmd_update
+		;;
+	version)
+		case "${VERSION_ACTION}" in
+		bump)
+			cmd_version true
+			;;
+		check)
+			cmd_version_check
+			;;
+		sync)
+			cmd_version_sync
+			;;
+		major | minor | patch)
+			cmd_version_force "${VERSION_ACTION}"
+			;;
+		*)
+			cmd_version false
+			;;
+		esac
 		;;
 	help | --help | -h)
 		show_help

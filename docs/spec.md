@@ -2,6 +2,10 @@
 
 ## IC-SIWA: Sign-In with Avalanche for the Internet Computer
 
+> **Version**: 0.1.0
+> **Status**: Draft
+> **Last Updated**: 2026-02-03
+
 This document defines the functional specifications for IC-SIWA, enabling Avalanche wallet-based authentication on the Internet Computer platform.
 
 ## Overview
@@ -313,3 +317,55 @@ The following EIP-4361 fields are not implemented:
 - Chain ID defaults to 43113 (Fuji) or 43114 (Mainnet)
 - Message prefix adapted for Avalanche signing
 - Address format identical to Ethereum (EIP-55)
+
+## Project Components
+
+### Canisters
+
+| Canister           | Language   | Description                  |
+| ------------------ | ---------- | ---------------------------- |
+| `ic_siwa_provider` | Rust       | Main authentication canister |
+| `test_canister_rs` | Rust       | Integration test canister    |
+| `test_canister_ts` | TypeScript | Astro frontend test canister |
+
+### Libraries
+
+| Library      | Language   | Package      | Description                   |
+| ------------ | ---------- | ------------ | ----------------------------- |
+| `ic_siwa`    | Rust       | crates.io    | Core SIWA logic for canisters |
+| `ic_siwa_ts` | TypeScript | npm: ic-siwa | Client library for frontends  |
+
+### Development Tools
+
+| Tool         | Description                               |
+| ------------ | ----------------------------------------- |
+| `ic-siwa.sh` | CLI for build, test, deploy, version mgmt |
+| `devenv.nix` | Reproducible dev environment with Nix     |
+| Dependabot   | Automated dependency updates              |
+
+## Versioning
+
+IC-SIWA uses **unified versioning** where all components share the same version:
+
+- **Source of truth**: `Cargo.toml` workspace.package.version
+- **Synced files**: All `package.json` files
+- **Tooling**: `convco` for conventional commit-based version bumps
+
+### Version Commands
+
+```bash
+ic-siwa version           # Show current version
+ic-siwa version --bump    # Bump based on conventional commits
+ic-siwa version --check   # Verify all versions in sync
+ic-siwa version --sync    # Sync all versions to Cargo.toml
+ic-siwa version --major   # Force major bump
+ic-siwa version --minor   # Force minor bump
+ic-siwa version --patch   # Force patch bump
+```
+
+## References
+
+- [EIP-4361: Sign-In with Ethereum](https://eips.ethereum.org/EIPS/eip-4361)
+- [IC-SIWE (Original Implementation)](https://github.com/kristoferlund/ic-siwe)
+- [Internet Computer Developer Docs](https://internetcomputer.org/docs/)
+- [Avalanche C-Chain Documentation](https://docs.avax.network/)
