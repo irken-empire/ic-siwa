@@ -171,7 +171,7 @@ jobs:
     timeout-minutes: 30
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
           - canister: ic_siwa_provider
