@@ -23,9 +23,13 @@
 name: Release npm
 
 on:
+  # Run when Build workflow completes
+  # but only when it was triggered by a push to trunk
   workflow_run:
-    workflows: ["Build"]
-    types: [completed]
+    workflows:
+      - "Build"
+    types:
+      - completed
     branches:
       - trunk
   workflow_dispatch:

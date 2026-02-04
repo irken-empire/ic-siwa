@@ -17,14 +17,18 @@
 name: Build
 
 on:
+  # Build on PRs
   pull_request:
     branches:
       - trunk
+  # Build on pushes to trunk
   push:
     branches:
       - trunk
+  # Build when release is publishes
   release:
     types: [published]
+  # Allow manual runs
   workflow_dispatch:
     inputs:
       environment:

@@ -14,11 +14,16 @@
 name: Release Canisters
 
 on:
+  # Run when Build workflow completes
+  # but only when it was triggered by a push to trunk
   workflow_run:
-    workflows: ["Build"]
-    types: [completed]
+    workflows:
+      - "Build"
+    types:
+      - completed
     branches:
       - trunk
+  # Allow manual runs
   workflow_dispatch:
     inputs:
       environment:
@@ -76,7 +81,7 @@ jobs:
       run_id: ${{ steps.config.outputs.run_id }}
 
     steps:
-      - name: Determine configuration
+      - name: Determine Environment configuration
         id: config
         run: |
           # Determine environment and run_id based on trigger

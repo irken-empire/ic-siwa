@@ -7,8 +7,10 @@
 name: Devenv Update
 
 on:
+  # Update on schedule
   schedule:
     - cron: "0 0 * * 0"
+  # Allow manual runs
   workflow_dispatch:
 
 concurrency:
