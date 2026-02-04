@@ -39,8 +39,30 @@ pub struct SiwaMessage {
 }
 
 impl SiwaMessage {
-    /// Create a new SIWA message
+    /// Create a new SIWA message using settings' default domain/uri
     pub fn new(settings: &Settings, address: &str, nonce: &str) -> Self {
+        Self::new_with_domain(settings, address, nonce, &settings.domain, &settings.uri)
+    }
+
+    /// Create a new SIWA message with a custom domain and URI
+    ///
+    /// This is used for multi-tenant "SIWA as a Service" scenarios where
+    /// each calling application can specify its own domain/uri for the
+    /// wallet signing prompt.
+    ///
+    /// # Arguments
+    /// * `settings` - Canister settings (for chain_id, expiration times, etc.)
+    /// * `address` - The Avalanche address (0x-prefixed)
+    /// * `nonce` - Unique nonce for this login attempt
+    /// * `domain` - Domain to show in wallet (e.g., "game.tresr.community")
+    /// * `uri` - URI to show in wallet (e.g., "https://game.tresr.community")
+    pub fn new_with_domain(
+        settings: &Settings,
+        address: &str,
+        nonce: &str,
+        domain: &str,
+        uri: &str,
+    ) -> Self {
         // Get current time in nanoseconds from IC
         let now_ns = ic_cdk::api::time();
         let now_secs = now_ns / 1_000_000_000;
@@ -50,10 +72,10 @@ impl SiwaMessage {
         let exp_secs = exp_ns / 1_000_000_000;
 
         Self {
-            domain: settings.domain.clone(),
+            domain: domain.to_string(),
             address: address.to_string(),
             statement: Some("Sign in with Avalanche to the app.".to_string()),
-            uri: settings.uri.clone(),
+            uri: uri.to_string(),
             version: "1".to_string(),
             chain_id: settings.chain_id,
             nonce: nonce.to_string(),

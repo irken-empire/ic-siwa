@@ -13,8 +13,15 @@ ic:
     test_canister_rs: "qyw5d-liaaa-aaaai-avgna-cai"
     test_canister_ts: "kelzz-6qaaa-aaaak-qwlga-cai"
 
+siwa:
+  # Default domain/uri for wallet signing prompt (used when calling app doesn't specify one)
+  # For multi-tenant "SIWA as a Service", each app can override these via siwa_prepare_login_with_options
+  domain: "siwa-testnet.irkenempire.tech"
+  uri: "https://siwa-testnet.irkenempire.tech"
+
 security:
-  # Allowed domains for SIWA messages (user sees this in their wallet)
+  # Allowed domains for SIWA messages (whitelist for multi-tenant support)
+  # Apps can only use domains listed here via siwa_prepare_login_with_options
   allowed_domains:
     # Primary domains
     - "irkenempire.tech"
@@ -22,6 +29,7 @@ security:
     # Game domains
     - "tresr.community"
     - "*.tresr.community"
+    # Add your app domains here...
 
   # Allowed canisters for inter-canister calls
   # TODO: Add canister IDs after deployment

@@ -66,6 +66,3 @@ devenv.local.yaml
 
 # Ignore ticket notes
 docs/tickets/
-
-# TODO folder (reference only, will be removed after migration)
-TODO/

@@ -42,6 +42,7 @@ export type {
   SignedDelegation,
   SiwaMessage,
   WalletClient,
+  PrepareLoginOptions,
 } from "./types";
 
 // Candid types (for advanced usage)

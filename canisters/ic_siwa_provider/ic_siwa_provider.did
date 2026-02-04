@@ -30,6 +30,11 @@ type InitArgs = record {
   session_expiration_time : nat64;
 };
 type LoginResponse = record { user_principal : principal; expiration : nat64 };
+type PrepareLoginRequest = record {
+  uri : opt text;
+  domain : opt text;
+  address : text;
+};
 type PrepareLoginResponse = record {
   expiration : nat64;
   message : text;
@@ -81,7 +86,10 @@ service : (InitArgs) -> {
   // * `Ok(LoginResponse)` - The derived principal and session expiration
   // * `Err(String)` - Error if signature is invalid or session expired
   siwa_login : (text, text, blob) -> (Result_4);
-  // Prepare a SIWA login message for signing
+  // Prepare a SIWA login message for signing (simple version)
+  // 
+  // Uses the canister's default domain/uri from init args.
+  // For multi-tenant "SIWA as a Service", use `siwa_prepare_login_with_options` instead.
   // 
   // # Arguments
   // * `address` - The Avalanche address (0x-prefixed, EIP-55 checksummed)
@@ -90,4 +98,21 @@ service : (InitArgs) -> {
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error description if address is invalid
   siwa_prepare_login : (text) -> (Result_5);
+  // Prepare a SIWA login message with custom domain/uri (multi-tenant version)
+  // 
+  // This is the "SIWA as a Service" endpoint where each calling application
+  // can specify its own domain/uri for the wallet signing prompt.
+  // 
+  // The domain must be in the `allowed_domains` whitelist configured at init.
+  // 
+  // # Arguments
+  // * `request` - Login request containing:
+  // - `address`: The Avalanche address (0x-prefixed)
+  // - `domain`: Optional domain to show in wallet (must be whitelisted)
+  // - `uri`: Optional URI to show in wallet
+  // 
+  // # Returns
+  // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
+  // * `Err(String)` - Error if address invalid or domain not whitelisted
+  siwa_prepare_login_with_options : (PrepareLoginRequest) -> (Result_5);
 }

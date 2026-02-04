@@ -16,7 +16,7 @@ mod state;
 
 pub use service::siwa_get_delegation::{Delegation, DelegationChain, SignedDelegation};
 pub use service::siwa_login::LoginResponse;
-pub use service::siwa_prepare_login::PrepareLoginResponse;
+pub use service::siwa_prepare_login::{PrepareLoginRequest, PrepareLoginResponse};
 
 /// Rate limit configuration for Candid
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -68,7 +68,10 @@ fn post_upgrade(args: Option<InitArgs>) {
     ic_cdk::println!("ic_siwa_provider upgraded");
 }
 
-/// Prepare a SIWA login message for signing
+/// Prepare a SIWA login message for signing (simple version)
+///
+/// Uses the canister's default domain/uri from init args.
+/// For multi-tenant "SIWA as a Service", use `siwa_prepare_login_with_options` instead.
 ///
 /// # Arguments
 /// * `address` - The Avalanche address (0x-prefixed, EIP-55 checksummed)
@@ -79,6 +82,29 @@ fn post_upgrade(args: Option<InitArgs>) {
 #[update]
 async fn siwa_prepare_login(address: String) -> Result<PrepareLoginResponse, String> {
     service::siwa_prepare_login::prepare_login(address).await
+}
+
+/// Prepare a SIWA login message with custom domain/uri (multi-tenant version)
+///
+/// This is the "SIWA as a Service" endpoint where each calling application
+/// can specify its own domain/uri for the wallet signing prompt.
+///
+/// The domain must be in the `allowed_domains` whitelist configured at init.
+///
+/// # Arguments
+/// * `request` - Login request containing:
+///   - `address`: The Avalanche address (0x-prefixed)
+///   - `domain`: Optional domain to show in wallet (must be whitelisted)
+///   - `uri`: Optional URI to show in wallet
+///
+/// # Returns
+/// * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
+/// * `Err(String)` - Error if address invalid or domain not whitelisted
+#[update]
+async fn siwa_prepare_login_with_options(
+    request: PrepareLoginRequest,
+) -> Result<PrepareLoginResponse, String> {
+    service::siwa_prepare_login::prepare_login_with_options(request).await
 }
 
 /// Complete SIWA login with signed message

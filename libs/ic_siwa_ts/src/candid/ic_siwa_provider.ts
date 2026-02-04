@@ -46,6 +46,11 @@ export interface LoginResponse {
   'user_principal' : Principal,
   'expiration' : bigint,
 }
+export interface PrepareLoginRequest {
+  'uri' : [] | [string],
+  'domain' : [] | [string],
+  'address' : string,
+}
 export interface PrepareLoginResponse {
   'expiration' : bigint,
   'message' : string,
@@ -122,7 +127,10 @@ export interface _SERVICE {
    */
   'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_4>,
   /**
-   * Prepare a SIWA login message for signing
+   * Prepare a SIWA login message for signing (simple version)
+   * 
+   * Uses the canister's default domain/uri from init args.
+   * For multi-tenant "SIWA as a Service", use `siwa_prepare_login_with_options` instead.
    * 
    * # Arguments
    * * `address` - The Avalanche address (0x-prefixed, EIP-55 checksummed)
@@ -132,6 +140,28 @@ export interface _SERVICE {
    * * `Err(String)` - Error description if address is invalid
    */
   'siwa_prepare_login' : ActorMethod<[string], Result_5>,
+  /**
+   * Prepare a SIWA login message with custom domain/uri (multi-tenant version)
+   * 
+   * This is the "SIWA as a Service" endpoint where each calling application
+   * can specify its own domain/uri for the wallet signing prompt.
+   * 
+   * The domain must be in the `allowed_domains` whitelist configured at init.
+   * 
+   * # Arguments
+   * * `request` - Login request containing:
+   * - `address`: The Avalanche address (0x-prefixed)
+   * - `domain`: Optional domain to show in wallet (must be whitelisted)
+   * - `uri`: Optional URI to show in wallet
+   * 
+   * # Returns
+   * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
+   * * `Err(String)` - Error if address invalid or domain not whitelisted
+   */
+  'siwa_prepare_login_with_options' : ActorMethod<
+    [PrepareLoginRequest],
+    Result_5
+  >,
 }
 
 export const idlFactory = ({ IDL }: { IDL: any }) => {
@@ -193,6 +223,11 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
     'Ok' : PrepareLoginResponse,
     'Err' : IDL.Text,
   });
+  const PrepareLoginRequest = IDL.Record({
+    'uri' : IDL.Opt(IDL.Text),
+    'domain' : IDL.Opt(IDL.Text),
+    'address' : IDL.Text,
+  });
   return IDL.Service({
     'debug_info' : IDL.Func([], [Result], ['query']),
     'get_address' : IDL.Func([IDL.Principal], [Result_1], ['query']),
@@ -209,6 +244,11 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
         [],
       ),
     'siwa_prepare_login' : IDL.Func([IDL.Text], [Result_5], []),
+    'siwa_prepare_login_with_options' : IDL.Func(
+        [PrepareLoginRequest],
+        [Result_5],
+        [],
+      ),
   });
 };
 export const init = ({ IDL }: { IDL: any }) => {

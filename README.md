@@ -12,6 +12,7 @@ IC-SIWA enables Avalanche wallet authentication for Internet Computer applicatio
 - EIP-4361 (SIWE) compatible message format
 - Delegated identity for IC canister calls
 - Session management with auto-refresh
+- **Multi-tenant "SIWA as a Service"** - multiple apps can share one provider
 - Multi-domain whitelist support
 - TypeScript library with Astro components
 
@@ -44,6 +45,40 @@ const result = await client.login(signature, address);
 
 console.log("ICP Principal:", result.principal.toText());
 ```
+
+### Multi-Tenant Usage (SIWA as a Service)
+
+IC-SIWA supports multi-tenant scenarios where multiple applications share a single provider canister. Each app can specify its own domain/URI for the wallet signing prompt:
+
+```typescript
+import {SiwaClient} from "ic-siwa";
+
+const client = new SiwaClient({
+  canisterId: "xxxxx-xxxxx-xxxxx-xxxxx-xxx", // Shared SIWA provider
+});
+
+// Each app specifies its own domain
+const prepared = await client.prepareLoginWithOptions({
+  address: "0x1234...",
+  domain: "game.example.com", // Your app's domain (must be whitelisted)
+  uri: "https://game.example.com", // Your app's URI
+});
+
+const signature = await wallet.signMessage(prepared.message);
+const result = await client.login(signature, address);
+```
+
+Or use the convenience method with a wallet client:
+
+```typescript
+// With viem wallet client
+const result = await client.loginWithWallet(walletClient, {
+  domain: "game.example.com",
+  uri: "https://game.example.com",
+});
+```
+
+The domain must be in the provider's `allowed_domains` whitelist (configured at canister init).
 
 ### Astro Component
 
@@ -226,6 +261,7 @@ if validator.is_allowed("app.example.com") {
 service : (InitArgs) -> {
     // Authentication
     siwa_prepare_login : (address : text) -> (PrepareLoginResponse);
+    siwa_prepare_login_with_options : (PrepareLoginRequest) -> (PrepareLoginResponse);  // Multi-tenant
     siwa_login : (signature : text, address : text, session_key : blob) -> (LoginResponse);
     siwa_get_delegation : (address : text, session_key : blob, expiration : nat64) -> (GetDelegationResponse) query;
 
@@ -234,20 +270,40 @@ service : (InitArgs) -> {
     get_address : (principal : principal) -> (AddressResponse) query;
     get_caller_address : () -> (AddressResponse) query;
 }
+
+// Multi-tenant request type
+type PrepareLoginRequest = record {
+    address : text;           // Avalanche address (0x-prefixed)
+    domain : opt text;        // Optional domain (must be in allowed_domains)
+    uri : opt text;           // Optional URI
+};
 ```
 
 ### Initialization
 
 ```candid
 type InitArgs = record {
-    domain : text;                        // Your domain (e.g., "example.com")
-    uri : text;                           // Your URI (e.g., "https://example.com")
+    domain : text;                        // Default domain (fallback when not specified per-request)
+    uri : text;                           // Default URI (fallback when not specified per-request)
     salt : text;                          // Secret salt for principal derivation
     chain_id : nat64;                     // 43114 (mainnet) or 43113 (fuji)
     session_expiration_time : nat64;      // Nanoseconds (e.g., 30 minutes)
-    allowed_domains : opt vec text;       // Domain whitelist
+    allowed_domains : opt vec text;       // Whitelist for multi-tenant domains
     allowed_canisters : opt vec principal; // Canister whitelist
+    delegation_targets : opt vec principal; // Canisters delegations are valid for
 };
+```
+
+For multi-tenant setups, `allowed_domains` should include all app domains that can use this provider:
+
+```yaml
+# config/mainnet.yaml
+security:
+  allowed_domains:
+    - "myapp.com"
+    - "*.myapp.com"
+    - "partner-game.io"
+    - "*.partner-game.io"
 ```
 
 ## Development

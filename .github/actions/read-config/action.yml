@@ -13,6 +13,12 @@ outputs:
   chain_id:
     description: "Avalanche chain ID"
     value: ${{ steps.read.outputs.chain_id }}
+  domain:
+    description: "SIWA domain for wallet signing prompt"
+    value: ${{ steps.read.outputs.domain }}
+  uri:
+    description: "SIWA URI for wallet signing prompt"
+    value: ${{ steps.read.outputs.uri }}
   session_expiration_ns:
     description: "Session expiration in nanoseconds"
     value: ${{ steps.read.outputs.session_expiration_ns }}
@@ -61,6 +67,8 @@ runs:
 
         # Read values from config file
         CHAIN_ID=$(yq -r '.avalanche.chain_id' "${CONFIG_FILE}")
+        DOMAIN=$(yq -r '.siwa.domain' "${CONFIG_FILE}")
+        URI=$(yq -r '.siwa.uri' "${CONFIG_FILE}")
         SESSION_EXP=$(yq -r '.security.session_expiration_seconds' "${CONFIG_FILE}")
         SESSION_EXP_NS=$((SESSION_EXP * 1000000000))
 
@@ -88,6 +96,8 @@ runs:
         {
           echo "config_file=${CONFIG_FILE}"
           echo "chain_id=${CHAIN_ID}"
+          echo "domain=${DOMAIN}"
+          echo "uri=${URI}"
           echo "session_expiration_ns=${SESSION_EXP_NS}"
           echo "allowed_domains=${ALLOWED_DOMAINS}"
           echo "allowed_canisters=${ALLOWED_CANISTERS}"
@@ -107,6 +117,8 @@ runs:
           echo "| Environment | ${{ inputs.environment }} |"
           echo "| Config File | ${CONFIG_FILE} |"
           echo "| Chain ID | ${CHAIN_ID} |"
+          echo "| Domain | ${DOMAIN} |"
+          echo "| URI | ${URI} |"
           echo "| Session Expiration | ${SESSION_EXP}s |"
           echo "| Provider Canister ID | ${PROVIDER_ID:-not set} |"
           echo "| Rate Limit (per address) | ${RATE_LIMIT_PER_ADDRESS} |"

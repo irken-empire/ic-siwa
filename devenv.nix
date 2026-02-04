@@ -111,35 +111,15 @@ in
     DFX_PORT = "4943";
     JUNO_PORT = "5987";
   }
-  # IC-SIWA Development Secrets
+  # IC-SIWA Salt Secrets (domain/uri are in config/*.yaml)
   // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_SALT_DEVELOPMENT) {
     inherit (config.secretspec.secrets) IC_SIWA_SALT_DEVELOPMENT;
   })
-  // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_DOMAIN_DEVELOPMENT) {
-    inherit (config.secretspec.secrets) IC_SIWA_DOMAIN_DEVELOPMENT;
-  })
-  // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_URI_DEVELOPMENT) {
-    inherit (config.secretspec.secrets) IC_SIWA_URI_DEVELOPMENT;
-  })
-  # IC-SIWA Testnet Secrets
   // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_SALT_TESTNET) {
     inherit (config.secretspec.secrets) IC_SIWA_SALT_TESTNET;
   })
-  // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_DOMAIN_TESTNET) {
-    inherit (config.secretspec.secrets) IC_SIWA_DOMAIN_TESTNET;
-  })
-  // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_URI_TESTNET) {
-    inherit (config.secretspec.secrets) IC_SIWA_URI_TESTNET;
-  })
-  # IC-SIWA Mainnet Secrets
   // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_SALT_MAINNET) {
     inherit (config.secretspec.secrets) IC_SIWA_SALT_MAINNET;
-  })
-  // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_DOMAIN_MAINNET) {
-    inherit (config.secretspec.secrets) IC_SIWA_DOMAIN_MAINNET;
-  })
-  // (lib.optionalAttrs (config.secretspec.secrets ? IC_SIWA_URI_MAINNET) {
-    inherit (config.secretspec.secrets) IC_SIWA_URI_MAINNET;
   })
   # DaisyUI secrets
   // (lib.optionalAttrs (config.secretspec.secrets ? DAISYUI_LICENSE) {

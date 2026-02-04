@@ -5,6 +5,28 @@
 import type {Principal} from "@dfinity/principal";
 
 /**
+ * Options for preparing a login request
+ *
+ * Used for multi-tenant "SIWA as a Service" where each calling application
+ * can specify its own domain/uri for the wallet signing prompt.
+ */
+export interface PrepareLoginOptions {
+  /** The Avalanche address (0x-prefixed) */
+  address: string;
+  /**
+   * Optional domain to show in wallet (e.g., "game.tresr.community").
+   * Must be whitelisted in the canister's allowed_domains.
+   * Falls back to canister default if not provided.
+   */
+  domain?: string;
+  /**
+   * Optional URI to show in wallet (e.g., "https://game.tresr.community").
+   * Falls back to canister default if not provided.
+   */
+  uri?: string;
+}
+
+/**
  * Prepared login response from canister
  */
 export interface PreparedLogin {
