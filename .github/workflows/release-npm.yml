@@ -4,7 +4,7 @@
 # Description: Publish ic-siwa TypeScript library to npm
 #
 # Triggers:
-#   - workflow_run: After successful Build workflow on release
+#   - workflow_run: After successful Build workflow on trunk (dry run) or release (publish)
 #   - workflow_dispatch: Manual publish with dry-run option
 #
 # This workflow downloads pre-built npm package artifacts from the
@@ -23,15 +23,16 @@
 name: Release npm
 
 on:
-  # Run when Build workflow completes
-  # but only when it was triggered by a push to trunk
+  # Run when Build workflow completes on trunk (dry run) or release (publish)
   workflow_run:
     workflows:
       - "Build"
     types:
       - completed
-    branches:
-      - trunk
+  # Run when a release is published (publish)
+  release:
+    types:
+      - published
   workflow_dispatch:
     inputs:
       dry_run:
@@ -58,6 +59,7 @@ permissions:
 
 env:
   SECRETSPEC_PROVIDER: env
+  ENVIRONMENT: mainnet
 
 defaults:
   run:
@@ -72,26 +74,26 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if:
     # - Manual trigger, OR
-    # - Build workflow succeeded AND it was triggered by a release
+    # - Release published, OR
+    # - Build workflow succeeded (trunk merge = dry run, release = publish)
     if: |
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
       (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'release')
+       github.event.workflow_run.conclusion == 'success')
     outputs:
       should_publish: ${{ steps.config.outputs.should_publish }}
       is_dry_run: ${{ steps.config.outputs.is_dry_run }}
       run_id: ${{ steps.config.outputs.run_id }}
-      environment: ${{ steps.config.outputs.environment }}
 
     steps:
       - name: Determine configuration
         id: config
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual trigger: use dry_run input
             IS_DRY_RUN="${{ inputs.dry_run }}"
             SHOULD_PUBLISH="true"
-            ENVIRONMENT="mainnet"  # Manual publishes use mainnet artifacts
 
             # Use provided run_id or leave empty for latest
             if [[ -n "${{ inputs.run_id }}" ]]; then
@@ -99,19 +101,30 @@ jobs:
             else
               RUN_ID=""
             fi
-          else
-            # workflow_run trigger from release
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            # Release published: real publish
             IS_DRY_RUN="false"
             SHOULD_PUBLISH="true"
+            RUN_ID=""  # Use latest build artifact
+          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            # workflow_run trigger
             RUN_ID="${{ github.event.workflow_run.id }}"
-            ENVIRONMENT="mainnet"
+            SHOULD_PUBLISH="true"
+
+            # Check what triggered the build workflow
+            if [[ "${{ github.event.workflow_run.event }}" == "release" ]]; then
+              # Build was triggered by release: real publish
+              IS_DRY_RUN="false"
+            else
+              # Build was triggered by push to trunk: dry run
+              IS_DRY_RUN="true"
+            fi
           fi
 
           {
             echo "should_publish=${SHOULD_PUBLISH}"
             echo "is_dry_run=${IS_DRY_RUN}"
             echo "run_id=${RUN_ID}"
-            echo "environment=${ENVIRONMENT}"
           } >> "$GITHUB_OUTPUT"
 
           # Summary
@@ -133,7 +146,6 @@ jobs:
     if: needs.setup.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: Mainnet
 
     steps:
       - name: Checkout
@@ -153,7 +165,7 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: ic-siwa-npm-${{ needs.setup.outputs.environment }}
+          name: ic-siwa-npm-${{ env.ENVIRONMENT }}
           path: libs/ic_siwa_ts/
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.setup.outputs.run_id }}
