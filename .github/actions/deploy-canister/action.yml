@@ -40,19 +40,18 @@ runs:
       shell: devenv shell --quiet bash -- -e {0}
       env:
         DFX_WARNING: "-mainnet_plaintext_identity"
+        INIT_ARGS: ${{ inputs.init_args }}
       run: |
         echo "Deploying ${{ inputs.canister }} to IC mainnet..."
 
-        # Build deploy args
-        DEPLOY_ARGS="--mode ${{ inputs.mode }}"
-
-        # Add init args if specified
-        if [ -n "${{ inputs.init_args }}" ]; then
-          DEPLOY_ARGS="$DEPLOY_ARGS --argument '${{ inputs.init_args }}'"
-        fi
-
         # Deploy using --network ic (canister_ids.json must be set up first)
-        eval "dfx deploy --network ic ${{ inputs.canister }} $DEPLOY_ARGS"
+        if [ -n "${INIT_ARGS}" ]; then
+          echo "Init args:"
+          echo "${INIT_ARGS}"
+          dfx deploy --network ic ${{ inputs.canister }} --mode ${{ inputs.mode }} --argument "${INIT_ARGS}"
+        else
+          dfx deploy --network ic ${{ inputs.canister }} --mode ${{ inputs.mode }}
+        fi
 
         # Get canister ID
         CANISTER_ID=$(dfx canister --network ic id ${{ inputs.canister }})
