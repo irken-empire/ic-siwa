@@ -1,13 +1,12 @@
 ---
 ##################################################
-# Name: update.yaml
+# Name: devenv-update.yaml
 # Description: Workflow for Updating Developer Environment
 ##################################################
 
 name: Devenv Update
 
-# prettier-ignore
-on:  # yamllint disable-line rule:truthy
+on:
   schedule:
     - cron: "0 0 * * 0"
   workflow_dispatch:
@@ -23,15 +22,7 @@ permissions:
   statuses: read
 
 env:
-  # GitHub
-  PROJECT: ${{ github.repository }}
-  BRANCH_NAME_CURRENT: ${{ github.head_ref || github.ref_name }}
-  BRANCH_NAME_DEFAULT: ${{ github.event.repository.default_branch }}
-
-  # Nix
   NIXPKGS_ALLOW_UNFREE: 1
-
-  # SecretSpec
   SECRETSPEC_PROVIDER: env
 
 defaults:
@@ -40,71 +31,37 @@ defaults:
 
 jobs:
   ##################################################
-  # Update
+  # Update devenv dependencies
   ##################################################
-
   update:
     name: Update
-
-    runs-on: ${{ matrix.os }}
-
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: false
-
-    strategy:
-      fail-fast: true
-      matrix:
-        os:
-          - ubuntu-latest
 
     steps:
-      - id: checkout_repository
-        name: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          lfs: false
           submodules: recursive
 
-      - id: install_nix
-        name: "Install Nix ❄️"
-        uses: cachix/install-nix-action@v31
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          enable_kvm: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - id: cachix
-        name: "Enable Cachix ❄️"
-        uses: cachix/cachix-action@v16
-        if: vars.CACHIX_CACHE_NAME != ''
-        with:
-          name: ${{ vars.CACHIX_CACHE_NAME }}
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          useDaemon: true
-          skipPush: false
-
-      - id: devenv_install
-        name: Devenv install
-        run: |
-          nix profile install --accept-flake-config nixpkgs#devenv
-
-      - id: secretspec_check
-        name: "Secretspec Check 🔐"
+      - name: Secretspec check
         shell: devenv shell --quiet bash -- -e {0}
-        run: |
-          secretspec check
+        run: secretspec check
 
-      - id: devenv_update
-        name: Devenv update
-        run: |
-          devenv update
+      - name: Devenv update
+        run: devenv update
 
-      - id: devenv_test
-        name: Devenv test
-        run: |
-          devenv test
+      - name: Devenv test
+        run: devenv test
 
-      - id: create_pull_request
-        name: Create Pull Request
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -112,7 +69,7 @@ jobs:
           title: "chore: Update devenv.lock"
           body: "This PR updates the devenv input dependencies"
           branch: "update-devenv-lock"
-          base: ${{ env.BRANCH_NAME_DEFAULT }}
+          base: ${{ github.event.repository.default_branch }}
           labels: "dependencies"
           assignees: "MAHDTech"
           reviewers: "MAHDTech"

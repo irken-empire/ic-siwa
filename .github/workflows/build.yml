@@ -48,6 +48,7 @@ permissions:
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
 
 defaults:
   run:

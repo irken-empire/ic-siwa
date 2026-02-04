@@ -52,6 +52,9 @@ permissions:
   actions: read
   id-token: write # Required for OIDC trusted publishing
 
+env:
+  SECRETSPEC_PROVIDER: env
+
 defaults:
   run:
     shell: bash
