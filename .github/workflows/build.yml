@@ -215,7 +215,7 @@ jobs:
   # Build TypeScript Library - Build npm package
   ##################################################
   build-typescript:
-    name: Build TypeScript
+    name: Build typeScript
     needs: [setup, lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -252,7 +252,7 @@ jobs:
   # Verify Candid - Ensure interface is up-to-date
   ##################################################
   verify-candid:
-    name: Verify Candid
+    name: Verify candid
     needs: [setup, build-canisters]
     runs-on: ubuntu-latest
     timeout-minutes: 15

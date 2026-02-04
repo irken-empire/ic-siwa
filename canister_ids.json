@@ -1,0 +1,12 @@
+{
+  "ic_siwa_provider": {
+    "mainnet": "tpmsm-eiaaa-aaaam-qgfvq-cai",
+    "testnet": "ejj2n-kqaaa-aaaad-qjlxq-cai"
+  },
+  "test_canister_rs": {
+    "testnet": "qyw5d-liaaa-aaaai-avgna-cai"
+  },
+  "test_canister_ts": {
+    "testnet": "kelzz-6qaaa-aaaak-qwlga-cai"
+  }
+}

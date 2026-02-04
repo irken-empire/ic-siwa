@@ -327,38 +327,31 @@ export class SiwaClient {
       );
     }
 
-    // Convert pubkey from the canister response to ArrayBuffer
+    // Convert pubkey from the canister response to Uint8Array
+    // @dfinity/identity v3.x uses Uint8Array instead of ArrayBuffer
     const pubkeyBytes =
       candidDelegation.pubkey instanceof Uint8Array
         ? candidDelegation.pubkey
         : new Uint8Array(candidDelegation.pubkey);
 
-    // Create a proper ArrayBuffer copy from the Uint8Array
-    const pubkeyBuffer = new ArrayBuffer(pubkeyBytes.length);
-    new Uint8Array(pubkeyBuffer).set(pubkeyBytes);
-
     // Create Delegation instance from canister response
     // Note: targets are optional in the candid type
     const targets = candidDelegation.targets[0]; // opt vec principal -> [] | [Principal[]]
     const delegation = new Delegation(
-      pubkeyBuffer,
+      pubkeyBytes,
       candidDelegation.expiration,
       targets
     );
 
     // Create delegation chain with single delegation signed by canister
-    // Convert signature to ArrayBuffer
-    const signatureBuffer = new ArrayBuffer(signatureBytes.length);
-    new Uint8Array(signatureBuffer).set(signatureBytes);
-
     return DelegationChain.fromDelegations(
       [
         {
           delegation,
-          signature: signatureBuffer as Signature,
+          signature: signatureBytes as Signature,
         },
       ],
-      pubkeyBuffer
+      pubkeyBytes
     );
   }
 
