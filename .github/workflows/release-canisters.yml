@@ -170,6 +170,11 @@ jobs:
           cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - name: Setup canister IDs
+        uses: ./.github/actions/setup-canister-ids
+        with:
+          environment: ${{ needs.setup.outputs.environment }}
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -189,7 +194,6 @@ jobs:
         uses: ./.github/actions/deploy-canister
         with:
           canister: ic_siwa_provider
-          network: ${{ needs.setup.outputs.environment }}
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
           init_args: |
             (record {
@@ -227,11 +231,15 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup canister IDs
+        uses: ./.github/actions/setup-canister-ids
+        with:
+          environment: ${{ needs.setup.outputs.environment }}
+
       - name: Verify canister
         uses: ./.github/actions/verify-canister
         with:
           canister: ic_siwa_provider
-          network: ${{ needs.setup.outputs.environment }}
           canister_id: ${{ needs.deploy-provider.outputs.canister_id }}
 
   ##################################################
@@ -258,6 +266,11 @@ jobs:
           cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - name: Setup canister IDs
+        uses: ./.github/actions/setup-canister-ids
+        with:
+          environment: ${{ needs.setup.outputs.environment }}
+
       - name: Download test_canister_rs
         uses: actions/download-artifact@v4
         with:
@@ -278,14 +291,12 @@ jobs:
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_rs
-          network: ${{ needs.setup.outputs.environment }}
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
       - name: Deploy test_canister_ts
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_ts
-          network: ${{ needs.setup.outputs.environment }}
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
   ##################################################

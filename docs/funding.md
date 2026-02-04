@@ -9,6 +9,27 @@ Instructions for funding the Canisters with cycles.
 
 Both deploy to the Internet Computer mainnet (ic0.app) - there is no IC testnet.
 
+## Canister ID Files
+
+Canister IDs are stored in environment-specific files:
+
+- `canister_ids.testnet.json` - Testnet canister IDs
+- `canister_ids.mainnet.json` - Mainnet canister IDs
+
+To work with a specific environment locally, copy the appropriate file:
+
+```bash
+# For testnet work
+cp canister_ids.testnet.json canister_ids.json
+
+# For mainnet work
+cp canister_ids.mainnet.json canister_ids.json
+```
+
+All `dfx` commands then use `--network ic`.
+
+> **Note:** `canister_ids.json` is gitignored. Always edit the environment-specific files and copy them.
+
 ## Wallet Terminology
 
 - This is **important:**
@@ -41,6 +62,9 @@ dfx ledger account-id --network ic
 # Switch to testnet identity
 dfx identity use ic-siwa-testnet
 
+# Copy testnet canister IDs
+cp canister_ids.testnet.json canister_ids.json
+
 # Check ICP balance
 dfx ledger balance --network ic
 
@@ -54,15 +78,16 @@ dfx cycles convert --amount 1 --network ic
 # Use --with-cycles to specify initial cycles (500B = 0.5T)
 dfx canister create ic_siwa_provider --network ic --with-cycles 500000000000
 
-# IMPORTANT: Now update canister_ids.json for the "testnet" and remove "ic"
+# IMPORTANT: Update canister_ids.testnet.json with the new canister ID
 # {
-#  "ic_siwa_provider": {
-#    "testnet": "ejj2n-kqaaa-aaaad-qjlxq-cai"
-#  }
-#}
+#   "ic_siwa_provider": {
+#     "ic": "<new-canister-id>"
+#   }
+# }
 
-# Check the created canister ID using "testnet"
-dfx canister id ic_siwa_provider --network testnet
+# Copy updated file and verify
+cp canister_ids.testnet.json canister_ids.json
+dfx canister id ic_siwa_provider --network ic
 ```
 
 ### Test Canisters (Testnet Only)
@@ -70,26 +95,27 @@ dfx canister id ic_siwa_provider --network testnet
 For testnet, you may also want to deploy the test canisters for integration testing:
 
 ```bash
-# Create test canisters (still using --network ic for cycles ledger)
+# Create test canisters
 dfx canister create test_canister_rs --network ic --with-cycles 500000000000
 dfx canister create test_canister_ts --network ic --with-cycles 500000000000
 
-# Update canister_ids.json to add testnet entries:
+# Update canister_ids.testnet.json with all canister IDs:
 # {
 #   "ic_siwa_provider": {
-#     "testnet": "<provider-canister-id>"
+#     "ic": "<provider-canister-id>"
 #   },
 #   "test_canister_rs": {
-#     "testnet": "<test-rs-canister-id>"
+#     "ic": "<test-rs-canister-id>"
 #   },
 #   "test_canister_ts": {
-#     "testnet": "<test-ts-canister-id>"
+#     "ic": "<test-ts-canister-id>"
 #   }
 # }
 
-# Verify canister IDs
-dfx canister id test_canister_rs --network testnet
-dfx canister id test_canister_ts --network testnet
+# Copy and verify
+cp canister_ids.testnet.json canister_ids.json
+dfx canister id test_canister_rs --network ic
+dfx canister id test_canister_ts --network ic
 ```
 
 ## Mainnet (Avalanche C-Chain)
@@ -97,6 +123,9 @@ dfx canister id test_canister_ts --network testnet
 ```bash
 # Switch to mainnet identity
 dfx identity use ic-siwa-mainnet
+
+# Copy mainnet canister IDs
+cp canister_ids.mainnet.json canister_ids.json
 
 # Check ICP balance
 dfx ledger balance --network ic
@@ -108,65 +137,74 @@ dfx cycles balance --network ic
 dfx cycles convert --amount 1 --network ic
 
 # Create canister with cycles from cycles ledger
-# NOTE: Must use --network ic for canister creation
 dfx canister create ic_siwa_provider --network ic --with-cycles 500000000000
 
-# IMPORTANT: Update canister_ids.json to add "mainnet" entry and remove "ic"
+# IMPORTANT: Update canister_ids.mainnet.json with the new canister ID
 # {
 #   "ic_siwa_provider": {
-#     "testnet": "<testnet-canister-id>",
-#     "mainnet": "<mainnet-canister-id-from-above>"
+#     "ic": "<new-canister-id>"
 #   }
 # }
 
-# Check the created canister ID using "mainnet"
-dfx canister id ic_siwa_provider --network mainnet
+# Copy updated file and verify
+cp canister_ids.mainnet.json canister_ids.json
+dfx canister id ic_siwa_provider --network ic
 ```
 
-- **REMINDER:** Once you have the canister IDs, update the YAML configuration file to use the correct canister IDs.
+> **REMINDER:** Once you have the canister IDs, update the YAML configuration file to use the correct canister IDs.
 
 ## Checking Canister Cycles Balance
 
 After deployment, you can check a canister's cycles balance:
 
 ```bash
-# Testnet
-dfx canister status ic_siwa_provider --network testnet
+# For testnet
+dfx identity use ic-siwa-testnet
+cp canister_ids.testnet.json canister_ids.json
+dfx canister status ic_siwa_provider --network ic
 
-# Mainnet
-dfx canister status ic_siwa_provider --network mainnet
+# For mainnet
+dfx identity use ic-siwa-mainnet
+cp canister_ids.mainnet.json canister_ids.json
+dfx canister status ic_siwa_provider --network ic
 ```
 
 ## Topping Up Canisters
 
-To add more cycles to an existing canisters:
+To add more cycles to existing canisters:
 
-- For `testnet`
+### Testnet
 
 ```bash
 dfx identity use ic-siwa-testnet
-dfx cycles balance --network testnet
+cp canister_ids.testnet.json canister_ids.json
+
+dfx cycles balance --network ic
 dfx identity get-principal
 
-# Top up each canister with 1T cycles
-#dfx canister deposit-cycles 1000000000000 ic_siwa_provider --network testnet
-#dfx canister deposit-cycles 1000000000000 test_canister_rs --network testnet
-#dfx canister deposit-cycles 1000000000000 test_canister_ts --network testnet
-dfx canister deposit-cycles 1000000000000 ejj2n-kqaaa-aaaad-qjlxq-cai --network ic
-dfx canister deposit-cycles 500000000000 qyw5d-liaaa-aaaai-avgna-cai --network ic
-dfx canister deposit-cycles 500000000000 kelzz-6qaaa-aaaak-qwlga-cai --network ic
+# Top up using canister name (requires canister_ids.json)
+dfx canister deposit-cycles 1000000000000 ic_siwa_provider --network ic
+dfx canister deposit-cycles 500000000000 test_canister_rs --network ic
+dfx canister deposit-cycles 500000000000 test_canister_ts --network ic
+
+# Or top up using canister ID directly
+# dfx canister deposit-cycles 1000000000000 ejj2n-kqaaa-aaaad-qjlxq-cai --network ic
 ```
 
-- For `mainnet`
+### Mainnet
 
 ```bash
 dfx identity use ic-siwa-mainnet
-dfx cycles balance --network mainnet
+cp canister_ids.mainnet.json canister_ids.json
+
+dfx cycles balance --network ic
 dfx identity get-principal
 
-# Top up each canister with 1T cycles
-#dfx canister deposit-cycles 1000000000000 ic_siwa_provider --network mainnet
-dfx canister deposit-cycles 1000000000000 tpmsm-eiaaa-aaaam-qgfvq-cai --network ic
+# Top up using canister name
+dfx canister deposit-cycles 1000000000000 ic_siwa_provider --network ic
+
+# Or top up using canister ID directly
+# dfx canister deposit-cycles 1000000000000 tpmsm-eiaaa-aaaam-qgfvq-cai --network ic
 ```
 
 ## Cost Estimates

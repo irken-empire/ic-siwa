@@ -12,14 +12,13 @@ target/
 **/mutants.out*/
 
 # Canister artifacts
-.dfx/**/canisters/
-.dfx/**/lsp/
-.dfx/**/wallets.json
+.dfx/
 *.wasm
 *.wasm.gz
 
-# Keep canister IDs per network
-!.dfx/**/canister_ids.json
+# Canister IDs (generated from environment-specific files in CI)
+# Use canister_ids.testnet.json and canister_ids.mainnet.json instead
+canister_ids.json
 
 # TypeScript/Node artifacts
 node_modules/

@@ -30,14 +30,6 @@
     "juno": {
       "bind": "127.0.0.1:5987",
       "type": "ephemeral"
-    },
-    "testnet": {
-      "providers": ["https://ic0.app"],
-      "type": "persistent"
-    },
-    "mainnet": {
-      "providers": ["https://ic0.app"],
-      "type": "persistent"
     }
   },
   "output_env_file": ".env",

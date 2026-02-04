@@ -1,0 +1,11 @@
+{
+  "ic_siwa_provider": {
+    "ic": "ejj2n-kqaaa-aaaad-qjlxq-cai"
+  },
+  "test_canister_rs": {
+    "ic": "qyw5d-liaaa-aaaai-avgna-cai"
+  },
+  "test_canister_ts": {
+    "ic": "kelzz-6qaaa-aaaak-qwlga-cai"
+  }
+}
