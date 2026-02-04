@@ -10,8 +10,8 @@ ic:
   network: "ic"
   canisters:
     ic_siwa_provider: "ejj2n-kqaaa-aaaad-qjlxq-cai"
-    test_canister_rs: "testnet-canister-id"
-    test_canister_ts: "testnet-canister-id"
+    test_canister_rs: "qyw5d-liaaa-aaaai-avgna-cai"
+    test_canister_ts: "kelzz-6qaaa-aaaak-qwlga-cai"
 
 security:
   # Allowed domains for SIWA messages (user sees this in their wallet)

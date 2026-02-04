@@ -171,8 +171,34 @@ dfx canister deposit-cycles 1000000000000 tpmsm-eiaaa-aaaam-qgfvq-cai --network 
 
 ## Cost Estimates
 
-- Creating a canister: ~100B cycles (~$0.13)
+- Creating a canister: ~500B cycles (~$0.65)
 - Deploying ic_siwa_provider: ~1-2T cycles (~$1.30-2.60)
-- Recommended initial funding: 5T cycles (~$6.50)
+- Recommended initial funding: 2T cycles (~$2.60) per canister
 
 Note: 1T (trillion) cycles ≈ $1.30 USD (as of 2025)
+
+## Cycles Usage by Method
+
+### ic_siwa_provider
+
+| Method                | Type   | Costs Cycles?                                              |
+| --------------------- | ------ | ---------------------------------------------------------- |
+| `siwa_prepare_login`  | Update | Yes - creates and stores a SIWA message                    |
+| `siwa_login`          | Update | Yes - verifies signature, creates delegation, stores state |
+| `siwa_get_delegation` | Query  | No - just reads stored delegation                          |
+| `get_address`         | Query  | No - reads principal to address mapping                    |
+| `get_principal`       | Query  | No - reads address to principal mapping                    |
+| `get_caller_address`  | Query  | No - derives address from caller                           |
+
+### What costs more cycles?
+
+- **Compute** - signature verification in `siwa_login` is CPU-intensive
+- **Storage** - storing delegations, rate limit tracking
+- **Memory** - each stored session uses heap memory
+
+### Rough estimates
+
+- Each login (prepare + login): ~1-10B cycles depending on message size
+- With 1 TC (trillion cycles), you could handle roughly **100,000 - 1,000,000 logins**
+
+Once you top up canisters with 1-2 TC each, they should handle many logins before needing a refill.

@@ -18,8 +18,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.6",
-    "@astrojs/tailwind": "6.0.2",
     "@eslint/js": "9.39.2",
+    "@tailwindcss/vite": "4.1.18",
     "daisyui": "5.5.17",
     "eslint": "9.39.2",
     "globals": "17.3.0",
