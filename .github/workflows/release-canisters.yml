@@ -15,14 +15,13 @@ name: Release Canisters
 
 on:
   # Run when Build workflow completes
-  # but only when it was triggered by a push to trunk
+  # - Build triggered by trunk push → testnet
+  # - Build triggered by release → mainnet
   workflow_run:
     workflows:
       - "Build"
     types:
       - completed
-    branches:
-      - trunk
   # Allow manual runs
   workflow_dispatch:
     inputs:
@@ -70,10 +69,14 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
-    # Only run if Build workflow succeeded (for workflow_run trigger)
+    # Only run if:
+    # - Manual trigger, OR
+    # - Build succeeded AND was triggered by push to trunk or release (not PRs)
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
     outputs:
       environment: ${{ steps.config.outputs.environment }}
       github_environment: ${{ steps.config.outputs.github_environment }}
