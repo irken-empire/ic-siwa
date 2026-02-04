@@ -202,6 +202,7 @@ show_help() {
 		  deploy             Deploy all canisters (provider + test canisters)
 		  upgrade            Upgrade deployed canisters
 		  urls               Show deployed canister URLs
+		  cycles             Show cycles balance for all canisters and ledgers
 		  cleanup            Clean up build artifacts (add --prune to delete canisters)
 		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
@@ -267,6 +268,7 @@ declare -A CMD_DEPS=(
 	["version"]="toml"
 	["cleanup"]="dfx"
 	["urls"]="dfx"
+	["cycles"]="dfx,jq"
 )
 
 # Check if a command exists
@@ -629,15 +631,16 @@ cmd_update() {
 	cargo update
 	log_success "Cargo dependencies updated"
 
-	# Update bun packages with exact versions (no ^ or ~ prefixes)
+	# Update bun packages to latest versions with exact versions (no ^ or ~ prefixes)
 	for npm_dir in "${npm_dirs[@]}"; do
 		local full_path="${PROJECT_ROOT}/${npm_dir}"
 		if [[ -d ${full_path} ]]; then
 			log_info "Updating bun packages in ${npm_dir}..."
 			(
 				cd "${full_path}"
+				# --latest updates to newest versions regardless of current constraints
 				# --save-exact ensures no ^ or ~ prefixes are added
-				bun update --save-exact
+				bun update --latest --save-exact
 			)
 			log_success "Updated ${npm_dir}"
 		fi
@@ -1414,6 +1417,125 @@ cmd_upgrade() {
 	fi
 }
 
+# Show cycles balance for all canisters
+cmd_cycles() {
+	cd "${PROJECT_ROOT}"
+
+	local canister_ids_file="${PROJECT_ROOT}/canister_ids.json"
+	if [[ ! -f ${canister_ids_file} ]]; then
+		log_error "canister_ids.json not found"
+		return 1
+	fi
+
+	# Network to identity mapping
+	declare -A NETWORK_IDENTITIES=(
+		["testnet"]="ic-siwa-testnet"
+		["mainnet"]="ic-siwa-mainnet"
+	)
+
+	local networks=("testnet" "mainnet")
+	local current_identity
+	current_identity=$(dfx identity whoami)
+
+	log_info "Checking cycles balances..."
+	echo ""
+
+	for network in "${networks[@]}"; do
+		local identity="${NETWORK_IDENTITIES[$network]}"
+
+		# Check if identity exists
+		if ! dfx identity list 2>/dev/null | grep -q "^${identity}"; then
+			log_warn "Identity '${identity}' not found, skipping ${network}"
+			continue
+		fi
+
+		# Switch to the appropriate identity
+		dfx identity use "${identity}" >/dev/null 2>&1
+
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+		echo -e "${BLUE}Network: ${network}${NC} (identity: ${identity})"
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+		# Get all canisters for this network from canister_ids.json
+		local canisters
+		canisters=$(jq -r "to_entries[] | select(.value.${network} != null) | .key" "${canister_ids_file}" 2>/dev/null)
+
+		if [[ -z ${canisters} ]]; then
+			log_warn "  No canisters found for ${network}"
+			echo ""
+			continue
+		fi
+
+		# Table header
+		printf "  %-25s %-30s %s\n" "CANISTER" "ID" "CYCLES"
+		printf "  %-25s %-30s %s\n" "-------------------------" "------------------------------" "---------------"
+
+		for canister in ${canisters}; do
+			local canister_id
+			canister_id=$(jq -r ".\"${canister}\".${network} // empty" "${canister_ids_file}")
+
+			if [[ -z ${canister_id} ]]; then
+				continue
+			fi
+
+			# Get cycles balance using canister ID directly with --network ic
+			local cycles_output
+			local cycles_balance="error"
+
+			if cycles_output=$(dfx canister status "${canister_id}" --network ic 2>&1); then
+				# Extract balance from output like "Balance: 1_234_567_890 Cycles"
+				cycles_balance=$(echo "${cycles_output}" | grep -oP 'Balance: \K[0-9_]+(?= Cycles)' | tr -d '_')
+				if [[ -n ${cycles_balance} ]]; then
+					# Format with T/B/M suffix using awk for floating point
+					if [[ ${cycles_balance} -ge 1000000000000 ]]; then
+						cycles_balance="$(awk "BEGIN {printf \"%.2f\", ${cycles_balance} / 1000000000000}") TC"
+					elif [[ ${cycles_balance} -ge 1000000000 ]]; then
+						cycles_balance="$(awk "BEGIN {printf \"%.2f\", ${cycles_balance} / 1000000000}") B"
+					elif [[ ${cycles_balance} -ge 1000000 ]]; then
+						cycles_balance="$(awk "BEGIN {printf \"%.2f\", ${cycles_balance} / 1000000}") M"
+					else
+						cycles_balance="${cycles_balance} cycles"
+					fi
+				else
+					cycles_balance="unknown"
+				fi
+			else
+				# Check if it's an out-of-cycles error
+				if echo "${cycles_output}" | grep -q "out of cycles"; then
+					cycles_balance="${RED}OUT OF CYCLES${NC}"
+				else
+					cycles_balance="${RED}error${NC}"
+				fi
+			fi
+
+			printf "  %-25s %-30s %b\n" "${canister}" "${canister_id}" "${cycles_balance}"
+		done
+		echo ""
+	done
+
+	# Also show cycles ledger balance
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	echo -e "${BLUE}Cycles Ledger Balances${NC}"
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	printf "  %-25s %s\n" "IDENTITY" "BALANCE"
+	printf "  %-25s %s\n" "-------------------------" "---------------"
+
+	for network in "${networks[@]}"; do
+		local identity="${NETWORK_IDENTITIES[$network]}"
+		if dfx identity list 2>/dev/null | grep -q "^${identity}"; then
+			dfx identity use "${identity}" >/dev/null 2>&1
+			local ledger_balance
+			ledger_balance=$(dfx cycles balance --network ic 2>/dev/null || echo "error")
+			printf "  %-25s %s\n" "${identity}" "${ledger_balance}"
+		fi
+	done
+	echo ""
+
+	# Restore original identity
+	dfx identity use "${current_identity}" >/dev/null 2>&1
+	log_info "Restored identity: ${current_identity}"
+}
+
 # Clean up artifacts
 cmd_cleanup() {
 	local network="${1:-dfx}"
@@ -1627,6 +1749,9 @@ parse_args() {
 		;;
 	cleanup)
 		cmd_cleanup "${NETWORK}" "${PRUNE}"
+		;;
+	cycles)
+		cmd_cycles
 		;;
 	loop)
 		cmd_loop "${NETWORK}"

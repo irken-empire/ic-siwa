@@ -33,7 +33,8 @@ describe("generateSessionKey", () => {
     const key = generateSessionKey();
     const data = new Uint8Array([1, 2, 3, 4, 5]);
 
-    const signature = await key.sign(data.buffer as ArrayBuffer);
+    // @dfinity/identity v3.x sign() accepts Uint8Array directly
+    const signature = await key.sign(data);
     expect(signature).toBeDefined();
     expect(signature.byteLength).toBeGreaterThan(0);
   });

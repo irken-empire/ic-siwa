@@ -244,8 +244,10 @@ jobs:
             exit 1
           fi
 
-          if [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
-            echo "Dry run completed successfully!"
+          if [[ "${{ needs.setup.result }}" == "skipped" ]]; then
+            echo "Skipped - npm publish only runs on GitHub Release events"
+          elif [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
+            echo "npm package published successfully! (dry run)"
           else
             echo "npm package published successfully!"
           fi

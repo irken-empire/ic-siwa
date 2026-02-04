@@ -9,8 +9,9 @@ avalanche:
 ic:
   network: "ic"
   canisters:
-    # TODO: Set after deployment.
-    ic_siwa_provider: ""
+    ic_siwa_provider: "ejj2n-kqaaa-aaaad-qjlxq-cai"
+    test_canister_rs: "testnet-canister-id"
+    test_canister_ts: "testnet-canister-id"
 
 security:
   # Allowed domains for SIWA messages (user sees this in their wallet)
