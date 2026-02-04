@@ -23,16 +23,14 @@
 name: Release npm
 
 on:
-  # Run when Build workflow completes on trunk (dry run) or release (publish)
+  # Run when Build workflow completes
+  # - Build triggered by trunk push → dry run
+  # - Build triggered by release → real publish
   workflow_run:
     workflows:
       - "Build"
     types:
       - completed
-  # Run when a release is published (publish)
-  release:
-    types:
-      - published
   workflow_dispatch:
     inputs:
       dry_run:
@@ -74,13 +72,13 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if:
     # - Manual trigger, OR
-    # - Release published, OR
-    # - Build workflow succeeded (trunk merge = dry run, release = publish)
+    # - Build succeeded AND was triggered by push to trunk (dry run) or release (real publish)
+    # - NOT on PRs
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
       (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success')
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
     outputs:
       should_publish: ${{ steps.config.outputs.should_publish }}
       is_dry_run: ${{ steps.config.outputs.is_dry_run }}
@@ -101,13 +99,8 @@ jobs:
             else
               RUN_ID=""
             fi
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            # Release published: real publish
-            IS_DRY_RUN="false"
-            SHOULD_PUBLISH="true"
-            RUN_ID=""  # Use latest build artifact
-          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            # workflow_run trigger
+          else
+            # workflow_run trigger - wait for Build to complete
             RUN_ID="${{ github.event.workflow_run.id }}"
             SHOULD_PUBLISH="true"
 
