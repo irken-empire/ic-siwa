@@ -4,7 +4,9 @@
 # Description: Publish ic-siwa TypeScript library to npm
 #
 # Triggers:
-#   - workflow_run: After successful Build workflow on trunk (dry run) or release (publish)
+#   - release: When a GitHub release is published
+#     - Pre-release (testnet) → dry run
+#     - Full release (mainnet) → real publish
 #   - workflow_dispatch: Manual publish with dry-run option
 #
 # This workflow downloads pre-built npm package artifacts from the
@@ -23,14 +25,11 @@
 name: Release npm
 
 on:
-  # Run when Build workflow completes
-  # - Build triggered by trunk push → dry run
-  # - Build triggered by release → real publish
-  workflow_run:
-    workflows:
-      - "Build"
-    types:
-      - completed
+  # Run when a GitHub release is published
+  # - Pre-release (testnet) → dry run
+  # - Full release (mainnet) → real publish
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -69,15 +68,6 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
-    # Only run if:
-    # - Manual trigger, OR
-    # - Build succeeded AND was triggered by push to trunk (dry run) or release (real publish)
-    # - NOT on PRs
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event != 'pull_request')
     outputs:
       should_publish: ${{ steps.config.outputs.should_publish }}
       is_dry_run: ${{ steps.config.outputs.is_dry_run }}
@@ -87,11 +77,14 @@ jobs:
     steps:
       - name: Determine configuration
         id: config
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          SHOULD_PUBLISH="true"
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # Manual trigger: use dry_run input
             IS_DRY_RUN="${{ inputs.dry_run }}"
-            SHOULD_PUBLISH="true"
 
             # Use provided run_id or leave empty for latest
             if [[ -n "${{ inputs.run_id }}" ]]; then
@@ -107,19 +100,35 @@ jobs:
               ENVIRONMENT="mainnet"
             fi
           else
-            # workflow_run trigger - wait for Build to complete
-            RUN_ID="${{ github.event.workflow_run.id }}"
-            SHOULD_PUBLISH="true"
+            # Release trigger - check if pre-release or full release
+            IS_PRERELEASE="${{ github.event.release.prerelease }}"
 
-            # Check what triggered the build workflow
-            if [[ "${{ github.event.workflow_run.event }}" == "release" ]]; then
-              # Build was triggered by release: real publish to mainnet
-              IS_DRY_RUN="false"
-              ENVIRONMENT="mainnet"
-            else
-              # Build was triggered by push to trunk: dry run with testnet build
+            if [[ "${IS_PRERELEASE}" == "true" ]]; then
+              # Pre-release (testnet) → dry run
               IS_DRY_RUN="true"
               ENVIRONMENT="testnet"
+            else
+              # Full release (mainnet) → real publish
+              IS_DRY_RUN="false"
+              ENVIRONMENT="mainnet"
+            fi
+
+            # Find the Build workflow run that created artifacts for this environment
+            # Look for the most recent successful Build run with matching artifacts
+            echo "Finding Build workflow run with ${ENVIRONMENT} artifacts..."
+            RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/build.yml/runs?status=success&per_page=10" \
+              --jq ".workflow_runs[] | select(.head_sha == \"${{ github.sha }}\") | .id" | head -1 || echo "")
+
+            if [[ -z "${RUN_ID}" ]]; then
+              # Fallback: find any recent successful build with matching artifacts
+              echo "::warning::No Build run found for commit ${{ github.sha }}, searching for latest with ${ENVIRONMENT} artifacts"
+              RUN_ID=$(gh api "/repos/${{ github.repository }}/actions/workflows/build.yml/runs?status=success&per_page=5" \
+                --jq '.workflow_runs[0].id' || echo "")
+            fi
+
+            if [[ -z "${RUN_ID}" ]]; then
+              echo "::error::Could not find a successful Build workflow run"
+              SHOULD_PUBLISH="false"
             fi
           fi
 
@@ -136,7 +145,12 @@ jobs:
             echo "| Setting | Value |"
             echo "|---------|-------|"
             echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| SHA | \`${{ github.sha }}\` |"
+            echo "| Release Tag | \`${{ github.event.release.tag_name || 'N/A' }}\` |"
+            echo "| Pre-release | ${{ github.event.release.prerelease || 'N/A' }} |"
             echo "| Environment | ${ENVIRONMENT} |"
+            echo "| Should Publish | ${SHOULD_PUBLISH} |"
             echo "| Dry Run | ${IS_DRY_RUN} |"
             echo "| Build Run ID | ${RUN_ID:-latest} |"
           } >> "$GITHUB_STEP_SUMMARY"

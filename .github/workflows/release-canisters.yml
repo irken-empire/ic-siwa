@@ -1,14 +1,18 @@
 ---
 ##################################################
 # Name: release-canisters.yml
-# Description: Deploy IC-SIWA canisters to IC Mainnet
+# Description: Deploy IC-SIWA canisters to IC
 #
 # Triggers:
-#   - workflow_run: After successful Build workflow on trunk/release
+#   - workflow_run: After successful Build workflow (testnet/mainnet only)
 #   - workflow_dispatch: Manual deployment with environment selection
 #
-# This workflow downloads pre-built canister artifacts from the
-# Build workflow and deploys them to the Internet Computer.
+# This workflow:
+#   1. Downloads pre-built canister artifacts from Build workflow
+#   2. Deploys canisters to the Internet Computer
+#   3. Creates a GitHub release (pre-release for testnet, release for mainnet)
+#
+# The GitHub release creation triggers release-npm.yml for npm publishing.
 ##################################################
 
 name: Release Canisters
@@ -71,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if:
     # - Manual trigger, OR
-    # - Build succeeded AND was triggered by push to trunk or release (not PRs)
+    # - Build succeeded AND was NOT triggered by PR (development builds don't deploy)
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
@@ -82,11 +86,16 @@ jobs:
       github_environment: ${{ steps.config.outputs.github_environment }}
       is_mainnet: ${{ steps.config.outputs.is_mainnet }}
       run_id: ${{ steps.config.outputs.run_id }}
+      should_deploy: ${{ steps.config.outputs.should_deploy }}
 
     steps:
       - name: Determine Environment configuration
         id: config
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          SHOULD_DEPLOY="true"
+
           # Determine environment and run_id based on trigger
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             ENVIRONMENT="${{ inputs.environment }}"
@@ -98,21 +107,49 @@ jobs:
               RUN_ID=""
             fi
           else
-            # workflow_run trigger
+            # workflow_run trigger - need to determine environment from Build workflow
             RUN_ID="${{ github.event.workflow_run.id }}"
 
-            # Determine environment from the triggering event
-            if [[ "${{ github.event.workflow_run.event }}" == "release" ]]; then
-              ENVIRONMENT="mainnet"
-            else
+            # Check if Build was triggered by push (testnet) or workflow_dispatch
+            BUILD_EVENT="${{ github.event.workflow_run.event }}"
+
+            if [[ "${BUILD_EVENT}" == "push" ]]; then
+              # Push to trunk = testnet
               ENVIRONMENT="testnet"
+            elif [[ "${BUILD_EVENT}" == "workflow_dispatch" ]]; then
+              # Manual Build - check artifacts to determine environment
+              # Try to find which artifact exists (testnet or mainnet)
+              ARTIFACTS=$(gh api "/repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[].name' 2>/dev/null || echo "")
+
+              if echo "${ARTIFACTS}" | grep -q "mainnet"; then
+                ENVIRONMENT="mainnet"
+              elif echo "${ARTIFACTS}" | grep -q "testnet"; then
+                ENVIRONMENT="testnet"
+              elif echo "${ARTIFACTS}" | grep -q "development"; then
+                # Development builds don't deploy
+                ENVIRONMENT="development"
+                SHOULD_DEPLOY="false"
+              else
+                echo "::error::Could not determine environment from Build artifacts"
+                exit 1
+              fi
+            else
+              # Unknown trigger - skip
+              SHOULD_DEPLOY="false"
+              ENVIRONMENT="unknown"
             fi
+          fi
+
+          # Skip deployment for development environment
+          if [[ "${ENVIRONMENT}" == "development" ]]; then
+            SHOULD_DEPLOY="false"
           fi
 
           # Map to GitHub Environment name
           case "${ENVIRONMENT}" in
             testnet) GITHUB_ENV="Testnet" ;;
             mainnet) GITHUB_ENV="Mainnet" ;;
+            *) GITHUB_ENV="" ;;
           esac
 
           IS_MAINNET=$([[ "${ENVIRONMENT}" == "mainnet" ]] && echo "true" || echo "false")
@@ -122,6 +159,7 @@ jobs:
             echo "github_environment=${GITHUB_ENV}"
             echo "is_mainnet=${IS_MAINNET}"
             echo "run_id=${RUN_ID}"
+            echo "should_deploy=${SHOULD_DEPLOY}"
           } >> "$GITHUB_OUTPUT"
 
           # Summary
@@ -130,7 +168,12 @@ jobs:
             echo "| Setting | Value |"
             echo "|---------|-------|"
             echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| SHA | \`${{ github.sha }}\` |"
             echo "| Environment | ${ENVIRONMENT} |"
+            echo "| GitHub Environment | ${GITHUB_ENV} |"
+            echo "| Is Mainnet | ${IS_MAINNET} |"
+            echo "| Should Deploy | ${SHOULD_DEPLOY} |"
             echo "| Build Run ID | ${RUN_ID:-latest} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -156,6 +199,7 @@ jobs:
   deploy-provider:
     name: Deploy Provider
     needs: [setup]
+    if: needs.setup.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: ${{ needs.setup.outputs.github_environment }}
@@ -222,6 +266,7 @@ jobs:
   verify-deployment:
     name: Verify Deployment
     needs: [setup, deploy-provider]
+    if: needs.setup.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -252,6 +297,7 @@ jobs:
     name: Deploy Test Canisters
     needs: [setup, deploy-provider, verify-deployment]
     if: |
+      needs.setup.outputs.should_deploy == 'true' &&
       needs.setup.outputs.environment == 'testnet' &&
       vars.DEPLOY_TEST_CANISTERS == 'true'
     runs-on: ubuntu-latest
@@ -313,7 +359,10 @@ jobs:
   release:
     name: Create Release
     needs: [setup, deploy-provider, verify-deployment, deploy-test-canisters]
-    if: always() && needs.verify-deployment.result == 'success'
+    if: |
+      always() &&
+      needs.setup.outputs.should_deploy == 'true' &&
+      needs.verify-deployment.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -335,7 +384,7 @@ jobs:
           VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
           echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
 
-      # Testnet: Create draft pre-release
+      # Testnet: Create pre-release (triggers npm dry run)
       - name: Create testnet release
         if: needs.setup.outputs.environment == 'testnet'
         uses: softprops/action-gh-release@v2
@@ -362,8 +411,8 @@ jobs:
             | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}` | [Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}) |
 
             ---
-            *This is a testnet deployment for testing purposes.*
-          draft: true
+            *This is a testnet deployment. npm package was published as a dry run.*
+          draft: false
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

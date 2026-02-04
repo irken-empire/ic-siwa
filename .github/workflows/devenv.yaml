@@ -46,6 +46,18 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Configuration summary
+        run: |
+          {
+            echo "## Devenv Configuration"
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| SHA | \`${{ github.sha }}\` |"
+            echo "| PR | ${{ github.event.pull_request.number || 'N/A' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:

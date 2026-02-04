@@ -4,31 +4,29 @@
 # Description: Build, Lint, and Test IC-SIWA
 #
 # Triggers:
-#   - PR to trunk:        Build & test only
-#   - Push to trunk:      Build, test (triggers downstream workflows)
-#   - Release published:  Build, test (triggers downstream workflows)
-#   - Manual:             Build, test for selected environment
+#   - PR to trunk:        Build & test only (development)
+#   - Push to trunk:      Build & test (testnet) → triggers release-canisters
+#   - Manual:             Build & test for selected environment → triggers release-canisters
 #
 # Downstream workflows (via workflow_run):
-#   - release-canisters.yml: Deploys to IC mainnet
-#   - release-npm.yml: Publishes to npm registry
+#   - release-canisters.yml: Deploys canisters and creates GitHub release
+#
+# Note: npm publishing is triggered by release-canisters creating a release,
+# not directly from this workflow.
 ##################################################
 
 name: Build
 
 on:
-  # Build on PRs
+  # Build on PRs (development - no deploy)
   pull_request:
     branches:
       - trunk
-  # Build on pushes to trunk
+  # Build on pushes to trunk (testnet - triggers deploy)
   push:
     branches:
       - trunk
-  # Build when release is publishes
-  release:
-    types: [published]
-  # Allow manual runs
+  # Allow manual runs with environment selection
   workflow_dispatch:
     inputs:
       environment:
@@ -36,6 +34,7 @@ on:
         required: true
         type: choice
         options:
+          - development
           - testnet
           - mainnet
         default: testnet
@@ -81,12 +80,14 @@ jobs:
           elif [[ "${{ github.event_name }}" == "push" ]]; then
             ENVIRONMENT="testnet"
             SHOULD_RELEASE="true"
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            ENVIRONMENT="mainnet"
-            SHOULD_RELEASE="true"
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             ENVIRONMENT="${{ inputs.environment }}"
-            SHOULD_RELEASE="false"  # Manual builds don't auto-release
+            # Manual builds trigger release for testnet/mainnet, not development
+            if [[ "${ENVIRONMENT}" == "development" ]]; then
+              SHOULD_RELEASE="false"
+            else
+              SHOULD_RELEASE="true"
+            fi
           fi
 
           IS_MAINNET=$([[ "${ENVIRONMENT}" == "mainnet" ]] && echo "true" || echo "false")
@@ -103,6 +104,8 @@ jobs:
             echo "| Setting | Value |"
             echo "|---------|-------|"
             echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| SHA | \`${{ github.sha }}\` |"
             echo "| Environment | ${ENVIRONMENT} |"
             echo "| Is Mainnet | ${IS_MAINNET} |"
             echo "| Should Release | ${SHOULD_RELEASE} |"
