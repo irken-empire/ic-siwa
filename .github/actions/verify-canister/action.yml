@@ -5,9 +5,6 @@ inputs:
   canister:
     description: "Canister name (e.g., ic_siwa_provider)"
     required: true
-  network:
-    description: "DFX network (testnet, mainnet, juno, local)"
-    required: true
   canister_id:
     description: "Canister ID (optional, will be looked up if not provided)"
     required: false
@@ -26,12 +23,12 @@ runs:
       if: inputs.canister == 'ic_siwa_provider'
       shell: devenv shell --quiet bash -- -e {0}
       run: |
-        echo "Verifying ${{ inputs.canister }} on network: ${{ inputs.network }}..."
+        echo "Verifying ${{ inputs.canister }} on IC mainnet..."
         echo ""
 
         CANISTER_ID="${{ inputs.canister_id }}"
         if [ -z "$CANISTER_ID" ]; then
-          CANISTER_ID=$(dfx canister --network ${{ inputs.network }} id ${{ inputs.canister }})
+          CANISTER_ID=$(dfx canister --network ic id ${{ inputs.canister }})
         fi
 
         PASSED=0
@@ -39,7 +36,7 @@ runs:
 
         # Test 1: siwa_prepare_login
         echo "Test 1: siwa_prepare_login..."
-        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} siwa_prepare_login '("0x0000000000000000000000000000000000000000")' 2>&1)
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} siwa_prepare_login '("0x0000000000000000000000000000000000000000")' 2>&1)
         if echo "$RESULT" | grep -q "Ok"; then
           echo "  PASSED: siwa_prepare_login returns Ok"
           PASSED=$((PASSED + 1))
@@ -51,7 +48,7 @@ runs:
 
         # Test 2: get_principal (should return Err for unknown address)
         echo "Test 2: get_principal (unknown address)..."
-        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} get_principal '("0x0000000000000000000000000000000000000000")' 2>&1)
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_principal '("0x0000000000000000000000000000000000000000")' 2>&1)
         if echo "$RESULT" | grep -q "Err"; then
           echo "  PASSED: get_principal correctly returns Err for unknown address"
           PASSED=$((PASSED + 1))
@@ -63,7 +60,7 @@ runs:
 
         # Test 3: get_caller_address (should return Err for anonymous)
         echo "Test 3: get_caller_address (anonymous)..."
-        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} get_caller_address '()' 2>&1)
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_caller_address '()' 2>&1)
         if echo "$RESULT" | grep -q "Err"; then
           echo "  PASSED: get_caller_address correctly returns Err for anonymous caller"
           PASSED=$((PASSED + 1))
@@ -85,20 +82,18 @@ runs:
           echo "All verification tests passed!"
           echo ""
           echo "Canister ID: $CANISTER_ID"
-          if [ "${{ inputs.network }}" == "ic" ]; then
-            echo "Candid UI: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=$CANISTER_ID"
-          fi
+          echo "Candid UI: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=$CANISTER_ID"
         fi
 
     - name: Verify test_canister_rs
       if: inputs.canister == 'test_canister_rs'
       shell: devenv shell --quiet bash -- -e {0}
       run: |
-        echo "Verifying ${{ inputs.canister }} on network: ${{ inputs.network }}..."
+        echo "Verifying ${{ inputs.canister }} on IC mainnet..."
 
         # Test: health check
         echo "Test: whoami..."
-        RESULT=$(dfx canister --network ${{ inputs.network }} call ${{ inputs.canister }} whoami '()' 2>&1)
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} whoami '()' 2>&1)
         if echo "$RESULT" | grep -q "principal"; then
           echo "  PASSED: whoami returns principal"
         else

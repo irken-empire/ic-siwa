@@ -1,0 +1,26 @@
+name: "Setup Canister IDs"
+description: "Copy environment-specific canister_ids.json for IC deployment"
+
+inputs:
+  environment:
+    description: "Deployment environment (testnet, mainnet)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup canister IDs
+      shell: bash
+      run: |
+        CANISTER_IDS_FILE="canister_ids.${{ inputs.environment }}.json"
+
+        if [[ ! -f "$CANISTER_IDS_FILE" ]]; then
+          echo "::error::Canister IDs file not found: $CANISTER_IDS_FILE"
+          exit 1
+        fi
+
+        echo "Copying $CANISTER_IDS_FILE to canister_ids.json"
+        cp "$CANISTER_IDS_FILE" canister_ids.json
+
+        echo "=== Canister IDs for ${{ inputs.environment }} ==="
+        cat canister_ids.json
