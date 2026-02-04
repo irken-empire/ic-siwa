@@ -257,6 +257,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: ${{ needs.setup.outputs.github_environment }}
+    outputs:
+      test_canister_rs_id: ${{ steps.deploy-rs.outputs.canister_id }}
+      test_canister_ts_id: ${{ steps.deploy-ts.outputs.canister_id }}
 
     steps:
       - name: Checkout
@@ -291,12 +294,14 @@ jobs:
           run-id: ${{ needs.setup.outputs.run_id }}
 
       - name: Deploy test_canister_rs
+        id: deploy-rs
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_rs
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
       - name: Deploy test_canister_ts
+        id: deploy-ts
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_ts
@@ -307,7 +312,8 @@ jobs:
   ##################################################
   release:
     name: Create Release
-    needs: [setup, deploy-provider, verify-deployment]
+    needs: [setup, deploy-provider, verify-deployment, deploy-test-canisters]
+    if: always() && needs.verify-deployment.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -339,12 +345,21 @@ jobs:
           body: |
             ## IC-SIWA Testnet Release
 
+            ### Provider Canister
+
             | Property | Value |
             |----------|-------|
             | **Network** | IC Mainnet |
             | **Avalanche Chain** | Fuji Testnet (${{ steps.config.outputs.chain_id }}) |
             | **Canister ID** | `${{ needs.deploy-provider.outputs.canister_id }}` |
             | **Candid UI** | [Open](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |
+
+            ### Test Canisters
+
+            | Canister | ID | Link |
+            |----------|----|----- |
+            | **test_canister_ts** | `${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}` | [Open UI](https://${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}.icp0.io) |
+            | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}` | [Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}) |
 
             ---
             *This is a testnet deployment for testing purposes.*
@@ -385,7 +400,14 @@ jobs:
   ##################################################
   status:
     name: Status
-    needs: [setup, deploy-provider, verify-deployment, release]
+    needs:
+      [
+        setup,
+        deploy-provider,
+        verify-deployment,
+        deploy-test-canisters,
+        release,
+      ]
     if: always()
     runs-on: ubuntu-latest
 
@@ -399,6 +421,7 @@ jobs:
             echo "| Setup | ${{ needs.setup.result }} |"
             echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
             echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
+            echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
             echo "| Release | ${{ needs.release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
