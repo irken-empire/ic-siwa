@@ -27,6 +27,8 @@ runs:
   steps:
     - name: Configure DFX identity
       shell: devenv shell --quiet bash -- -e {0}
+      env:
+        DFX_WARNING: "-mainnet_plaintext_identity"
       run: |
         echo "${{ inputs.dfx_identity_pem }}" > /tmp/identity.pem
         dfx identity import --storage-mode=plaintext deploy /tmp/identity.pem 2>/dev/null || true
@@ -36,6 +38,8 @@ runs:
     - name: Deploy canister
       id: deploy
       shell: devenv shell --quiet bash -- -e {0}
+      env:
+        DFX_WARNING: "-mainnet_plaintext_identity"
       run: |
         echo "Deploying ${{ inputs.canister }} to IC mainnet..."
 
