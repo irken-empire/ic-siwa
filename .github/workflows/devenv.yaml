@@ -61,6 +61,10 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
         run: secretspec check
 
+      - name: Install dependencies
+        shell: devenv shell --quiet bash -- -e {0}
+        run: bun install
+
       - name: Devenv test
         id: devenv_test
         run: devenv test

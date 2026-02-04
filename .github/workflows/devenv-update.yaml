@@ -58,6 +58,10 @@ jobs:
       - name: Devenv update
         run: devenv update
 
+      - name: Install dependencies
+        shell: devenv shell --quiet bash -- -e {0}
+        run: bun install
+
       - name: Devenv test
         run: devenv test
 
