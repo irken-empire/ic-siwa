@@ -329,7 +329,7 @@ jobs:
         uses: ./.github/actions/deploy-canister
         with:
           canister: ic_siwa_provider
-          network: ic
+          network: ${{ needs.setup.outputs.environment }}
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
           init_args: |
             (record {
@@ -340,6 +340,13 @@ jobs:
               session_expiration_time = ${{ steps.config.outputs.session_expiration_ns }} : nat64;
               allowed_domains = opt vec { ${{ steps.config.outputs.allowed_domains }} };
               allowed_canisters = opt vec { ${{ steps.config.outputs.allowed_canisters }} };
+              delegation_targets = opt vec { ${{ steps.config.outputs.delegation_targets }} };
+              rate_limits = opt record {
+                max_logins_per_address = ${{ steps.config.outputs.rate_limit_per_address }} : nat32;
+                max_logins_total = ${{ steps.config.outputs.rate_limit_total }} : nat32;
+                window_seconds = ${{ steps.config.outputs.rate_limit_window }} : nat64;
+              };
+              debug = opt ${{ steps.config.outputs.debug }};
             })
 
   ##################################################
@@ -365,7 +372,7 @@ jobs:
         uses: ./.github/actions/verify-canister
         with:
           canister: ic_siwa_provider
-          network: ic
+          network: ${{ needs.setup.outputs.environment }}
           canister_id: ${{ needs.deploy-provider.outputs.canister_id }}
 
   ##################################################
@@ -409,14 +416,14 @@ jobs:
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_rs
-          network: ic
+          network: ${{ needs.setup.outputs.environment }}
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
       - name: Deploy test_canister_ts
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_ts
-          network: ic
+          network: ${{ needs.setup.outputs.environment }}
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
   ##################################################

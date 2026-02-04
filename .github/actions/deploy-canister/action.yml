@@ -6,9 +6,8 @@ inputs:
     description: "Canister name (e.g., ic_siwa_provider)"
     required: true
   network:
-    description: "DFX network (ic, local)"
+    description: "DFX network (testnet, mainnet, juno, local)"
     required: true
-    default: "ic"
   dfx_identity_pem:
     description: "DFX identity PEM content"
     required: true

@@ -84,11 +84,19 @@ pub fn get_delegation(
     let max_expiration = now + settings.session_expiration_time;
     let final_expiration = capped_expiration.min(max_expiration);
 
-    // Create the delegation
+    // Create the delegation with optional targets from settings
+    // If delegation_targets is configured, the delegation will only work for those canisters
+    // This prevents the delegation from being used to call arbitrary canisters
+    let targets = if settings.delegation_targets.is_empty() {
+        None
+    } else {
+        Some(settings.delegation_targets.clone())
+    };
+
     let delegation = Delegation {
         pubkey: ByteBuf::from(session_key.clone()),
         expiration: final_expiration,
-        targets: None, // No target restrictions for now
+        targets,
     };
 
     // Create a hash of the delegation for signing

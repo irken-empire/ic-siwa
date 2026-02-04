@@ -1,12 +1,6 @@
 # IC-SIWA Development Configuration
 # For local development with dfx replica
 
-domains:
-  allowed:
-    - "localhost"
-    - "127.0.0.1"
-    - "*.localhost"
-
 avalanche:
   # Avalanche Fuji Testnet for development
   chain_id: 43113
@@ -18,8 +12,44 @@ ic:
     ic_siwa_provider: null # Set after first deploy
 
 security:
-  allowed_canisters:
-    - "auamu-4x777-77775-aaaaa-cai" # Juno default Satellite
+  # Allowed domains for SIWA messages (user sees this in their wallet)
+  # Test scenarios:
+  #   1. Open (no security):     allowed_domains: []
+  #   2. Block all (dummy):      allowed_domains: ["does-not-exist"]
+  #   3. Whitelist your domain:  allowed_domains: ["your-real-domain.com"]
+  allowed_domains:
+    #- "does-not-exist"           # Test 2. PASS
+    - "localhost" # Test 3. PENDING
+
+  # Allowed canisters for inter-canister calls
+  # Empty = allow all (development mode)
+  # For production, list specific canister IDs
+  #
+  # Test scenarios:
+  #   1. Open (no security):     allowed_canisters: []
+  #   2. Block all (dummy):      allowed_canisters: ["rrkah-fqaaa-aaaaa-aaaaq-cai"]
+  #   3. Whitelist your canister: allowed_canisters: ["your-real-canister-id"]
+  allowed_canisters: []
+
+  # Delegation targets - canisters that delegations are valid for
+  # Empty = delegations work for any canister (development mode)
+  # For production, restrict to your app's canister IDs
+  #
+  # Test scenarios:
+  #   1. Open (no security):     delegation_targets: []
+  #   2. Block all (dummy):      delegation_targets: ["rrkah-fqaaa-aaaaa-aaaaq-cai"]
+  #   3. Whitelist your canister: delegation_targets: ["your-real-canister-id"]
+  delegation_targets: []
+
+  # Rate limiting to prevent cycle drain
+  rate_limits:
+    # Max prepare_login calls per address per window
+    max_logins_per_address: 5 # Keep low in development mode for integration testing
+    # Max total prepare_login calls per window (across all addresses)
+    max_logins_total: 25 # Keep low in development mode for integration testing
+    # Time window in seconds for rate limiting
+    window_seconds: 60 # Keep low in development mode for integration testing
+
   # 30 minute sessions
   session_expiration_seconds: 1800
   # 5 minute login window
@@ -27,3 +57,6 @@ security:
 
 library:
   timeout_ms: 30000
+
+# Debug mode
+debug: true

@@ -94,11 +94,14 @@ class Logger {
       error,
     };
 
-    // Store entry
+    // Store entry locally
     this.entries.push(entry);
     if (this.entries.length > this.config.maxEntries) {
       this.entries.shift();
     }
+
+    // Also add to global store for exportAllLogs()
+    addToGlobalStore(entry);
 
     // Check if we should output
     if (!this.shouldLog(level)) return;

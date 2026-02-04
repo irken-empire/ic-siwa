@@ -79,6 +79,7 @@ let
       secretspec
 
       # Rust
+      cargo-audit
       cargo-bump
       cargo-watch
       toml-cli
@@ -375,9 +376,9 @@ in
       statix.enable = true;
       trim-trailing-whitespace = {
         excludes = [
-          # Ignore generated candid files.
-          "libs/ic_siwa_ts/src/candid/ic_siwa_provider.ts"
-          "canisters/ic_siwa_provider/ic_siwa_provider.did"
+          # Ignore generated candid files
+          ".*\\.did$"
+          ".*/candid/.*\\.ts$"
         ];
         enable = true;
       };

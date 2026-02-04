@@ -2,7 +2,7 @@
 //!
 //! Generates a SIWA message for the user to sign with their Avalanche wallet.
 
-use crate::state::{get_settings, store_login_session, LoginSession};
+use crate::state::{check_rate_limit, get_settings, store_login_session, LoginSession};
 use ic_siwa::{siwa::validate_address, SiwaMessage};
 
 /// Response from prepare_login
@@ -27,6 +27,9 @@ pub struct PrepareLoginResponse {
 pub async fn prepare_login(address: String) -> Result<PrepareLoginResponse, String> {
     // Validate the address format
     validate_address(&address).map_err(|e| e.to_string())?;
+
+    // Check rate limit before proceeding (this consumes cycles)
+    check_rate_limit(&address)?;
 
     // Get settings
     let settings = get_settings();

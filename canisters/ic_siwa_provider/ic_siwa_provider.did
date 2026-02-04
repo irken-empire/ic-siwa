@@ -1,3 +1,17 @@
+type DebugInfo = record {
+  uri : text;
+  domain : text;
+  delegation_targets_count : nat64;
+  chain_id : nat64;
+  allowed_domains : vec text;
+  allowed_domains_count : nat64;
+  rate_limit_total : nat32;
+  rate_limit_per_address : nat32;
+  session_expiration_ns : nat64;
+  rate_limit_window_seconds : nat64;
+  delegation_targets : vec principal;
+  debug_enabled : bool;
+};
 type Delegation = record {
   pubkey : blob;
   targets : opt vec principal;
@@ -10,6 +24,9 @@ type InitArgs = record {
   chain_id : nat64;
   allowed_domains : opt vec text;
   allowed_canisters : opt vec principal;
+  rate_limits : opt RateLimitArgs;
+  delegation_targets : opt vec principal;
+  debug : opt bool;
   session_expiration_time : nat64;
 };
 type LoginResponse = record { user_principal : principal; expiration : nat64 };
@@ -18,48 +35,59 @@ type PrepareLoginResponse = record {
   message : text;
   nonce : text;
 };
-type Result = variant { Ok : text; Err : text };
-type Result_1 = variant { Ok : principal; Err : text };
-type Result_2 = variant { Ok : SignedDelegation; Err : text };
-type Result_3 = variant { Ok : LoginResponse; Err : text };
-type Result_4 = variant { Ok : PrepareLoginResponse; Err : text };
+type RateLimitArgs = record {
+  max_logins_total : nat32;
+  window_seconds : nat64;
+  max_logins_per_address : nat32;
+};
+type Result = variant { Ok : DebugInfo; Err : text };
+type Result_1 = variant { Ok : text; Err : text };
+type Result_2 = variant { Ok : principal; Err : text };
+type Result_3 = variant { Ok : SignedDelegation; Err : text };
+type Result_4 = variant { Ok : LoginResponse; Err : text };
+type Result_5 = variant { Ok : PrepareLoginResponse; Err : text };
 type SignedDelegation = record { signature : blob; delegation : Delegation };
 service : (InitArgs) -> {
+  // Get debug diagnostics (only available when debug=true in init args)
+  // 
+  // Returns configuration and state information for debugging.
+  // This endpoint is disabled in production (when debug=false).
+  debug_info : () -> (Result) query;
   // Get Avalanche address for ICP principal
-  get_address : (principal) -> (Result) query;
+  get_address : (principal) -> (Result_1) query;
   // Get Avalanche address for caller
-  get_caller_address : () -> (Result) query;
+  get_caller_address : () -> (Result_1) query;
   // Get ICP principal for Avalanche address
-  get_principal : (text) -> (Result_1) query;
+  get_principal : (text) -> (Result_2) query;
   // Get delegation for authenticated principal
-  //
+  // 
   // # Arguments
   // * `address` - The Avalanche address
   // * `session_key` - The session public key from login
   // * `expiration` - Requested expiration timestamp (may be capped)
-  //
+  // 
   // # Returns
   // * `Ok(SignedDelegation)` - The signed delegation for the session
   // * `Err(String)` - Error if not authenticated or expired
-  siwa_get_delegation : (text, blob, nat64) -> (Result_2) query;
+  siwa_get_delegation : (text, blob, nat64) -> (Result_3) query;
   // Complete SIWA login with signed message
-  //
+  // 
   // # Arguments
   // * `signature` - Hex-encoded signature from the user's wallet
   // * `address` - The Avalanche address that signed the message
   // * `session_key` - The session public key to bind to this authentication
-  //
+  // 
   // # Returns
   // * `Ok(LoginResponse)` - The derived principal and session expiration
   // * `Err(String)` - Error if signature is invalid or session expired
-  siwa_login : (text, text, blob) -> (Result_3);
+  siwa_login : (text, text, blob) -> (Result_4);
   // Prepare a SIWA login message for signing
-  //
+  // 
   // # Arguments
   // * `address` - The Avalanche address (0x-prefixed, EIP-55 checksummed)
-  //
+  // 
   // # Returns
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error description if address is invalid
-  siwa_prepare_login : (text) -> (Result_4);
+  siwa_prepare_login : (text) -> (Result_5);
 }

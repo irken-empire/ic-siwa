@@ -8,12 +8,27 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Script name without extension for log file
+SCRIPT_NAME="${0##*/}"
+SCRIPT_NAME="${SCRIPT_NAME%.sh}"
+LOG_FILE="${PROJECT_ROOT}/${SCRIPT_NAME}.log"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+GRAY='\033[0;90m'
 NC='\033[0m' # No Color
+
+# Log levels (numeric for comparison)
+declare -A LOG_LEVELS=(
+	["debug"]=0
+	["info"]=1
+	["success"]=1
+	["warn"]=2
+	["error"]=3
+)
 
 # Default values
 NETWORK="dfx"
@@ -21,6 +36,156 @@ DFX_PORT="${DFX_PORT:-4943}"
 JUNO_PORT="${JUNO_PORT:-5987}"
 PRUNE="false"
 
+# Logging configuration
+LOG_LEVEL="${LOG_LEVEL:-warn}"            # Screen output level (debug, info, warn, error)
+LOG_FILE_LEVEL="${LOG_FILE_LEVEL:-debug}" # File output level (debug, info, warn, error)
+
+# Test wallet address (EIP-55 checksummed)
+AVALANCHE_WALLET_ADDRESS="${AVALANCHE_WALLET_ADDRESS:-0xb81749C72DB5B5209098f2bd45A7a0293925DA13}"
+
+# Expected derived principal ID for the test wallet address
+# This should be deterministic for a given address + salt combination
+# To find your principal: dfx canister call ic_siwa_provider get_principal '("YOUR_ADDRESS")' --network juno
+# Note: This will only work after a successful login - get_principal looks up authenticated sessions
+#EXPECTED_PRINCIPAL_ID="${EXPECTED_PRINCIPAL_ID:-}"
+EXPECTED_PRINCIPAL_ID="h4ntr-oyuvq-xwuyv-252i6-hm3qe-hwy4w-7p5ud-kwpgd-7kwpd-y7tje-2a"
+
+# NPM package.json files to manage (for version sync)
+# Used by: cmd_version, cmd_version_force, cmd_version_check, cmd_version_sync
+NPM_PACKAGES=(
+	"package.json"
+	"libs/ic_siwa_ts/package.json"
+	"canisters/test_canister_ts/package.json"
+)
+
+# ==========================================
+# Logging Functions
+# ==========================================
+
+# Log level colors and labels
+declare -A LOG_COLORS=(
+	["debug"]="${GRAY}"
+	["info"]="${BLUE}"
+	["success"]="${GREEN}"
+	["warn"]="${YELLOW}"
+	["error"]="${RED}"
+)
+
+declare -A LOG_LABELS=(
+	["debug"]="DEBUG"
+	["info"]="INFO"
+	["success"]="OK"
+	["warn"]="WARN"
+	["error"]="ERROR"
+)
+
+# Check if a message should be logged at the given level
+should_log() {
+	local msg_level="$1"
+	local threshold="$2"
+	local msg_num="${LOG_LEVELS[$msg_level]:-1}"
+	local threshold_num="${LOG_LEVELS[$threshold]:-1}"
+	[[ ${msg_num} -ge ${threshold_num} ]]
+}
+
+# Write to log file (no colors)
+write_log() {
+	local level="$1"
+	local message="$2"
+	if should_log "${level}" "${LOG_FILE_LEVEL}"; then
+		local timestamp
+		timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+		echo "[${timestamp}] [${level^^}] ${message}" >>"${LOG_FILE}"
+	fi
+}
+
+# Strip ANSI color codes from text
+strip_colors() {
+	sed 's/\x1b\[[0-9;]*m//g'
+}
+
+# Write raw output to log file (for command output, strips colors)
+write_log_raw() {
+	echo "$1" | strip_colors >>"${LOG_FILE}"
+}
+
+# Initialize log file
+init_log() {
+	# Create/truncate log file with header
+	{
+		echo "# IC-SIWA Log - $(date '+%Y-%m-%d %H:%M:%S')"
+		echo "# Command: $0 $*"
+		echo "# Log Level: screen=${LOG_LEVEL}, file=${LOG_FILE_LEVEL}"
+		echo "---"
+	} >"${LOG_FILE}"
+}
+
+# Unified logging function
+# Usage: log <level> <message>
+log() {
+	local level="$1"
+	local message="$2"
+
+	write_log "${level}" "${message}"
+
+	# Errors always shown, others check threshold
+	if [[ ${level} == "error" ]] || should_log "${level}" "${LOG_LEVEL}"; then
+		local color="${LOG_COLORS[$level]:-${NC}}"
+		local label="${LOG_LABELS[$level]:-INFO}"
+		echo -e "${color}[${label}]${NC} ${message}"
+	fi
+}
+
+# Convenience wrappers
+log_debug() { log "debug" "$1"; }
+log_info() { log "info" "$1"; }
+log_success() { log "success" "$1"; }
+log_warn() { log "warn" "$1"; }
+log_error() { log "error" "$1"; }
+
+# Run a command, capturing output to log and only showing errors on screen
+# Usage: run_cmd "description" command args...
+run_cmd() {
+	local description="$1"
+	shift
+	local cmd_string="$*"
+
+	log_info "${description}"
+	write_log "debug" "Running: ${cmd_string}"
+
+	# Create temp file for output
+	local tmp_out
+	tmp_out=$(mktemp)
+
+	# Run command, capture both stdout and stderr
+	local exit_code=0
+	if "$@" >"${tmp_out}" 2>&1; then
+		exit_code=0
+	else
+		exit_code=$?
+	fi
+
+	# Always write output to log
+	if [[ -s ${tmp_out} ]]; then
+		write_log_raw "--- Command Output ---"
+		write_log_raw "$(cat "${tmp_out}")"
+		write_log_raw "--- End Output ---"
+	fi
+
+	# If command failed, show output on screen too
+	if [[ ${exit_code} -ne 0 ]]; then
+		log_error "Command failed with exit code ${exit_code}"
+		# Show last 20 lines of output on screen
+		if [[ -s ${tmp_out} ]]; then
+			echo -e "${RED}--- Command Output (last 20 lines) ---${NC}"
+			tail -20 "${tmp_out}"
+			echo -e "${RED}--- End Output ---${NC}"
+		fi
+	fi
+
+	rm -f "${tmp_out}"
+	return ${exit_code}
+}
 show_help() {
 	cat <<-EOF
 		IC-SIWA Developer Script
@@ -42,6 +207,7 @@ show_help() {
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
 		  update             Update all dependencies (cargo, bun) and pin versions
+		  check              Check if all required dependencies are installed
 		  version            Show current version (from Cargo.toml)
 		  version --bump     Bump version based on conventional commits
 		  version --check    Check if all versions are in sync
@@ -57,6 +223,9 @@ show_help() {
 		                     - juno: Local Juno emulator (port ${JUNO_PORT})
 		                     - ic: IC mainnet
 		  --prune            Also delete deployed canisters (use with cleanup)
+		  --log-level <lvl>  Screen output level: debug, info (default), warn, error
+		  --log-file-level   Log file level: debug (default), info, warn, error
+		                     Logs written to: ${LOG_FILE}
 
 		Examples:
 		  ic-siwa build
@@ -76,20 +245,140 @@ show_help() {
 	EOF
 }
 
-log_info() {
-	echo -e "${BLUE}[INFO]${NC} $1"
+# ==========================================
+# Dependency Checking
+# ==========================================
+
+# Required dependencies for each command
+# Format: command:dep1,dep2,dep3
+declare -A CMD_DEPS=(
+	["build"]="cargo"
+	["candid"]="cargo,candid-extractor,didc"
+	["test"]="cargo"
+	["test-integration"]="dfx"
+	["fmt"]="cargo"
+	["lint"]="cargo"
+	["deploy"]="dfx,cargo,bun,yq"
+	["upgrade"]="dfx,cargo,bun,yq"
+	["loop"]="dfx,cargo,bun,yq,candid-extractor,didc"
+	["start"]="dfx"
+	["stop"]="dfx"
+	["update"]="cargo,bun"
+	["version"]="toml"
+	["cleanup"]="dfx"
+	["urls"]="dfx"
+)
+
+# Check if a command exists
+check_cmd() {
+	command -v "$1" &>/dev/null
 }
 
-log_success() {
-	echo -e "${GREEN}[OK]${NC} $1"
+# Check all dependencies for a command
+check_deps() {
+	local cmd="${1:-}"
+	local missing=()
+
+	# Get dependencies for this command
+	local deps="${CMD_DEPS[$cmd]:-}"
+	if [[ -z ${deps} ]]; then
+		return 0
+	fi
+
+	# Check each dependency
+	IFS=',' read -ra dep_array <<<"${deps}"
+	for dep in "${dep_array[@]}"; do
+		if ! check_cmd "${dep}"; then
+			missing+=("${dep}")
+		fi
+	done
+
+	# Report missing dependencies
+	if [[ ${#missing[@]} -gt 0 ]]; then
+		log_error "Missing required dependencies for '${cmd}':"
+		for dep in "${missing[@]}"; do
+			case "${dep}" in
+			cargo)
+				echo -e "  ${RED}✗${NC} cargo - Install Rust: https://rustup.rs/"
+				;;
+			dfx)
+				echo -e "  ${RED}✗${NC} dfx - Install: sh -ci \"\$(curl -fsSL https://internetcomputer.org/install.sh)\""
+				;;
+			bun)
+				echo -e "  ${RED}✗${NC} bun - Install: curl -fsSL https://bun.sh/install | bash"
+				;;
+			yq)
+				echo -e "  ${RED}✗${NC} yq - Install: https://github.com/mikefarah/yq#install"
+				;;
+			candid-extractor)
+				echo -e "  ${RED}✗${NC} candid-extractor - Install: cargo install candid-extractor"
+				;;
+			didc)
+				echo -e "  ${RED}✗${NC} didc - Install: cargo install didc"
+				;;
+			toml)
+				echo -e "  ${RED}✗${NC} toml - Install: cargo install toml-cli"
+				;;
+			convco)
+				echo -e "  ${RED}✗${NC} convco - Install: cargo install convco"
+				;;
+			jq)
+				echo -e "  ${RED}✗${NC} jq - Install via package manager (apt/brew/nix)"
+				;;
+			nc)
+				echo -e "  ${RED}✗${NC} nc (netcat) - Install via package manager"
+				;;
+			*)
+				echo -e "  ${RED}✗${NC} ${dep}"
+				;;
+			esac
+		done
+		echo ""
+		log_info "If using devenv/nix, ensure you're in the devenv shell: devenv shell"
+		return 1
+	fi
+
+	return 0
 }
 
-log_warn() {
-	echo -e "${YELLOW}[WARN]${NC} $1"
-}
+# Check all dependencies and show status
+cmd_check_deps() {
+	log_info "Checking dependencies..."
+	echo ""
 
-log_error() {
-	echo -e "${RED}[ERROR]${NC} $1"
+	local all_deps=(cargo dfx bun yq candid-extractor didc toml convco jq nc)
+	local has_missing=false
+
+	for dep in "${all_deps[@]}"; do
+		if check_cmd "${dep}"; then
+			local version=""
+			case "${dep}" in
+			cargo) version=$(cargo --version 2>/dev/null | head -1) ;;
+			dfx) version=$(dfx --version 2>/dev/null | head -1) ;;
+			bun) version=$(bun --version 2>/dev/null | head -1) ;;
+			yq) version=$(yq --version 2>/dev/null | head -1) ;;
+			toml) version="installed" ;;
+			convco) version=$(convco --version 2>/dev/null | head -1) ;;
+			jq) version=$(jq --version 2>/dev/null | head -1) ;;
+			*) version="installed" ;;
+			esac
+			echo -e "  ${GREEN}✓${NC} ${dep} - ${version}"
+		else
+			echo -e "  ${RED}✗${NC} ${dep} - not found"
+			has_missing=true
+		fi
+	done
+
+	echo ""
+	if [[ ${has_missing} == "true" ]]; then
+		log_warn "Some optional dependencies are missing"
+		log_info "Core dependencies: cargo, dfx, bun, yq"
+		log_info "For Candid generation: candid-extractor, didc"
+		log_info "For version management: toml, convco"
+		return 1
+	else
+		log_success "All dependencies installed!"
+	fi
 }
 
 # Check if DFX is running
@@ -99,6 +388,44 @@ is_dfx_running() {
 		return 0
 	fi
 	return 1
+}
+
+# ==========================================
+# Network Helper Functions
+# ==========================================
+
+# Get IC host URL for a network
+get_ic_host() {
+	local network="${1:-dfx}"
+	case "${network}" in
+	dfx) echo "http://127.0.0.1:${DFX_PORT}" ;;
+	juno) echo "http://127.0.0.1:${JUNO_PORT}" ;;
+	ic) echo "https://ic0.app" ;;
+	*) echo "http://127.0.0.1:${DFX_PORT}" ;;
+	esac
+}
+
+# Build TypeScript test canister
+# Args: $1 = provider_canister_id, $2 = ic_host
+build_ts_canister() {
+	local provider_id="$1"
+	local ic_host="$2"
+
+	log_debug "  Provider Canister ID: ${provider_id}"
+	log_debug "  IC Host: ${ic_host}"
+
+	cd "${PROJECT_ROOT}/canisters/test_canister_ts"
+
+	if [[ ! -d "node_modules" ]]; then
+		run_cmd "Installing dependencies..." bun install || return 1
+	fi
+
+	run_cmd "Building Astro app..." \
+		env PUBLIC_SIWA_PROVIDER_CANISTER_ID="${provider_id}" \
+		PUBLIC_IC_HOST="${ic_host}" \
+		bun run build || return 1
+
+	cd "${PROJECT_ROOT}"
 }
 
 # Version management
@@ -144,20 +471,13 @@ cmd_version() {
 
 	log_info "Bumping version: ${current_version} -> ${next_version}"
 
-	# All package.json files to update
-	local -a npm_packages=(
-		"package.json"
-		"libs/ic_siwa_ts/package.json"
-		"canisters/test_canister_ts/package.json"
-	)
-
 	# Update Cargo.toml (workspace version - source of truth)
 	log_info "Updating Cargo.toml..."
 	toml set Cargo.toml workspace.package.version "${next_version}" >Cargo.toml.tmp
 	mv Cargo.toml.tmp Cargo.toml
 
 	# Update all npm package.json files
-	for npm_package in "${npm_packages[@]}"; do
+	for npm_package in "${NPM_PACKAGES[@]}"; do
 		local full_path="${PROJECT_ROOT}/${npm_package}"
 		if [[ -f ${full_path} ]]; then
 			log_info "Updating ${npm_package}..."
@@ -174,7 +494,7 @@ cmd_version() {
 	log_info ""
 	log_info "Files updated:"
 	log_info "  - Cargo.toml (workspace.package.version)"
-	for npm_package in "${npm_packages[@]}"; do
+	for npm_package in "${NPM_PACKAGES[@]}"; do
 		log_info "  - ${npm_package}"
 	done
 	log_info "  - Cargo.lock"
@@ -219,19 +539,12 @@ cmd_version_force() {
 	local next_version="${major}.${minor}.${patch}"
 	log_info "Force bumping version: ${current_version} -> ${next_version} (${bump_type})"
 
-	# All package.json files to update
-	local -a npm_packages=(
-		"package.json"
-		"libs/ic_siwa_ts/package.json"
-		"canisters/test_canister_ts/package.json"
-	)
-
 	# Update Cargo.toml
 	toml set Cargo.toml workspace.package.version "${next_version}" >Cargo.toml.tmp
 	mv Cargo.toml.tmp Cargo.toml
 
 	# Update all npm package.json files
-	for npm_package in "${npm_packages[@]}"; do
+	for npm_package in "${NPM_PACKAGES[@]}"; do
 		local full_path="${PROJECT_ROOT}/${npm_package}"
 		if [[ -f ${full_path} ]]; then
 			jq --arg v "${next_version}" '.version = $v' "${full_path}" >"${full_path}.tmp"
@@ -251,19 +564,12 @@ cmd_version_check() {
 	local cargo_version
 	cargo_version=$(toml get Cargo.toml workspace.package.version --raw)
 
-	# All package.json files to check
-	local -a npm_packages=(
-		"package.json"
-		"libs/ic_siwa_ts/package.json"
-		"canisters/test_canister_ts/package.json"
-	)
-
 	local has_error=false
 
 	log_info "Version check (source: Cargo.toml workspace.package.version)"
 	echo "  Cargo.toml (workspace):        ${cargo_version}"
 
-	for npm_package in "${npm_packages[@]}"; do
+	for npm_package in "${NPM_PACKAGES[@]}"; do
 		local full_path="${PROJECT_ROOT}/${npm_package}"
 		if [[ -f ${full_path} ]]; then
 			local npm_version
@@ -292,16 +598,9 @@ cmd_version_sync() {
 	local cargo_version
 	cargo_version=$(toml get Cargo.toml workspace.package.version --raw)
 
-	# All package.json files to sync
-	local -a npm_packages=(
-		"package.json"
-		"libs/ic_siwa_ts/package.json"
-		"canisters/test_canister_ts/package.json"
-	)
-
 	log_info "Syncing all versions to ${cargo_version}..."
 
-	for npm_package in "${npm_packages[@]}"; do
+	for npm_package in "${NPM_PACKAGES[@]}"; do
 		local full_path="${PROJECT_ROOT}/${npm_package}"
 		if [[ -f ${full_path} ]]; then
 			jq --arg v "${cargo_version}" '.version = $v' "${full_path}" >"${full_path}.tmp"
@@ -357,11 +656,9 @@ cmd_build() {
 	log_info "Building ic-siwa project..."
 	cd "${PROJECT_ROOT}"
 
-	log_info "Building Rust crates..."
-	cargo build --release
+	run_cmd "Building Rust crates..." cargo build --release || return 1
 
-	log_info "Building WASM canisters..."
-	cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider
+	run_cmd "Building WASM canisters..." cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider || return 1
 
 	log_success "Build complete!"
 }
@@ -453,18 +750,15 @@ cmd_test() {
 	log_info "Running unit tests..."
 	cd "${PROJECT_ROOT}"
 
-	log_info "Running Rust unit tests..."
-	cargo test -p ic_siwa
+	run_cmd "Running Rust unit tests..." cargo test -p ic_siwa || return 1
 
-	log_info "Running canister unit tests..."
-	cargo test -p ic_siwa_provider || log_warn "Some canister tests may require IC runtime"
+	run_cmd "Running canister unit tests..." cargo test -p ic_siwa_provider || log_warn "Some canister tests may require IC runtime"
 
 	# Run TypeScript tests if bun is available
 	if command -v bun &>/dev/null; then
 		if [[ -f "${PROJECT_ROOT}/libs/ic_siwa_ts/package.json" ]]; then
-			log_info "Running TypeScript library tests..."
 			cd "${PROJECT_ROOT}/libs/ic_siwa_ts"
-			bun test || log_warn "Some TypeScript tests may have failed"
+			run_cmd "Running TypeScript library tests..." bun test || log_warn "Some TypeScript tests may have failed"
 			cd "${PROJECT_ROOT}"
 		fi
 	fi
@@ -494,29 +788,34 @@ cmd_test_integration() {
 	log_info "Testing test_canister_rs (${rs_id})..."
 
 	local failed=0
+	local test_num=0
+	local total_tests=11
 
 	# Test 1: Health check on test canister
-	log_info "[1/5] Testing test_canister_rs health..."
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing test_canister_rs health..."
 	if dfx canister call test_canister_rs health --network "${network}" 2>/dev/null | grep -q "ok"; then
 		log_success "  Health check passed"
 	else
 		log_error "  Health check failed"
-		((failed++))
+		failed=$((failed + 1))
 	fi
 
 	# Test 2: Whoami on test canister (should return anonymous principal)
-	log_info "[2/5] Testing test_canister_rs whoami..."
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing test_canister_rs whoami..."
 	local whoami_result
 	whoami_result=$(dfx canister call test_canister_rs whoami --network "${network}" 2>/dev/null)
 	if [[ -n ${whoami_result} ]]; then
 		log_success "  Whoami returned: ${whoami_result}"
 	else
 		log_error "  Whoami failed"
-		((failed++))
+		failed=$((failed + 1))
 	fi
 
 	# Test 3: Prepare login with test address
-	log_info "[3/5] Testing siwa_prepare_login..."
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing siwa_prepare_login..."
 	local test_address="0x1234567890123456789012345678901234567890"
 	local prepare_result
 	prepare_result=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${test_address}\")" --network "${network}" 2>/dev/null)
@@ -524,11 +823,12 @@ cmd_test_integration() {
 		log_success "  Prepare login returned SIWA message"
 	else
 		log_error "  Prepare login failed: ${prepare_result}"
-		((failed++))
+		failed=$((failed + 1))
 	fi
 
 	# Test 4: Get principal for unknown address (should return error)
-	log_info "[4/5] Testing get_principal for unknown address..."
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing get_principal for unknown address..."
 	local principal_result
 	principal_result=$(dfx canister call ic_siwa_provider get_principal '("0x0000000000000000000000000000000000000000")' --network "${network}" 2>/dev/null)
 	if echo "${principal_result}" | grep -q "Err"; then
@@ -538,7 +838,8 @@ cmd_test_integration() {
 	fi
 
 	# Test 5: Get caller address (should return error for anonymous)
-	log_info "[5/5] Testing get_caller_address..."
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing get_caller_address..."
 	local caller_result
 	caller_result=$(dfx canister call ic_siwa_provider get_caller_address --network "${network}" 2>/dev/null)
 	if echo "${caller_result}" | grep -q "Err"; then
@@ -547,9 +848,214 @@ cmd_test_integration() {
 		log_warn "  Unexpected result: ${caller_result}"
 	fi
 
+	# ==========================================
+	# Security Tests
+	# ==========================================
+	log_info ""
+	log_info "Running security tests..."
+
+	# Test 6: Debug endpoint - should work in dev/testnet, fail in mainnet
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing debug_info endpoint..."
+	local debug_result
+	debug_result=$(dfx canister call ic_siwa_provider debug_info --network "${network}" 2>/dev/null)
+	if [[ ${network} == "ic" ]]; then
+		# Mainnet: debug should be disabled
+		if echo "${debug_result}" | grep -q "Err"; then
+			log_success "  Debug endpoint correctly disabled on mainnet"
+		else
+			log_error "  Debug endpoint should be disabled on mainnet!"
+			failed=$((failed + 1))
+		fi
+	else
+		# Dev/Testnet: debug should be enabled
+		if echo "${debug_result}" | grep -q "Ok"; then
+			log_success "  Debug endpoint available (dev/testnet mode)"
+			# Extract and display some debug info
+			if echo "${debug_result}" | grep -q "chain_id"; then
+				log_info "    $(echo "${debug_result}" | grep -o 'chain_id = [0-9_]*')"
+			fi
+		else
+			log_warn "  Debug endpoint not available: ${debug_result}"
+		fi
+	fi
+
+	# Test 7: Invalid address format rejection
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing invalid address rejection..."
+	local invalid_addresses=(
+		"invalid"
+		"0x123"
+		"5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+		"0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
+	)
+	local invalid_blocked=0
+
+	for addr in "${invalid_addresses[@]}"; do
+		local invalid_result
+		invalid_result=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${addr}\")" --network "${network}" 2>/dev/null)
+		if echo "${invalid_result}" | grep -q "Err"; then
+			invalid_blocked=$((invalid_blocked + 1))
+		fi
+	done
+
+	if [[ ${invalid_blocked} -eq ${#invalid_addresses[@]} ]]; then
+		log_success "  All ${invalid_blocked} invalid addresses correctly rejected"
+	else
+		log_error "  Only ${invalid_blocked}/${#invalid_addresses[@]} invalid addresses rejected"
+		failed=$((failed + 1))
+	fi
+
+	# Test 8: Session expiration check (delegation without valid session)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing delegation without session..."
+	# siwa_get_delegation expects (text, blob, nat64) - pass a fake session key blob and expiration
+	local delegation_result
+	delegation_result=$(dfx canister call ic_siwa_provider siwa_get_delegation '("0xNoSession0000000000000000000000000000001", blob "\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f", 3600000000000 : nat64)' --network "${network}" 2>/dev/null)
+	if echo "${delegation_result}" | grep -qi "Err\|No authenticated session"; then
+		log_success "  Delegation correctly requires authenticated session"
+	else
+		log_error "  Delegation should fail without valid session"
+		log_error "    Got: ${delegation_result}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 9: Verify allowed_domains is being checked (via debug endpoint if available)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing security configuration..."
+	if echo "${debug_result}" | grep -q "Ok"; then
+		# Check if security settings are present
+		if echo "${debug_result}" | grep -q "allowed_domains\|rate_limits"; then
+			log_success "  Security configuration active"
+			# Show configured domains if any
+			if echo "${debug_result}" | grep -q 'allowed_domains = vec {[^}]*"'; then
+				local domains
+				domains=$(echo "${debug_result}" | grep -o 'allowed_domains = vec {[^}]*}' | head -1)
+				log_info "    ${domains}"
+			fi
+		else
+			log_warn "  Security configuration not visible in debug output"
+		fi
+	else
+		log_info "  Skipped (debug endpoint not available)"
+	fi
+
+	# Test 10: Principal derivation consistency (requires prior successful login)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing principal derivation consistency..."
+	if [[ -n ${EXPECTED_PRINCIPAL_ID} ]]; then
+		local derived_principal
+		derived_principal=$(dfx canister call ic_siwa_provider get_principal "(\"${AVALANCHE_WALLET_ADDRESS}\")" --network "${network}" 2>/dev/null)
+		if echo "${derived_principal}" | grep -q "Ok"; then
+			# Extract the principal from the response
+			local actual_principal
+			actual_principal=$(echo "${derived_principal}" | grep -o 'principal "[^"]*"' | sed 's/principal "//;s/"//')
+			if [[ ${actual_principal} == "${EXPECTED_PRINCIPAL_ID}" ]]; then
+				log_success "  Principal derivation is consistent: ${actual_principal}"
+			else
+				log_error "  Principal mismatch!"
+				log_error "    Expected: ${EXPECTED_PRINCIPAL_ID}"
+				log_error "    Got:      ${actual_principal}"
+				failed=$((failed + 1))
+			fi
+		else
+			log_info "  Skipped (no authenticated session found)"
+			log_info "    1. Login via browser UI with wallet: ${AVALANCHE_WALLET_ADDRESS}"
+			log_info "    2. Run: dfx canister call ic_siwa_provider get_principal '(\"${AVALANCHE_WALLET_ADDRESS}\")' --network ${network}"
+			log_info "    3. Set EXPECTED_PRINCIPAL_ID to the returned principal"
+		fi
+	else
+		log_warn "  Skipped (EXPECTED_PRINCIPAL_ID not set)"
+		log_warn "    To enable this test:"
+		log_warn "    1. Login via browser UI with wallet: ${AVALANCHE_WALLET_ADDRESS}"
+		log_warn "    2. Run: dfx canister call ic_siwa_provider get_principal '(\"${AVALANCHE_WALLET_ADDRESS}\")' --network ${network}"
+		log_warn '    3. Export: EXPECTED_PRINCIPAL_ID="<principal-from-step-2>"'
+		log_warn "    4. Re-run: ic-siwa test-integration --network ${network}"
+		log_warn "  NOTE: You can't run this test with 'loop' as it resets the login counter. You must use 'test-integration' directly."
+	fi
+
+	# Test 11: Rate limiting - rapid requests should eventually be blocked
+	# NOTE: This test MUST be last - it triggers rate limits that block requests for 60 seconds
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing rate limiting..."
+
+	# Read rate limit config from the same config file used for deployment
+	local config_file
+	case "${network}" in
+	dfx | juno) config_file="${PROJECT_ROOT}/config/development.yaml" ;;
+	testnet) config_file="${PROJECT_ROOT}/config/testnet.yaml" ;;
+	ic) config_file="${PROJECT_ROOT}/config/mainnet.yaml" ;;
+	*) config_file="${PROJECT_ROOT}/config/development.yaml" ;;
+	esac
+
+	local max_per_address=5
+	local window_seconds=60
+	if [[ -f ${config_file} ]] && command -v yq &>/dev/null; then
+		max_per_address=$(yq -r '.security.rate_limits.max_logins_per_address // 5' "${config_file}")
+		window_seconds=$(yq -r '.security.rate_limits.window_seconds // 60' "${config_file}")
+	fi
+
+	log_info "  Config: max_logins_per_address=${max_per_address}, window=${window_seconds}s"
+
+	# Use the configured test wallet address
+	local rate_test_address="${AVALANCHE_WALLET_ADDRESS}"
+	local rate_blocked=false
+	local rate_count=0
+	local last_error=""
+
+	# Make requests to trigger per-address rate limit
+	# We need max_per_address + 1 requests to trigger the limit
+	local requests_needed=$((max_per_address + 1))
+	log_info "  Sending ${requests_needed} requests to trigger per-address limit..."
+
+	for ((i = 1; i <= requests_needed; i++)); do
+		local rate_result
+		rate_result=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${rate_test_address}\")" --network "${network}" 2>/dev/null)
+		if echo "${rate_result}" | grep -qi "rate.*limit\|too many\|Rate limit"; then
+			rate_blocked=true
+			rate_count=$i
+			break
+		fi
+		# Check if it's an error (but not rate limit)
+		if echo "${rate_result}" | grep -q "Err"; then
+			last_error="${rate_result}"
+		fi
+	done
+
+	if [[ ${rate_blocked} == "true" ]]; then
+		log_success "  Rate limiting triggered after ${rate_count} requests"
+
+		# Warn user about the cooldown period
+		log_warn ""
+		log_warn "  Rate limit is now active for ${window_seconds} seconds!"
+		log_warn "  Login attempts will be blocked until: $(date -d "+${window_seconds} seconds" '+%H:%M:%S' 2>/dev/null || date -v+"${window_seconds}"S '+%H:%M:%S' 2>/dev/null || echo "~${window_seconds}s from now")"
+		log_warn ""
+
+		# Wait for the rate limit window to expire
+		log_info "  Waiting ${window_seconds}s for rate limit window to expire..."
+		local remaining=${window_seconds}
+		while [[ ${remaining} -gt 0 ]]; do
+			# Show countdown every 10 seconds or for last 5 seconds
+			if [[ $((remaining % 10)) -eq 0 ]] || [[ ${remaining} -le 5 ]]; then
+				printf "\r  Cooldown: %ds remaining...   " "${remaining}"
+			fi
+			sleep 1
+			remaining=$((remaining - 1))
+		done
+		printf "\r  Cooldown complete!              \n"
+		log_success "  Rate limit window expired - logins are now allowed"
+	else
+		log_warn "  Rate limiting not triggered after ${requests_needed} requests"
+		if [[ -n ${last_error} ]]; then
+			log_warn "    Last response: ${last_error:0:100}..."
+		fi
+		log_info "  This may indicate rate limits are set higher than expected"
+	fi
+
+	# Summary
 	log_info ""
 	if [[ ${failed} -eq 0 ]]; then
-		log_success "All integration tests passed!"
+		log_success "All ${total_tests} integration tests passed!"
 	else
 		log_error "${failed} integration test(s) failed"
 		return 1
@@ -561,8 +1067,7 @@ cmd_fmt() {
 	log_info "Formatting code..."
 	cd "${PROJECT_ROOT}"
 
-	log_info "Running cargo fmt..."
-	cargo fmt --all
+	run_cmd "Running cargo fmt..." cargo fmt --all || return 1
 
 	log_success "Format complete!"
 }
@@ -572,14 +1077,12 @@ cmd_lint() {
 	log_info "Running linters..."
 	cd "${PROJECT_ROOT}"
 
-	log_info "Running cargo fmt --check..."
-	cargo fmt --all -- --check || {
+	run_cmd "Running cargo fmt --check..." cargo fmt --all -- --check || {
 		log_error "Formatting issues found. Run 'cargo fmt' to fix."
 		return 1
 	}
 
-	log_info "Running cargo clippy..."
-	cargo clippy --all-targets -- -D warnings || {
+	run_cmd "Running cargo clippy..." cargo clippy --all-targets -- -D warnings || {
 		log_error "Clippy found issues."
 		return 1
 	}
@@ -653,15 +1156,62 @@ cmd_stop() {
 build_init_arg() {
 	local network="${1:-dfx}"
 
+	# Map network to config file
+	local config_file
+	case "${network}" in
+	dfx | juno) config_file="${PROJECT_ROOT}/config/development.yaml" ;;
+	testnet) config_file="${PROJECT_ROOT}/config/testnet.yaml" ;;
+	ic) config_file="${PROJECT_ROOT}/config/mainnet.yaml" ;;
+	*) config_file="${PROJECT_ROOT}/config/development.yaml" ;;
+	esac
+
+	if [[ ! -f ${config_file} ]]; then
+		log_error "Config file not found: ${config_file}"
+		return 1
+	fi
+
+	# Log to stderr so it doesn't get captured in the return value
+	echo -e "${BLUE}[INFO]${NC} Reading config from: ${config_file}" >&2
+
 	# Get configuration from environment or use defaults
 	local domain="${IC_SIWA_DOMAIN:-localhost}"
 	local uri="${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
 	local salt="${IC_SIWA_SALT_DEVELOPMENT:-development-salt-change-me}"
-	local chain_id="43113" # Fuji testnet for dev/juno
+
+	# Read values from config file
+	local chain_id
+	chain_id=$(yq -r '.avalanche.chain_id' "${config_file}")
+
+	local session_exp_seconds
+	session_exp_seconds=$(yq -r '.security.session_expiration_seconds // 1800' "${config_file}")
+	local session_exp_ns=$((session_exp_seconds * 1000000000))
+
+	# Read allowed_domains as Candid vec
+	local allowed_domains
+	allowed_domains=$(yq -r '.security.allowed_domains | map("\"" + . + "\"") | join("; ")' "${config_file}")
+
+	# Read allowed_canisters as Candid vec
+	local allowed_canisters
+	allowed_canisters=$(yq -r '.security.allowed_canisters | map("principal \"" + . + "\"") | join("; ")' "${config_file}")
+
+	# Read delegation_targets as Candid vec
+	local delegation_targets
+	delegation_targets=$(yq -r '.security.delegation_targets | map("principal \"" + . + "\"") | join("; ")' "${config_file}")
+
+	# Read rate limit settings with defaults
+	local rate_limit_per_address
+	rate_limit_per_address=$(yq -r '.security.rate_limits.max_logins_per_address // 10' "${config_file}")
+	local rate_limit_total
+	rate_limit_total=$(yq -r '.security.rate_limits.max_logins_total // 1000' "${config_file}")
+	local rate_limit_window
+	rate_limit_window=$(yq -r '.security.rate_limits.window_seconds // 3600' "${config_file}")
+
+	# Read debug flag (defaults to false)
+	local debug
+	debug=$(yq -r '.debug // false' "${config_file}")
 
 	if [[ ${network} == "ic" ]]; then
 		salt="${IC_SIWA_SALT_MAINNET:-}"
-		chain_id="43114" # Avalanche mainnet
 		if [[ -z ${salt} ]]; then
 			log_error "IC_SIWA_SALT_MAINNET not set for mainnet deployment"
 			return 1
@@ -674,9 +1224,16 @@ domain = \"${domain}\"; \
 uri = \"${uri}\"; \
 salt = \"${salt}\"; \
 chain_id = ${chain_id} : nat64; \
-session_expiration_time = 1800000000000 : nat64; \
-allowed_domains = opt vec {}; \
-allowed_canisters = opt vec {} \
+session_expiration_time = ${session_exp_ns} : nat64; \
+allowed_domains = opt vec { ${allowed_domains} }; \
+allowed_canisters = opt vec { ${allowed_canisters} }; \
+delegation_targets = opt vec { ${delegation_targets} }; \
+rate_limits = opt record { \
+max_logins_per_address = ${rate_limit_per_address} : nat32; \
+max_logins_total = ${rate_limit_total} : nat32; \
+window_seconds = ${rate_limit_window} : nat64; \
+}; \
+debug = opt ${debug}; \
 })"
 }
 
@@ -715,12 +1272,11 @@ cmd_deploy() {
 	init_arg=$(build_init_arg "${network}") || return 1
 
 	# Deploy ic_siwa_provider
-	log_info "Deploying ic_siwa_provider..."
-	log_info "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
-	log_info "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
-	log_info "  Chain ID: $([[ ${network} == "ic" ]] && echo "43114" || echo "43113")"
+	log_debug "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
+	log_debug "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
+	log_debug "  Chain ID: $([[ ${network} == "ic" ]] && echo "43114" || echo "43113")"
 
-	dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" || {
+	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" || {
 		log_error "Failed to deploy ic_siwa_provider"
 		return 1
 	}
@@ -730,40 +1286,17 @@ cmd_deploy() {
 	log_success "ic_siwa_provider deployed: ${provider_id}"
 
 	# Deploy Rust test canister
-	log_info "Deploying test_canister_rs..."
-	dfx deploy test_canister_rs --network "${network}" || {
+	run_cmd "Deploying test_canister_rs..." dfx deploy test_canister_rs --network "${network}" || {
 		log_error "Failed to deploy test_canister_rs"
 		return 1
 	}
 
-	# Determine IC host URL based on network
-	local ic_host
-	case "${network}" in
-	dfx) ic_host="http://127.0.0.1:${DFX_PORT}" ;;
-	juno) ic_host="http://127.0.0.1:${JUNO_PORT}" ;;
-	ic) ic_host="https://ic0.app" ;;
-	esac
-
 	# Build and deploy TypeScript test canister
-	log_info "Building test_canister_ts..."
-	log_info "  Provider Canister ID: ${provider_id}"
-	log_info "  IC Host: ${ic_host}"
-	cd "${PROJECT_ROOT}/canisters/test_canister_ts"
+	local ic_host
+	ic_host=$(get_ic_host "${network}")
+	build_ts_canister "${provider_id}" "${ic_host}" || return 1
 
-	if [[ ! -d "node_modules" ]]; then
-		log_info "Installing dependencies..."
-		bun install
-	fi
-
-	log_info "Building Astro app..."
-	PUBLIC_SIWA_PROVIDER_CANISTER_ID="${provider_id}" \
-		PUBLIC_IC_HOST="${ic_host}" \
-		bun run build
-
-	cd "${PROJECT_ROOT}"
-
-	log_info "Deploying test_canister_ts..."
-	dfx deploy test_canister_ts --network "${network}" || {
+	run_cmd "Deploying test_canister_ts..." dfx deploy test_canister_ts --network "${network}" || {
 		log_error "Failed to deploy test_canister_ts"
 		return 1
 	}
@@ -858,41 +1391,19 @@ cmd_upgrade() {
 	log_info "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
 
 	# Upgrade ic_siwa_provider
-	log_info "Upgrading ic_siwa_provider..."
-	dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --argument "${init_arg}"
+	# Use --upgrade-unchanged to force upgrade even if WASM hash is the same
+	# This ensures new init_args (config) are applied
+	run_cmd "Upgrading ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --upgrade-unchanged --argument "${init_arg}" || return 1
 
 	# Upgrade test_canister_rs
-	log_info "Upgrading test_canister_rs..."
-	dfx deploy test_canister_rs --network "${network}" --mode upgrade
-
-	# Determine IC host URL based on network
-	local ic_host
-	case "${network}" in
-	dfx) ic_host="http://127.0.0.1:${DFX_PORT}" ;;
-	juno) ic_host="http://127.0.0.1:${JUNO_PORT}" ;;
-	ic) ic_host="https://ic0.app" ;;
-	esac
+	run_cmd "Upgrading test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --mode upgrade || return 1
 
 	# Rebuild and upgrade test_canister_ts
-	log_info "Rebuilding test_canister_ts..."
-	log_info "  Provider Canister ID: ${canister_id}"
-	log_info "  IC Host: ${ic_host}"
-	cd "${PROJECT_ROOT}/canisters/test_canister_ts"
+	local ic_host
+	ic_host=$(get_ic_host "${network}")
+	build_ts_canister "${canister_id}" "${ic_host}" || return 1
 
-	if [[ ! -d "node_modules" ]]; then
-		log_info "Installing dependencies..."
-		bun install
-	fi
-
-	log_info "Building Astro app..."
-	PUBLIC_SIWA_PROVIDER_CANISTER_ID="${canister_id}" \
-		PUBLIC_IC_HOST="${ic_host}" \
-		bun run build
-
-	cd "${PROJECT_ROOT}"
-
-	log_info "Upgrading test_canister_ts..."
-	dfx deploy test_canister_ts --network "${network}" --mode upgrade
+	run_cmd "Upgrading test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --mode upgrade || return 1
 
 	log_success "All canisters upgraded!"
 
@@ -955,9 +1466,6 @@ cmd_cleanup() {
 
 	log_info "Cleaning Cargo artifacts..."
 	cargo clean
-
-	log_info "Cleaning DFX artifacts..."
-	rm -rf .dfx
 
 	log_info "Cleaning generated files..."
 	find . -name "*.did" -path "./target/*" -delete 2>/dev/null || true
@@ -1036,6 +1544,14 @@ parse_args() {
 			PRUNE="true"
 			shift
 			;;
+		--log-level)
+			LOG_LEVEL="${2:-info}"
+			shift 2
+			;;
+		--log-file-level)
+			LOG_FILE_LEVEL="${2:-debug}"
+			shift 2
+			;;
 		--bump)
 			VERSION_ACTION="bump"
 			shift
@@ -1071,6 +1587,14 @@ parse_args() {
 			;;
 		esac
 	done
+
+	# Initialize log file
+	init_log "$@"
+
+	# Check dependencies before running command (skip for help/check)
+	if [[ ${cmd} != "help" && ${cmd} != "--help" && ${cmd} != "-h" && ${cmd} != "check" ]]; then
+		check_deps "${cmd}" || exit 1
+	fi
 
 	# Execute command
 	case "${cmd}" in
@@ -1115,6 +1639,9 @@ parse_args() {
 		;;
 	update)
 		cmd_update
+		;;
+	check)
+		cmd_check_deps
 		;;
 	version)
 		case "${VERSION_ACTION}" in

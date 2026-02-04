@@ -274,7 +274,7 @@ const title = "IC-SIWA Test";
     <script>
       import { SiwaClient } from "ic-siwa";
       import type { EIP1193Provider } from "viem";
-      import { createLogger, siwaLog, uiLog, wcLog } from "../lib/logger";
+      import { createLogger, siwaLog, uiLog, wcLog, walletLog, networkLog, eip6963Log, exportAllLogs } from "../lib/logger";
       import type { DetectedWallet, WalletState, AppConfig, ChainConfig } from "../lib/types";
       import { getWalletIcon, RPC_ERRORS, isRpcError } from "../lib/types";
       import {
@@ -803,7 +803,6 @@ const title = "IC-SIWA Test";
 
       // Export logs
       function handleExportLogs() {
-        const { exportAllLogs } = require("../lib/logger");
         const logs = exportAllLogs();
         const blob = new Blob([logs], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -826,7 +825,6 @@ const title = "IC-SIWA Test";
       refreshDiagnostics?.addEventListener("click", updateDiagnostics);
       exportLogsBtn?.addEventListener("click", handleExportLogs);
       clearLogsBtn?.addEventListener("click", () => {
-        const { walletLog, siwaLog, networkLog, uiLog, eip6963Log, wcLog } = require("../lib/logger");
         [walletLog, siwaLog, networkLog, uiLog, eip6963Log, wcLog].forEach(l => l.clear());
         log.info("Logs cleared");
       });

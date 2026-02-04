@@ -7,6 +7,7 @@ use crate::state::{
 };
 use candid::Principal;
 use ic_siwa::siwa::{derive_principal, hash_session_key, validate_address};
+use ic_siwa::types::DomainValidator;
 use ic_siwa::SiwaMessage;
 
 /// Login response with principal and expiration
@@ -48,8 +49,29 @@ pub fn login(
         return Err("Login session has expired".to_string());
     }
 
-    // Get settings for principal derivation
+    // Get settings for principal derivation and domain validation
     let settings = get_settings();
+
+    // Validate domain if allowed_domains is configured
+    if !settings.allowed_domains.is_empty() {
+        // Extract domain from the stored message (first line contains "domain wants you to sign in")
+        let message_domain = extract_domain_from_message(&login_session.message)
+            .ok_or("Failed to extract domain from SIWA message")?;
+
+        // Validate the domain against the whitelist
+        let validator = DomainValidator::new(&settings.allowed_domains);
+        if !validator.is_allowed(&message_domain) {
+            ic_cdk::println!(
+                "[SECURITY] Domain rejected: '{}' not in allowed list for address {}",
+                message_domain,
+                address
+            );
+            return Err(format!(
+                "Domain '{}' is not allowed. This canister only accepts logins from configured domains.",
+                message_domain
+            ));
+        }
+    }
 
     // Reconstruct the SIWA message and verify the signature
     let siwa_message = SiwaMessage {
@@ -114,4 +136,63 @@ fn extract_timestamp(message: &str, prefix: &str) -> Option<String> {
         .lines()
         .find(|line| line.starts_with(prefix))
         .map(|line| line.strip_prefix(prefix).unwrap_or(line).to_string())
+}
+
+/// Extract the domain from a SIWA message
+/// The first line format is: "domain wants you to sign in with your Avalanche account:"
+fn extract_domain_from_message(message: &str) -> Option<String> {
+    let first_line = message.lines().next()?;
+    // Pattern: "domain wants you to sign in with your Avalanche account:"
+    let suffix = " wants you to sign in with your Avalanche account:";
+    if first_line.ends_with(suffix) {
+        let domain = first_line.strip_suffix(suffix)?;
+        Some(domain.to_lowercase())
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_domain_from_message() {
+        let message = "example.com wants you to sign in with your Avalanche account:\n0x1234...";
+        assert_eq!(
+            extract_domain_from_message(message),
+            Some("example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_domain_from_message_with_subdomain() {
+        let message =
+            "app.example.com wants you to sign in with your Avalanche account:\n0x1234...";
+        assert_eq!(
+            extract_domain_from_message(message),
+            Some("app.example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_domain_from_message_invalid() {
+        let message = "invalid message format";
+        assert_eq!(extract_domain_from_message(message), None);
+    }
+
+    #[test]
+    fn test_extract_timestamp() {
+        let message = "Some text\nIssued At: 2024-01-15T12:00:00Z\nMore text";
+        assert_eq!(
+            extract_timestamp(message, "Issued At: "),
+            Some("2024-01-15T12:00:00Z".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_timestamp_not_found() {
+        let message = "Some text without timestamp";
+        assert_eq!(extract_timestamp(message, "Issued At: "), None);
+    }
 }

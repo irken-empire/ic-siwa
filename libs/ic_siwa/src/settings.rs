@@ -3,6 +3,27 @@
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
+/// Rate limiting configuration
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct RateLimitSettings {
+    /// Max prepare_login calls per address per window
+    pub max_logins_per_address: u32,
+    /// Max total prepare_login calls per window (across all addresses)
+    pub max_logins_total: u32,
+    /// Time window in seconds for rate limiting
+    pub window_seconds: u64,
+}
+
+impl Default for RateLimitSettings {
+    fn default() -> Self {
+        Self {
+            max_logins_per_address: 10,
+            max_logins_total: 1000,
+            window_seconds: 3600, // 1 hour
+        }
+    }
+}
+
 /// SIWA settings
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Settings {
@@ -22,6 +43,13 @@ pub struct Settings {
     pub allowed_domains: Vec<String>,
     /// Allowed canister IDs for inter-canister calls
     pub allowed_canisters: Vec<Principal>,
+    /// Delegation targets - canisters that delegations are valid for
+    /// If empty, delegations are unrestricted (work for any canister)
+    pub delegation_targets: Vec<Principal>,
+    /// Rate limiting configuration
+    pub rate_limits: RateLimitSettings,
+    /// Debug mode - enables diagnostic endpoints (should be false in production)
+    pub debug: bool,
 }
 
 impl Settings {
@@ -36,6 +64,9 @@ impl Settings {
             login_expiration_time: 5 * 60 * 1_000_000_000, // 5 minutes in nanoseconds
             allowed_domains: vec![],
             allowed_canisters: vec![],
+            delegation_targets: vec![],
+            rate_limits: RateLimitSettings::default(),
+            debug: false,
         }
     }
 
@@ -61,6 +92,32 @@ impl Settings {
     pub fn with_allowed_canisters(mut self, canisters: Vec<Principal>) -> Self {
         self.allowed_canisters = canisters;
         self
+    }
+
+    /// Set delegation targets
+    pub fn with_delegation_targets(mut self, targets: Vec<Principal>) -> Self {
+        self.delegation_targets = targets;
+        self
+    }
+
+    /// Set rate limits
+    pub fn with_rate_limits(mut self, rate_limits: RateLimitSettings) -> Self {
+        self.rate_limits = rate_limits;
+        self
+    }
+
+    /// Check if delegation targets are configured
+    pub fn has_delegation_targets(&self) -> bool {
+        !self.delegation_targets.is_empty()
+    }
+
+    /// Get delegation targets as Option for Candid serialization
+    pub fn delegation_targets_option(&self) -> Option<Vec<Principal>> {
+        if self.delegation_targets.is_empty() {
+            None
+        } else {
+            Some(self.delegation_targets.clone())
+        }
     }
 }
 
@@ -94,6 +151,8 @@ mod tests {
         assert_eq!(settings.login_expiration_time, 5 * 60 * 1_000_000_000);
         assert!(settings.allowed_domains.is_empty());
         assert!(settings.allowed_canisters.is_empty());
+        assert!(settings.delegation_targets.is_empty());
+        assert_eq!(settings.rate_limits, RateLimitSettings::default());
     }
 
     #[test]
@@ -142,6 +201,39 @@ mod tests {
     }
 
     #[test]
+    fn test_settings_with_delegation_targets() {
+        let target = Principal::from_slice(&[4, 5, 6]);
+        let settings = Settings::new("test.com", "https://test.com", "salt")
+            .with_delegation_targets(vec![target]);
+
+        assert_eq!(settings.delegation_targets.len(), 1);
+        assert_eq!(settings.delegation_targets[0], target);
+        assert!(settings.has_delegation_targets());
+        assert_eq!(settings.delegation_targets_option(), Some(vec![target]));
+    }
+
+    #[test]
+    fn test_settings_delegation_targets_empty() {
+        let settings = Settings::new("test.com", "https://test.com", "salt");
+
+        assert!(!settings.has_delegation_targets());
+        assert_eq!(settings.delegation_targets_option(), None);
+    }
+
+    #[test]
+    fn test_settings_with_rate_limits() {
+        let rate_limits = RateLimitSettings {
+            max_logins_per_address: 5,
+            max_logins_total: 100,
+            window_seconds: 1800,
+        };
+        let settings = Settings::new("test.com", "https://test.com", "salt")
+            .with_rate_limits(rate_limits.clone());
+
+        assert_eq!(settings.rate_limits, rate_limits);
+    }
+
+    #[test]
     fn test_settings_builder_chain() {
         let settings = Settings::new("app.com", "https://app.com", "secret")
             .with_chain_id(43113)
@@ -158,5 +250,14 @@ mod tests {
     fn test_chain_ids_constants() {
         assert_eq!(chain_ids::AVALANCHE_MAINNET, 43114);
         assert_eq!(chain_ids::AVALANCHE_FUJI, 43113);
+    }
+
+    #[test]
+    fn test_rate_limit_settings_default() {
+        let rate_limits = RateLimitSettings::default();
+
+        assert_eq!(rate_limits.max_logins_per_address, 10);
+        assert_eq!(rate_limits.max_logins_total, 1000);
+        assert_eq!(rate_limits.window_seconds, 3600);
     }
 }

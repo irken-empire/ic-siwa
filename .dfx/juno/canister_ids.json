@@ -1,0 +1,14 @@
+{
+  "__Candid_UI": {
+    "juno": "mn2rm-mh777-77777-aaasq-cai"
+  },
+  "ic_siwa_provider": {
+    "juno": "nowyk-y7777-77777-aaaua-cai"
+  },
+  "test_canister_rs": {
+    "juno": "njx66-vh777-77777-aaauq-cai"
+  },
+  "test_canister_ts": {
+    "juno": "nauvc-dp777-77777-aaava-cai"
+  }
+}

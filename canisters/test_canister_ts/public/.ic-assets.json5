@@ -1,0 +1,84 @@
+/**
+ * IC Assets Security Configuration
+ *
+ * This file configures security headers for the test_canister_ts asset canister.
+ * We use a hardened CSP tailored for IC-SIWA's requirements:
+ * - WalletConnect for mobile wallet connections
+ * - IC canister API calls
+ * - Avalanche RPC (for chain info display only)
+ *
+ * References:
+ * - CSP Evaluator: https://csp-evaluator.withgoogle.com/
+ * - Strict CSP: https://csp.withgoogle.com/docs/strict-csp.html
+ * - OWASP Headers: https://owasp.org/www-project-secure-headers/
+ */
+[
+  {
+    // Default policy for all assets
+    match: "**/*",
+    // Use "standard" as base, then override with our hardened headers
+    // Custom headers take precedence over security_policy defaults
+    security_policy: "standard",
+    headers: {
+      // ============================================
+      // Content Security Policy (Hardened)
+      // ============================================
+      //
+      // Key restrictions:
+      // - script-src: Only 'self' - no inline scripts, no eval
+      // - connect-src: Explicitly list allowed endpoints
+      // - style-src: Allow 'self' and 'unsafe-inline' (required for Tailwind/DaisyUI)
+      // - img-src: Allow 'self', data: URIs, and wallet icons
+      // - frame-ancestors 'none': Prevent clickjacking
+      // - upgrade-insecure-requests: Force HTTPS
+      //
+      "Content-Security-Policy": "default-src 'self'; script-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://icp-api.io https://icp0.io https://*.icp0.io https://*.ic0.app wss://relay.walletconnect.com wss://relay.walletconnect.org https://relay.walletconnect.com https://relay.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org wss://*.reown.com https://*.reown.com https://api.avax-test.network https://api.avax.network; img-src 'self' data: blob: https://*.walletconnect.com https://*.reown.com; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;",
+
+      // ============================================
+      // Permissions Policy (All features disabled)
+      // ============================================
+      // Disable all browser features we don't need for security
+      "Permissions-Policy": "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), interest-cohort=()",
+
+      // ============================================
+      // Additional Security Headers
+      // ============================================
+
+      // Prevent clickjacking by denying framing
+      "X-Frame-Options": "DENY",
+
+      // Don't leak referrer to other origins
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+
+      // Force HTTPS for 1 year with subdomains
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+
+      // Prevent MIME type sniffing
+      "X-Content-Type-Options": "nosniff",
+
+      // Enable XSS filter in blocking mode
+      "X-XSS-Protection": "1; mode=block",
+    },
+  },
+
+  // ============================================
+  // Static Assets: Aggressive Caching
+  // ============================================
+  {
+    match: "assets/**/*",
+    headers: {
+      // Cache static assets for 1 year (they have content hashes)
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  },
+
+  // ============================================
+  // HTML: No caching to ensure fresh content
+  // ============================================
+  {
+    match: "**/*.html",
+    headers: {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    },
+  },
+]

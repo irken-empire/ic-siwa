@@ -12,9 +12,9 @@ import {Principal} from "@dfinity/principal";
 import {
   idlFactory,
   type _SERVICE,
-  type Result_2,
   type Result_3,
   type Result_4,
+  type Result_5,
   type Delegation as CandidDelegation,
 } from "./candid";
 import {SiwaError, SiwaErrorCode} from "./errors";
@@ -165,7 +165,7 @@ export class SiwaClient {
   async prepareLogin(address: string): Promise<PreparedLogin> {
     try {
       const actor = await this.createProviderActor();
-      const response: Result_4 = await actor.siwa_prepare_login(address);
+      const response: Result_5 = await actor.siwa_prepare_login(address);
 
       if ("Err" in response) {
         throw new SiwaError(
@@ -212,7 +212,7 @@ export class SiwaClient {
 
       // Call siwa_login
       const actor = await this.createProviderActor();
-      const loginResponse: Result_3 = await actor.siwa_login(
+      const loginResponse: Result_4 = await actor.siwa_login(
         signature,
         address,
         sessionKeyBytes
@@ -235,7 +235,7 @@ export class SiwaClient {
         loginExpiration ??
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
 
-      const delegationResponse: Result_2 = await actor.siwa_get_delegation(
+      const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
         expirationNs
@@ -383,7 +383,7 @@ export class SiwaClient {
       // Get new delegation
       const expirationNs =
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
-      const delegationResponse: Result_2 = await actor.siwa_get_delegation(
+      const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
         expirationNs
