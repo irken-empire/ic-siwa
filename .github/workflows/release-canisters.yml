@@ -197,8 +197,8 @@ jobs:
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
           init_args: |
             (record {
-              domain = "${{ secrets.IC_SIWA_DOMAIN }}";
-              uri = "${{ secrets.IC_SIWA_URI }}";
+              domain = "${{ steps.config.outputs.domain }}";
+              uri = "${{ steps.config.outputs.uri }}";
               salt = "${{ secrets.IC_SIWA_SALT }}";
               chain_id = ${{ steps.config.outputs.chain_id }} : nat64;
               session_expiration_time = ${{ steps.config.outputs.session_expiration_ns }} : nat64;

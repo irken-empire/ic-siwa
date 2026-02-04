@@ -25,7 +25,7 @@ import {
   type SerializedIdentity,
 } from "./identity";
 import {LocalStorageProvider, type StorageProvider} from "./storage";
-import type {PreparedLogin, LoginResult} from "./types";
+import type {PreparedLogin, LoginResult, PrepareLoginOptions} from "./types";
 
 /**
  * SIWA Client configuration options
@@ -160,12 +160,49 @@ export class SiwaClient {
   }
 
   /**
-   * Prepare a login message for signing
+   * Prepare a login message for signing (simple version)
+   *
+   * Uses the canister's default domain/uri. For multi-tenant scenarios,
+   * use `prepareLoginWithOptions` to specify your app's domain.
+   *
+   * @param address - The Avalanche address (0x-prefixed)
    */
   async prepareLogin(address: string): Promise<PreparedLogin> {
+    return this.prepareLoginWithOptions({address});
+  }
+
+  /**
+   * Prepare a login message with custom domain/uri (multi-tenant version)
+   *
+   * This is the "SIWA as a Service" method where each calling application
+   * can specify its own domain/uri for the wallet signing prompt.
+   *
+   * @param options - Login options including address and optional domain/uri
+   * @param options.address - The Avalanche address (0x-prefixed)
+   * @param options.domain - Domain to show in wallet (must be whitelisted)
+   * @param options.uri - URI to show in wallet
+   *
+   * @example
+   * ```ts
+   * const prepared = await client.prepareLoginWithOptions({
+   *   address: "0x1234...",
+   *   domain: "game.tresr.community",
+   *   uri: "https://game.tresr.community"
+   * });
+   * ```
+   */
+  async prepareLoginWithOptions(
+    options: PrepareLoginOptions
+  ): Promise<PreparedLogin> {
     try {
       const actor = await this.createProviderActor();
-      const response: Result_5 = await actor.siwa_prepare_login(address);
+
+      // Use the new multi-tenant endpoint if domain/uri provided
+      const response: Result_5 = await actor.siwa_prepare_login_with_options({
+        address: options.address,
+        domain: options.domain ? [options.domain] : [],
+        uri: options.uri ? [options.uri] : [],
+      });
 
       if ("Err" in response) {
         throw new SiwaError(
@@ -466,15 +503,37 @@ export class SiwaClient {
    * Login with a wallet client (convenience method)
    *
    * @param walletClient - A viem wallet client or similar
+   * @param options - Optional domain/uri for multi-tenant scenarios
+   * @param options.domain - Domain to show in wallet (must be whitelisted)
+   * @param options.uri - URI to show in wallet
+   *
+   * @example
+   * ```ts
+   * // Simple usage (uses canister defaults)
+   * await client.loginWithWallet(walletClient);
+   *
+   * // Multi-tenant usage (specify your app's domain)
+   * await client.loginWithWallet(walletClient, {
+   *   domain: "game.tresr.community",
+   *   uri: "https://game.tresr.community"
+   * });
+   * ```
    */
-  async loginWithWallet(walletClient: {
-    account: {address: string};
-    signMessage: (args: {message: string}) => Promise<string>;
-  }): Promise<LoginResult> {
+  async loginWithWallet(
+    walletClient: {
+      account: {address: string};
+      signMessage: (args: {message: string}) => Promise<string>;
+    },
+    options?: {domain?: string; uri?: string}
+  ): Promise<LoginResult> {
     const address = walletClient.account.address;
 
-    // Prepare login message
-    const prepared = await this.prepareLogin(address);
+    // Prepare login message with optional domain/uri
+    const prepared = await this.prepareLoginWithOptions({
+      address,
+      domain: options?.domain,
+      uri: options?.uri,
+    });
 
     // Sign message with wallet
     const signature = await walletClient.signMessage({
