@@ -215,7 +215,7 @@ jobs:
   # Build TypeScript Library - Build npm package
   ##################################################
   build-typescript:
-    name: Build typeScript
+    name: Build typescript
     needs: [setup, lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
