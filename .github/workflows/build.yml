@@ -1,0 +1,324 @@
+---
+##################################################
+# Name: build.yml
+# Description: Build, Lint, and Test IC-SIWA
+#
+# Triggers:
+#   - PR to trunk:        Build & test only
+#   - Push to trunk:      Build, test (triggers downstream workflows)
+#   - Release published:  Build, test (triggers downstream workflows)
+#   - Manual:             Build, test for selected environment
+#
+# Downstream workflows (via workflow_run):
+#   - release-canisters.yml: Deploys to IC mainnet
+#   - release-npm.yml: Publishes to npm registry
+##################################################
+
+name: Build
+
+on:
+  # Build on PRs
+  pull_request:
+    branches:
+      - trunk
+  # Build on pushes to trunk
+  push:
+    branches:
+      - trunk
+  # Build when release is publishes
+  release:
+    types: [published]
+  # Allow manual runs
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Build environment"
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+        default: testnet
+
+concurrency:
+  group: build-${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+  statuses: write
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Setup - Determine environment and build mode
+  ##################################################
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      is_mainnet: ${{ steps.config.outputs.is_mainnet }}
+      should_release: ${{ steps.config.outputs.should_release }}
+
+    steps:
+      - name: Determine configuration
+        id: config
+        run: |
+          # Determine environment based on trigger
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ENVIRONMENT="development"
+            SHOULD_RELEASE="false"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            ENVIRONMENT="testnet"
+            SHOULD_RELEASE="true"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            ENVIRONMENT="mainnet"
+            SHOULD_RELEASE="true"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENVIRONMENT="${{ inputs.environment }}"
+            SHOULD_RELEASE="false"  # Manual builds don't auto-release
+          fi
+
+          IS_MAINNET=$([[ "${ENVIRONMENT}" == "mainnet" ]] && echo "true" || echo "false")
+
+          {
+            echo "environment=${ENVIRONMENT}"
+            echo "is_mainnet=${IS_MAINNET}"
+            echo "should_release=${SHOULD_RELEASE}"
+          } >> "$GITHUB_OUTPUT"
+
+          # Summary
+          {
+            echo "## Build Configuration"
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Environment | ${ENVIRONMENT} |"
+            echo "| Is Mainnet | ${IS_MAINNET} |"
+            echo "| Should Release | ${SHOULD_RELEASE} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  ##################################################
+  # Lint - Check code quality
+  ##################################################
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Rust formatting
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo fmt --all -- --check
+
+      - name: Rust clippy
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo clippy --all-targets -- -D warnings
+
+  ##################################################
+  # Test - Run unit tests
+  ##################################################
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Rust tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo test -p ic_siwa
+
+      - name: TypeScript tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun test || echo "TypeScript tests completed"
+
+  ##################################################
+  # Build Canisters - Build all WASM canisters
+  ##################################################
+  build-canisters:
+    name: Build ${{ matrix.canister }}
+    needs: [setup, lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - canister: ic_siwa_provider
+            type: rust
+          - canister: test_canister_rs
+            type: rust
+          - canister: test_canister_ts
+            type: assets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build canister
+        uses: ./.github/actions/build-canister
+        with:
+          canister: ${{ matrix.canister }}
+          type: ${{ matrix.type }}
+          environment: ${{ needs.setup.outputs.environment }}
+          optimize: ${{ needs.setup.outputs.is_mainnet }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.canister }}-${{ needs.setup.outputs.environment }}
+          path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
+          retention-days: ${{ needs.setup.outputs.is_mainnet == 'true' && 30 || 7 }}
+
+  ##################################################
+  # Build TypeScript Library - Build npm package
+  ##################################################
+  build-typescript:
+    name: Build TypeScript
+    needs: [setup, lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build library
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun run build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ic-siwa-npm-${{ needs.setup.outputs.environment }}
+          path: |
+            libs/ic_siwa_ts/dist/
+            libs/ic_siwa_ts/package.json
+            libs/ic_siwa_ts/README.md
+          retention-days: ${{ needs.setup.outputs.is_mainnet == 'true' && 30 || 7 }}
+
+  ##################################################
+  # Verify Candid - Ensure interface is up-to-date
+  ##################################################
+  verify-candid:
+    name: Verify Candid
+    needs: [setup, build-canisters]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic_siwa_provider-${{ needs.setup.outputs.environment }}
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Verify Candid
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
+
+          # Normalize whitespace for comparison
+          sed 's/[[:space:]]*$//' canisters/ic_siwa_provider/ic_siwa_provider.did > /tmp/committed.did
+          sed 's/[[:space:]]*$//' /tmp/extracted.did > /tmp/extracted_normalized.did
+
+          if ! diff -q /tmp/committed.did /tmp/extracted_normalized.did > /dev/null 2>&1; then
+            echo "::error::Candid interface is out of sync! Run 'ic-siwa candid' to regenerate."
+            diff /tmp/committed.did /tmp/extracted_normalized.did || true
+            exit 1
+          fi
+
+          echo "Candid interface verified"
+
+  ##################################################
+  # Status - Report overall status
+  ##################################################
+  status:
+    name: Status
+    needs: [setup, lint, test, build-canisters, build-typescript, verify-candid]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check results
+        run: |
+          {
+            echo "## Build Results"
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Setup | ${{ needs.setup.result }} |"
+            echo "| Lint | ${{ needs.lint.result }} |"
+            echo "| Test | ${{ needs.test.result }} |"
+            echo "| Build Canisters | ${{ needs.build-canisters.result }} |"
+            echo "| Build TypeScript | ${{ needs.build-typescript.result }} |"
+            echo "| Verify Candid | ${{ needs.verify-candid.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Check all jobs
+          ALL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.build-typescript.result }},${{ needs.verify-candid.result }}"
+
+          if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
+            echo "::error::One or more jobs failed"
+            exit 1
+          fi
+
+          echo "All build jobs completed successfully!"

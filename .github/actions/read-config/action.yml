@@ -1,0 +1,115 @@
+name: "Read Config"
+description: "Read configuration values from environment-specific YAML config file"
+
+inputs:
+  environment:
+    description: "Deployment environment: development, testnet, or mainnet"
+    required: true
+
+outputs:
+  config_file:
+    description: "Path to config file"
+    value: ${{ steps.read.outputs.config_file }}
+  chain_id:
+    description: "Avalanche chain ID"
+    value: ${{ steps.read.outputs.chain_id }}
+  session_expiration_ns:
+    description: "Session expiration in nanoseconds"
+    value: ${{ steps.read.outputs.session_expiration_ns }}
+  allowed_domains:
+    description: "Allowed domains as Candid vec format"
+    value: ${{ steps.read.outputs.allowed_domains }}
+  allowed_canisters:
+    description: "Allowed canisters as Candid vec format"
+    value: ${{ steps.read.outputs.allowed_canisters }}
+  delegation_targets:
+    description: "Delegation targets as Candid vec format"
+    value: ${{ steps.read.outputs.delegation_targets }}
+  rate_limit_per_address:
+    description: "Max logins per address per window"
+    value: ${{ steps.read.outputs.rate_limit_per_address }}
+  rate_limit_total:
+    description: "Max total logins per window"
+    value: ${{ steps.read.outputs.rate_limit_total }}
+  rate_limit_window:
+    description: "Rate limit window in seconds"
+    value: ${{ steps.read.outputs.rate_limit_window }}
+  provider_canister_id:
+    description: "IC SIWA Provider canister ID"
+    value: ${{ steps.read.outputs.provider_canister_id }}
+  debug:
+    description: "Debug mode enabled"
+    value: ${{ steps.read.outputs.debug }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Read config values
+      id: read
+      shell: bash
+      run: |
+        # Map environment to config file
+        case "${{ inputs.environment }}" in
+          development) CONFIG_FILE="config/development.yaml" ;;
+          testnet)     CONFIG_FILE="config/testnet.yaml" ;;
+          mainnet)     CONFIG_FILE="config/mainnet.yaml" ;;
+          *)           echo "Invalid environment: ${{ inputs.environment }}" && exit 1 ;;
+        esac
+
+        echo "Environment: ${{ inputs.environment }}"
+        echo "Config file: ${CONFIG_FILE}"
+
+        # Read values from config file
+        CHAIN_ID=$(yq -r '.avalanche.chain_id' "${CONFIG_FILE}")
+        SESSION_EXP=$(yq -r '.security.session_expiration_seconds' "${CONFIG_FILE}")
+        SESSION_EXP_NS=$((SESSION_EXP * 1000000000))
+
+        # Read allowed_domains as Candid vec
+        ALLOWED_DOMAINS=$(yq -r '.security.allowed_domains | map("\"" + . + "\"") | join("; ")' "${CONFIG_FILE}")
+
+        # Read allowed_canisters as Candid vec
+        ALLOWED_CANISTERS=$(yq -r '.security.allowed_canisters | map("principal \"" + . + "\"") | join("; ")' "${CONFIG_FILE}")
+
+        # Read delegation_targets as Candid vec
+        DELEGATION_TARGETS=$(yq -r '.security.delegation_targets | map("principal \"" + . + "\"") | join("; ")' "${CONFIG_FILE}")
+
+        # Read rate limit settings with defaults
+        RATE_LIMIT_PER_ADDRESS=$(yq -r '.security.rate_limits.max_logins_per_address // 10' "${CONFIG_FILE}")
+        RATE_LIMIT_TOTAL=$(yq -r '.security.rate_limits.max_logins_total // 1000' "${CONFIG_FILE}")
+        RATE_LIMIT_WINDOW=$(yq -r '.security.rate_limits.window_seconds // 3600' "${CONFIG_FILE}")
+
+        # Read provider canister ID
+        PROVIDER_ID=$(yq -r '.ic.canisters.ic_siwa_provider // ""' "${CONFIG_FILE}")
+
+        # Read debug flag (defaults to false)
+        DEBUG=$(yq -r '.debug // false' "${CONFIG_FILE}")
+
+        # Output values
+        {
+          echo "config_file=${CONFIG_FILE}"
+          echo "chain_id=${CHAIN_ID}"
+          echo "session_expiration_ns=${SESSION_EXP_NS}"
+          echo "allowed_domains=${ALLOWED_DOMAINS}"
+          echo "allowed_canisters=${ALLOWED_CANISTERS}"
+          echo "delegation_targets=${DELEGATION_TARGETS}"
+          echo "rate_limit_per_address=${RATE_LIMIT_PER_ADDRESS}"
+          echo "rate_limit_total=${RATE_LIMIT_TOTAL}"
+          echo "rate_limit_window=${RATE_LIMIT_WINDOW}"
+          echo "provider_canister_id=${PROVIDER_ID}"
+          echo "debug=${DEBUG}"
+        } >> "$GITHUB_OUTPUT"
+
+        # Summary
+        {
+          echo "## Config Values"
+          echo "| Key | Value |"
+          echo "|-----|-------|"
+          echo "| Environment | ${{ inputs.environment }} |"
+          echo "| Config File | ${CONFIG_FILE} |"
+          echo "| Chain ID | ${CHAIN_ID} |"
+          echo "| Session Expiration | ${SESSION_EXP}s |"
+          echo "| Provider Canister ID | ${PROVIDER_ID:-not set} |"
+          echo "| Rate Limit (per address) | ${RATE_LIMIT_PER_ADDRESS} |"
+          echo "| Rate Limit (total) | ${RATE_LIMIT_TOTAL} |"
+          echo "| Rate Limit Window | ${RATE_LIMIT_WINDOW}s |"
+        } >> "$GITHUB_STEP_SUMMARY"

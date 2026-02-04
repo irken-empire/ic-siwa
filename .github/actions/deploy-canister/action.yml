@@ -1,0 +1,63 @@
+name: "Deploy Canister"
+description: "Deploy a canister to the Internet Computer"
+
+inputs:
+  canister:
+    description: "Canister name (e.g., ic_siwa_provider)"
+    required: true
+  network:
+    description: "DFX network (testnet, mainnet, juno, local)"
+    required: true
+  dfx_identity_pem:
+    description: "DFX identity PEM content"
+    required: true
+  init_args:
+    description: "Canister init arguments (Candid format)"
+    required: false
+    default: ""
+  mode:
+    description: "Deploy mode: install, upgrade, reinstall"
+    required: false
+    default: ""
+
+outputs:
+  canister_id:
+    description: "Deployed canister ID"
+    value: ${{ steps.deploy.outputs.canister_id }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Configure DFX identity
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        echo "${{ inputs.dfx_identity_pem }}" > /tmp/identity.pem
+        dfx identity import --storage-mode=plaintext deploy /tmp/identity.pem 2>/dev/null || true
+        dfx identity use deploy
+        rm /tmp/identity.pem
+
+    - name: Deploy canister
+      id: deploy
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        echo "Deploying ${{ inputs.canister }} to network: ${{ inputs.network }}..."
+
+        DEPLOY_ARGS=""
+
+        # Add mode if specified
+        if [ -n "${{ inputs.mode }}" ]; then
+          DEPLOY_ARGS="$DEPLOY_ARGS --mode ${{ inputs.mode }}"
+        fi
+
+        # Add init args if specified
+        if [ -n "${{ inputs.init_args }}" ]; then
+          DEPLOY_ARGS="$DEPLOY_ARGS --argument '${{ inputs.init_args }}'"
+        fi
+
+        # Deploy
+        eval "dfx deploy --network ${{ inputs.network }} ${{ inputs.canister }} $DEPLOY_ARGS"
+
+        # Get canister ID
+        CANISTER_ID=$(dfx canister --network ${{ inputs.network }} id ${{ inputs.canister }})
+        echo "Deployed ${{ inputs.canister }}: $CANISTER_ID"
+        echo "canister_id=$CANISTER_ID" >> $GITHUB_OUTPUT

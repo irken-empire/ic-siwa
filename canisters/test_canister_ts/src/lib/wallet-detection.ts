@@ -393,7 +393,7 @@ export async function signMessage(
   try {
     const signature = (await provider.request({
       method: "personal_sign",
-      params: [message, address],
+      params: [message as `0x${string}`, address as `0x${string}`],
     })) as string;
     walletLog.info("Message signed successfully");
     return signature;

@@ -1,0 +1,128 @@
+[default]
+
+# https://github.com/crate-ci/typos/issues/915
+locale = "en-au"
+
+extend-ignore-re = [
+    "^[ \t]*-----BEGIN PGP PUBLIC KEY BLOCK-----.*^[ \t]*-----END PGP PUBLIC KEY BLOCK-----",
+    "^[ \t]*initialHashedPassword[ \t]*=[ \t]*.*$",
+    "([a-z0-9]{5}-)+[a-z0-9]{1,5}"
+]
+
+[default.extend-words]
+finalize = "finalize"
+finalized = "finalized"
+finalizing = "finalizing"
+finalization = "finalization"
+
+# Crypto
+hodling = "hodling"
+decentralize = "decentralize"
+decentralized = "decentralized"
+decentralization = "decentralization"
+decentralizing = "decentralizing"
+FOMO = "FOMO"
+FOM = "FOM"
+
+# HTML and Technical American spelling.
+acknowledgment = "acknowledgment"
+acknowledgments = "acknowledgments"
+PNG = "PNG"
+analyze = "analyze"
+analyzer = "analyzer"
+analyzers = "analyzers"
+analyzing = "analyzing"
+authorization = "authorization"
+authorize = "authorize"
+authorized = "authorized"
+authorizing = "authorizing"
+categorization = "categorization"
+center = "center"
+centers = "centers"
+centralize = "centralize"
+centralized = "centralized"
+centralizing = "centralizing"
+customization = "customization"
+customizations = "customizations"
+customize = "customize"
+customized = "customized"
+customizing = "customizing"
+dialogs = "dialogs"
+disorganize = "disorganize"
+disorganized = "disorganized"
+disorganizing = "disorganizing"
+emphasizing = "emphasizing"
+initialization = "initialization"
+initialize = "initialize"
+initialized = "initialized"
+initializes = "initializes"
+initializing = "initializing"
+maximize = "maximize"
+maximized = "maximized"
+maximizes = "maximizes"
+maximizing = "maximizing"
+minimize = "minimize"
+minimized = "minimized"
+minimizing = "minimizing"
+normalize = "normalize"
+normalized = "normalized"
+normalizing = "normalizing"
+optimisation = "optimisation"
+optimization = "optimization"
+optimizations = "optimizations"
+optimize = "optimize"
+optimized = "optimized"
+optimizing = "optimizing"
+organization = "organization"
+organizational = "organizational"
+organizations = "organizations"
+organize = "organize"
+organized = "organized"
+organizing = "organizing"
+prioritize = "prioritize"
+prioritized = "prioritized"
+prioritizing = "prioritizing"
+randomize = "randomize"
+randomized = "randomized"
+randomizing = "randomizing"
+recognize = "recognize"
+recognized = "recognized"
+recognizing = "recognizing"
+reorganize = "reorganize"
+reorganized = "reorganized"
+reorganizing = "reorganizing"
+sanitize = "sanitize"
+sanitized = "sanitized"
+serialization = "serialization"
+serialize = "serialize"
+serialized = "serialized"
+serializing = "serializing"
+specialize = "specialize"
+specialized = "specialized"
+specializing = "specializing"
+standardize = "standardize"
+synchronize = "synchronize"
+synchronizing = "synchronizing"
+unauthorized = "unauthorized"
+utilize = "utilize"
+utilized = "utilized"
+utilizing = "utilizing"
+visualize = "visualize"
+visualized = "visualized"
+visualizing = "visualizing"
+
+[files]
+
+ignore-vcs = true
+
+extend-exclude = [
+  "*.drawio",
+  ".devenv",
+  ".direnv",
+  ".git",
+  "docs/agents/**",
+  "public/workers",
+  "secrets",
+  "vendor",
+  "docs/todo/"
+]

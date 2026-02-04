@@ -15,7 +15,7 @@ IC-SIWA enables Avalanche wallet authentication for Internet Computer applicatio
 - Multi-domain whitelist support
 - TypeScript library with Astro components
 
-## Quick Start
+## Setup
 
 ### Installation
 
@@ -101,15 +101,19 @@ import LoginButton from 'ic-siwa/astro';
 ```text
 ic-siwa/
 ├── canisters/
-│   └── ic_siwa_provider/     # Main authentication canister (Rust)
+│   ├── ic_siwa_provider/     # Main authentication canister (Rust)
+│   ├── test_canister_rs/     # Rust test canister
+│   └── test_canister_ts/     # TypeScript/Astro test frontend
 ├── libs/
 │   ├── ic_siwa/              # Rust library for canister integration
-│   └── ic_siwa_ts/           # TypeScript library for frontends
+│   └── ic_siwa_ts/           # TypeScript library (npm: ic-siwa)
+├── scripts/
+│   └── ic-siwa.sh            # Development CLI tool
 ├── config/
 │   ├── development.yaml      # Local development config
 │   ├── testnet.yaml          # Avalanche Fuji + IC config
 │   └── mainnet.yaml          # Production config
-└── docs/                     # Documentation and tickets
+└── docs/                     # Documentation and specs
 ```
 
 ## TypeScript Library
@@ -246,13 +250,54 @@ type InitArgs = record {
 };
 ```
 
-## Deployment
+## Development
 
 ### Prerequisites
 
 - [devenv](https://devenv.sh/) with Nix
 - Rust with `wasm32-unknown-unknown` target
 - Bun or npm
+
+### Quick Start
+
+```bash
+# Enter development shell
+devenv shell
+
+# Full development loop (format, lint, build, test, deploy)
+ic-siwa loop
+
+# Or individual commands
+ic-siwa build          # Build all canisters
+ic-siwa test           # Run tests
+ic-siwa deploy         # Deploy to local replica
+ic-siwa fmt            # Format code
+ic-siwa lint           # Run linters
+```
+
+### CLI Commands
+
+| Command           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `ic-siwa build`   | Build Rust canisters                           |
+| `ic-siwa candid`  | Generate TypeScript from Candid                |
+| `ic-siwa test`    | Run unit tests                                 |
+| `ic-siwa deploy`  | Deploy canisters (use `--network` flag)        |
+| `ic-siwa upgrade` | Upgrade deployed canisters                     |
+| `ic-siwa cleanup` | Clean build artifacts (`--prune` for canister) |
+| `ic-siwa start`   | Start local IC replica                         |
+| `ic-siwa stop`    | Stop local IC replica                          |
+| `ic-siwa update`  | Update all dependencies                        |
+| `ic-siwa version` | Show/bump version (`--bump`, `--check`, etc.)  |
+| `ic-siwa loop`    | Full dev loop: fmt, lint, build, test, deploy  |
+
+### Networks
+
+```bash
+ic-siwa deploy --network dfx    # Local DFX replica (default)
+ic-siwa deploy --network juno   # Local Juno/PocketIC
+ic-siwa deploy --network ic     # IC mainnet
+```
 
 ### Local Development
 
@@ -261,36 +306,20 @@ type InitArgs = record {
 devenv shell
 
 # Start local IC replica
-dfx start --background
+ic-siwa start
 
 # Deploy canisters
-dfx deploy ic_siwa_provider --argument '(record {
-  domain = "localhost";
-  uri = "http://localhost:3000";
-  salt = "development-salt";
-  chain_id = 43113;
-  session_expiration_time = 1_800_000_000_000;
-  allowed_domains = opt vec { "localhost"; "127.0.0.1" };
-  allowed_canisters = null;
-})'
+ic-siwa deploy
 
-# Get canister ID
-dfx canister id ic_siwa_provider
+# Get canister URLs
+ic-siwa urls
 ```
 
 ### Production Deployment
 
 ```bash
 # Deploy to IC mainnet
-dfx deploy ic_siwa_provider --network ic --argument '(record {
-  domain = "your-domain.com";
-  uri = "https://your-domain.com";
-  salt = "YOUR_SECRET_SALT";
-  chain_id = 43114;
-  session_expiration_time = 1_800_000_000_000;
-  allowed_domains = opt vec { "your-domain.com"; "*.your-domain.com" };
-  allowed_canisters = null;
-})'
+ic-siwa deploy --network ic
 ```
 
 ## Configuration
@@ -336,6 +365,26 @@ SIWA_SALT = { env = "SIWA_SALT" }
 - DaisyUI + Tailwind CSS (for Astro component)
 - IC replica or mainnet access
 
+## Contributing
+
+```bash
+# Enter dev shell
+devenv shell
+
+# Make changes, then run full loop
+ic-siwa loop
+
+# Update dependencies
+ic-siwa update
+
+# Bump version (uses conventional commits)
+ic-siwa version --bump
+```
+
 ## License
 
-MIT
+Unlicense - See [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+See [SHOULDERS.md](SHOULDERS.md) for credits to the projects that made IC-SIWA possible.

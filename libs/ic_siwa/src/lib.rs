@@ -99,6 +99,7 @@ pub mod config;
 pub mod delegation;
 pub mod error;
 pub mod hash;
+pub mod rate_limit;
 pub mod security;
 pub mod settings;
 pub mod siwa;
@@ -109,8 +110,9 @@ pub mod types;
 pub use config::Config;
 pub use delegation::Delegation;
 pub use error::SiwaError;
+pub use rate_limit::RateLimiter;
 pub use security::{CanisterGuard, ControllerGuard, SecurityMode};
-pub use settings::Settings;
+pub use settings::{RateLimitSettings, Settings};
 pub use siwa::SiwaMessage;
 pub use types::*;
 

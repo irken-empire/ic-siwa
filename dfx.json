@@ -12,7 +12,8 @@
     },
     "test_canister_ts": {
       "type": "assets",
-      "source": ["canisters/test_canister_ts/dist"]
+      "source": ["canisters/test_canister_ts/dist"],
+      "build": ["echo 'Assets pre-built, skipping'"]
     }
   },
   "defaults": {
@@ -30,7 +31,11 @@
       "bind": "127.0.0.1:5987",
       "type": "ephemeral"
     },
-    "ic": {
+    "testnet": {
+      "providers": ["https://ic0.app"],
+      "type": "persistent"
+    },
+    "mainnet": {
       "providers": ["https://ic0.app"],
       "type": "persistent"
     }

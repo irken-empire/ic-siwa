@@ -1,0 +1,103 @@
+name: "Build Canister"
+description: "Build a Rust WASM or Assets canister"
+
+inputs:
+  canister:
+    description: "Canister name (e.g., ic_siwa_provider)"
+    required: true
+  type:
+    description: "Canister type: rust or assets"
+    required: true
+  optimize:
+    description: "Optimize WASM with ic-wasm (rust only)"
+    required: false
+    default: "false"
+  environment:
+    description: "Deployment environment: development, testnet, or mainnet"
+    required: false
+    default: "development"
+  ic_host:
+    description: "IC host URL (for assets canister builds)"
+    required: false
+    default: "https://ic0.app"
+
+outputs:
+  artifact_path:
+    description: "Path to built artifact"
+    value: ${{ steps.paths.outputs.artifact_path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set paths
+      id: paths
+      shell: bash
+      run: |
+        if [ "${{ inputs.type }}" == "rust" ]; then
+          echo "artifact_path=target/wasm32-unknown-unknown/release/${{ inputs.canister }}.wasm" >> $GITHUB_OUTPUT
+        else
+          echo "artifact_path=canisters/${{ inputs.canister }}/dist/" >> $GITHUB_OUTPUT
+        fi
+
+    # Build Rust WASM canister
+    - name: Build WASM canister
+      if: inputs.type == 'rust'
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        echo "Building ${{ inputs.canister }} (Rust WASM)..."
+        cargo build --release --target wasm32-unknown-unknown -p ${{ inputs.canister }}
+
+    - name: Optimize WASM
+      if: inputs.type == 'rust' && inputs.optimize == 'true'
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        if command -v ic-wasm &> /dev/null; then
+          echo "Optimizing WASM with ic-wasm..."
+          ic-wasm target/wasm32-unknown-unknown/release/${{ inputs.canister }}.wasm \
+            -o target/wasm32-unknown-unknown/release/${{ inputs.canister }}.wasm shrink
+          echo "WASM optimized"
+        else
+          echo "ic-wasm not found, skipping optimization"
+        fi
+
+    # Build TypeScript library (dependency for assets)
+    - name: Build TypeScript library
+      if: inputs.type == 'assets'
+      shell: devenv shell --quiet bash -- -e {0}
+      run: |
+        echo "Building TypeScript library (dependency)..."
+        cd libs/ic_siwa_ts
+        bun install
+        bun run build
+
+    # Build Assets canister
+    - name: Read provider canister ID from config
+      if: inputs.type == 'assets'
+      id: config
+      shell: bash
+      run: |
+        # Map environment to config file
+        case "${{ inputs.environment }}" in
+          development) CONFIG_FILE="config/development.yaml" ;;
+          testnet)     CONFIG_FILE="config/testnet.yaml" ;;
+          mainnet)     CONFIG_FILE="config/mainnet.yaml" ;;
+          *)           echo "Invalid environment: ${{ inputs.environment }}" && exit 1 ;;
+        esac
+
+        PROVIDER_ID=$(yq -r '.ic.canisters.ic_siwa_provider // ""' "${CONFIG_FILE}")
+        echo "provider_canister_id=${PROVIDER_ID}" >> $GITHUB_OUTPUT
+        echo "Environment: ${{ inputs.environment }}"
+        echo "Config file: ${CONFIG_FILE}"
+        echo "Provider canister ID: ${PROVIDER_ID}"
+
+    - name: Build Assets canister
+      if: inputs.type == 'assets'
+      shell: devenv shell --quiet bash -- -e {0}
+      env:
+        PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ steps.config.outputs.provider_canister_id }}
+        PUBLIC_IC_HOST: ${{ inputs.ic_host }}
+      run: |
+        echo "Building ${{ inputs.canister }} (Assets)..."
+        cd canisters/${{ inputs.canister }}
+        bun install
+        bun run build

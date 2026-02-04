@@ -12,16 +12,23 @@ target/
 **/mutants.out*/
 
 # Canister artifacts
-.dfx/
-canister_ids.json
+.dfx/**/canisters/
+.dfx/**/lsp/
+.dfx/**/wallets.json
 *.wasm
 *.wasm.gz
+
+# Keep canister IDs per network
+!.dfx/**/canister_ids.json
 
 # TypeScript/Node artifacts
 node_modules/
 *.tsbuildinfo
 dist/
 bun.lockb
+
+# Astro generated files
+.astro/
 
 # Environment and secrets
 .env*
@@ -54,6 +61,9 @@ devenv.local.yaml
 # Claude
 .claude/
 .mcp.json
+
+# Script logs
+*.log
 
 # Ignore ticket notes
 docs/tickets/

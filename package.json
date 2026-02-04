@@ -1,0 +1,16 @@
+{
+  "name": "ic-siwa-workspace",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "install-deps": "bun install && cd libs/ic_siwa_ts && bun install && bun run build && cd ../../canisters/test_canister_ts && bun install"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.2",
+    "eslint": "9.39.2",
+    "globals": "15.15.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.54.0"
+  }
+}

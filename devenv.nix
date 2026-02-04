@@ -79,6 +79,7 @@ let
       secretspec
 
       # Rust
+      cargo-audit
       cargo-bump
       cargo-watch
       toml-cli
@@ -241,7 +242,7 @@ in
         enable = true;
       };
       npm = {
-        enable = false;
+        enable = true;
       };
     };
     rust = {
@@ -287,12 +288,12 @@ in
       };
       cargo-check.enable = true;
       clippy = {
-        enable = false; # TODO: Re-enable when ic-nix is v1.9.2
+        enable = false; # ic-nix is using older toolchain.
         settings = {
           denyWarnings = true;
           offline = true;
           allFeatures = true;
-          #extraArgs = "--target wasm32-unknown-unknown";
+          extraArgs = "--target wasm32-unknown-unknown";
         };
       };
       check-json.enable = true;
@@ -308,23 +309,23 @@ in
       commitizen.enable = true;
       deadnix.enable = true;
       editorconfig-checker.enable = true;
-      # TODO: Update this for frontend astro linting.
-      #astro-check = {
-      #  enable = true;
-      #  name = "astro-check";
-      #  entry = "bun run astro check";
-      #  files = "^src/.*\\.(astro|ts|tsx)$";
-      #  pass_filenames = false;
-      #};
-      eslint.enable = false;
-      # TODO: Update this for frontend typescript linting.
-      #eslint-hack = {
-      #  enable = true;
-      #  name = "eslint-hack";
-      #  entry = "eslint-check";
-      #  files = "^src/.*$";
-      #  pass_filenames = false;
-      #};
+      eslint.enable = true;
+      # Astro type checking for frontend canister
+      astro-check = {
+        enable = true;
+        name = "astro-check";
+        entry = "bash -c 'cd canisters/test_canister_ts && bun run astro check'";
+        files = "^canisters/test_canister_ts/.*\\.(astro|ts|tsx)$";
+        pass_filenames = false;
+      };
+      # TypeScript type checking for ic-siwa library
+      tsc-lib = {
+        enable = true;
+        name = "tsc-lib";
+        entry = "bash -c 'cd libs/ic_siwa_ts && bun run tsc --noEmit'";
+        files = "^libs/ic_siwa_ts/.*\\.ts$";
+        pass_filenames = false;
+      };
       markdownlint = {
         excludes = [
           "^docs/tickets/todo/.*\\.md$" # Ignore todo notes.
@@ -373,7 +374,14 @@ in
       shfmt.enable = true;
       staticcheck.enable = true;
       statix.enable = true;
-      trim-trailing-whitespace.enable = true;
+      trim-trailing-whitespace = {
+        excludes = [
+          # Ignore generated candid files
+          ".*\\.did$"
+          ".*/candid/.*\\.ts$"
+        ];
+        enable = true;
+      };
       trufflehog.enable = true;
       typos.enable = true;
       yamllint = {
@@ -386,6 +394,23 @@ in
               indentation: enable
           '';
         };
+      };
+      version-check = {
+        enable = true;
+        name = "version-check";
+        description = "Verify all package versions are in sync with Cargo.toml";
+        entry = "ic-siwa version --check";
+        files = "(^Cargo\\.toml$|^package\\.json$|libs/ic_siwa_ts/package\\.json$|canisters/test_canister_ts/package\\.json$)";
+        pass_filenames = false;
+      };
+      # Regenerate Candid when Rust canister code changes
+      candid-gen = {
+        enable = true;
+        name = "candid-gen";
+        description = "Regenerate Candid interface from canister code";
+        entry = "ic-siwa candid";
+        files = "^canisters/ic_siwa_provider/src/.*\\.rs$";
+        pass_filenames = false;
       };
     };
   };
@@ -434,7 +459,6 @@ in
         ./scripts/ic-siwa.sh "$@"
       '';
     };
-
   };
 
   enterTest = ''

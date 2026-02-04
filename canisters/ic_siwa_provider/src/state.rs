@@ -1,9 +1,9 @@
 //! Canister state management for IC-SIWA Provider
 //!
-//! Stores settings, active login sessions, and address-principal mappings.
+//! Stores settings, active login sessions, address-principal mappings, and rate limiter.
 
 use candid::{CandidType, Principal};
-use ic_siwa::Settings;
+use ic_siwa::{RateLimiter, Settings};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -51,6 +51,8 @@ pub struct State {
     pub address_to_principal: HashMap<String, Principal>,
     /// Principal to address mapping
     pub principal_to_address: HashMap<Principal, String>,
+    /// Rate limiter for login attempts
+    pub rate_limiter: RateLimiter,
 }
 
 thread_local! {
@@ -93,6 +95,8 @@ where
 /// Initialize state with settings
 pub fn init_state(settings: Settings) {
     with_state_mut(|state| {
+        // Initialize rate limiter with settings
+        state.rate_limiter = RateLimiter::new(settings.rate_limits.clone());
         state.settings = Some(settings);
         state.login_sessions.clear();
         state.auth_sessions.clear();
@@ -177,4 +181,43 @@ pub fn get_principal_for_address(address: &str) -> Option<Principal> {
 /// Get address for principal
 pub fn get_address_for_principal(principal: &Principal) -> Option<String> {
     with_state(|state| state.principal_to_address.get(principal).cloned())
+}
+
+/// Counter for periodic cleanup
+static CLEANUP_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+const CLEANUP_INTERVAL: u64 = 100; // Cleanup every 100 requests
+
+/// Check rate limit for an address and record the attempt if allowed
+pub fn check_rate_limit(address: &str) -> Result<(), String> {
+    let now_ns = ic_cdk::api::time();
+
+    // Periodically cleanup expired entries to prevent memory growth
+    let count = CLEANUP_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    if count.is_multiple_of(CLEANUP_INTERVAL) {
+        cleanup_rate_limits();
+    }
+
+    with_state_mut(|state| {
+        match state.rate_limiter.check_and_record(address, now_ns) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                // Log rate limit hits for monitoring
+                ic_cdk::println!(
+                    "[RATE_LIMIT] Blocked address={} remaining_global={} error={}",
+                    address,
+                    state.rate_limiter.remaining_global(now_ns),
+                    e
+                );
+                Err(e.to_string())
+            }
+        }
+    })
+}
+
+/// Cleanup expired rate limit entries (call periodically)
+pub fn cleanup_rate_limits() {
+    let now_ns = ic_cdk::api::time();
+    with_state_mut(|state| {
+        state.rate_limiter.cleanup_expired(now_ns);
+    });
 }

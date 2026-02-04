@@ -1,0 +1,19 @@
+# Build artifacts
+target/
+dist/
+node_modules/
+
+# DFX artifacts
+.dfx/
+
+# Astro generated files
+.astro/
+**/.astro/
+
+# Generated Candid files
+*.did
+**/candid/*.ts
+
+# Lock files
+bun.lockb
+Cargo.lock

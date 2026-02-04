@@ -1,24 +1,6 @@
 # IC-SIWA Testnet Configuration
 # For IC Mainnet deployment with Avalanche Fuji Testnet
 
-domains:
-  allowed:
-    # Primary domains
-    - "irkenempire.tech"
-    - "*.irkenempire.tech"
-    - "mahdtech.com"
-    - "*.mahdtech.com"
-    - "saltlabs.cloud"
-    - "*.saltlabs.cloud"
-    - "saltlabs.tech"
-    - "*.saltlabs.tech"
-    # Game domains
-    - "tresr.community"
-    - "*.tresr.community"
-    # IC raw domains
-    - "*.raw.icp0.io"
-    - "*.icp0.io"
-
 avalanche:
   # Avalanche Fuji Testnet
   chain_id: 43113
@@ -27,13 +9,37 @@ avalanche:
 ic:
   network: "ic"
   canisters:
-    # TODO: Set after testnet deployment
-    ic_siwa_provider: null
+    # TODO: Set after deployment.
+    ic_siwa_provider: ""
 
 security:
+  # Allowed domains for SIWA messages (user sees this in their wallet)
+  allowed_domains:
+    # Primary domains
+    - "irkenempire.tech"
+    - "*.irkenempire.tech"
+    # Game domains
+    - "tresr.community"
+    - "*.tresr.community"
+
   # Allowed canisters for inter-canister calls
   # TODO: Add canister IDs after deployment
   allowed_canisters: []
+
+  # Delegation targets - canisters that delegations are valid for
+  # TODO: Add your Juno Satellite and other app canister IDs after deployment
+  # If empty, delegations work for any canister (less secure)
+  delegation_targets: []
+
+  # Rate limiting to prevent cycle drain
+  rate_limits:
+    # Max prepare_login calls per address per window
+    max_logins_per_address: 5
+    # Max total prepare_login calls per window (across all addresses)
+    max_logins_total: 100
+    # Time window in seconds for rate limiting
+    window_seconds: 3600
+
   # 30 minute sessions
   session_expiration_seconds: 1800
   # 5 minute login window
@@ -41,3 +47,6 @@ security:
 
 library:
   timeout_ms: 30000
+
+# Debug mode
+debug: true

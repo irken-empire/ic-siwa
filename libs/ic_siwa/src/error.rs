@@ -44,6 +44,10 @@ pub enum SiwaError {
     /// Internal error
     #[error("Internal error: {0}")]
     InternalError(String),
+
+    /// Rate limit exceeded
+    #[error("Rate limit exceeded: {0}")]
+    RateLimited(String),
 }
 
 impl From<SiwaError> for String {
@@ -121,5 +125,11 @@ mod tests {
         let err = SiwaError::InvalidAddress("test".to_string());
         let s: String = err.into();
         assert_eq!(s, "Invalid address: test");
+    }
+
+    #[test]
+    fn test_error_display_rate_limited() {
+        let err = SiwaError::RateLimited("too many attempts".to_string());
+        assert_eq!(err.to_string(), "Rate limit exceeded: too many attempts");
     }
 }
