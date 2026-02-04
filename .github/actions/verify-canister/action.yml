@@ -34,9 +34,14 @@ runs:
         PASSED=0
         FAILED=0
 
+        # Use a valid EIP-55 checksummed test address
+        TEST_ADDRESS="0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+
         # Test 1: siwa_prepare_login
         echo "Test 1: siwa_prepare_login..."
-        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} siwa_prepare_login '("0x0000000000000000000000000000000000000000")' 2>&1)
+        echo "  Calling: dfx canister --network ic call ${{ inputs.canister }} siwa_prepare_login '(\"${TEST_ADDRESS}\")'"
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} siwa_prepare_login "(\"${TEST_ADDRESS}\")" 2>&1) || true
+        echo "  Raw result: $RESULT"
         if echo "$RESULT" | grep -q "Ok"; then
           echo "  PASSED: siwa_prepare_login returns Ok"
           PASSED=$((PASSED + 1))
@@ -48,7 +53,7 @@ runs:
 
         # Test 2: get_principal (should return Err for unknown address)
         echo "Test 2: get_principal (unknown address)..."
-        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_principal '("0x0000000000000000000000000000000000000000")' 2>&1)
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_principal "(\"${TEST_ADDRESS}\")" 2>&1) || true
         if echo "$RESULT" | grep -q "Err"; then
           echo "  PASSED: get_principal correctly returns Err for unknown address"
           PASSED=$((PASSED + 1))
@@ -60,7 +65,7 @@ runs:
 
         # Test 3: get_caller_address (should return Err for anonymous)
         echo "Test 3: get_caller_address (anonymous)..."
-        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_caller_address '()' 2>&1)
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_caller_address "()" 2>&1) || true
         if echo "$RESULT" | grep -q "Err"; then
           echo "  PASSED: get_caller_address correctly returns Err for anonymous caller"
           PASSED=$((PASSED + 1))
