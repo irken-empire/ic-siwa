@@ -12,10 +12,10 @@ inputs:
     description: "Optimize WASM with ic-wasm (rust only)"
     required: false
     default: "false"
-  provider_canister_id:
-    description: "Provider canister ID (for assets canister builds)"
+  environment:
+    description: "Deployment environment: development, testnet, or mainnet"
     required: false
-    default: ""
+    default: "development"
   ic_host:
     description: "IC host URL (for assets canister builds)"
     required: false
@@ -71,11 +71,30 @@ runs:
         bun run build
 
     # Build Assets canister
+    - name: Read provider canister ID from config
+      if: inputs.type == 'assets'
+      id: config
+      shell: bash
+      run: |
+        # Map environment to config file
+        case "${{ inputs.environment }}" in
+          development) CONFIG_FILE="config/development.yaml" ;;
+          testnet)     CONFIG_FILE="config/testnet.yaml" ;;
+          mainnet)     CONFIG_FILE="config/mainnet.yaml" ;;
+          *)           echo "Invalid environment: ${{ inputs.environment }}" && exit 1 ;;
+        esac
+
+        PROVIDER_ID=$(yq -r '.ic.canisters.ic_siwa_provider // ""' "${CONFIG_FILE}")
+        echo "provider_canister_id=${PROVIDER_ID}" >> $GITHUB_OUTPUT
+        echo "Environment: ${{ inputs.environment }}"
+        echo "Config file: ${CONFIG_FILE}"
+        echo "Provider canister ID: ${PROVIDER_ID}"
+
     - name: Build Assets canister
       if: inputs.type == 'assets'
       shell: devenv shell --quiet bash -- -e {0}
       env:
-        PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ inputs.provider_canister_id }}
+        PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ steps.config.outputs.provider_canister_id }}
         PUBLIC_IC_HOST: ${{ inputs.ic_host }}
       run: |
         echo "Building ${{ inputs.canister }} (Assets)..."

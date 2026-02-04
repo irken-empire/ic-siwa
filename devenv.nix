@@ -373,7 +373,14 @@ in
       shfmt.enable = true;
       staticcheck.enable = true;
       statix.enable = true;
-      trim-trailing-whitespace.enable = true;
+      trim-trailing-whitespace = {
+        excludes = [
+          # Ignore generated candid files.
+          "libs/ic_siwa_ts/src/candid/ic_siwa_provider.ts"
+          "canisters/ic_siwa_provider/ic_siwa_provider.did"
+        ];
+        enable = true;
+      };
       trufflehog.enable = true;
       typos.enable = true;
       yamllint = {

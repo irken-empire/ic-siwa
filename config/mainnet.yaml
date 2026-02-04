@@ -6,18 +6,9 @@ domains:
     # Primary domains
     - "irkenempire.tech"
     - "*.irkenempire.tech"
-    - "mahdtech.com"
-    - "*.mahdtech.com"
-    - "saltlabs.cloud"
-    - "*.saltlabs.cloud"
-    - "saltlabs.tech"
-    - "*.saltlabs.tech"
     # Game domains
     - "tresr.community"
     - "*.tresr.community"
-    # IC raw domains
-    - "*.raw.icp0.io"
-    - "*.icp0.io"
 
 avalanche:
   # Avalanche C-Chain Mainnet
@@ -27,8 +18,8 @@ avalanche:
 ic:
   network: "ic"
   canisters:
-    # TODO: Set after mainnet deployment
-    ic_siwa_provider: null
+    # Set after first deployment, used by test_canister_ts build
+    ic_siwa_provider: ""
 
 security:
   # Allowed canisters for inter-canister calls

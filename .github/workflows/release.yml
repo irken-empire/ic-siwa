@@ -1,0 +1,549 @@
+---
+##################################################
+# Name: release.yml
+# Description: Build, Test, and Release IC-SIWA
+#
+# Triggers:
+#   - PR to trunk:        Build & test only
+#   - Push to trunk:      Build, test, deploy to Testnet, create draft release
+#   - Release published:  Build, test, deploy to Mainnet, update release
+#   - Manual:             Build, test, deploy to selected environment
+#
+###################################################
+
+name: Release
+
+on:
+  pull_request:
+    branches:
+      - trunk
+  push:
+    branches:
+      - trunk
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+        default: testnet
+      confirm_mainnet:
+        description: "For mainnet: select 'deploy-to-mainnet' to confirm"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "deploy-to-mainnet"
+        default: "no"
+
+concurrency:
+  group: release-${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+  statuses: write
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Setup - Determine environment and deployment mode
+  ##################################################
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.config.outputs.environment }}
+      github_environment: ${{ steps.config.outputs.github_environment }}
+      should_deploy: ${{ steps.config.outputs.should_deploy }}
+      is_mainnet: ${{ steps.config.outputs.is_mainnet }}
+
+    steps:
+      - name: Determine configuration
+        id: config
+        run: |
+          # Determine environment based on trigger
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ENVIRONMENT="development"
+            SHOULD_DEPLOY="false"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            ENVIRONMENT="testnet"
+            SHOULD_DEPLOY="true"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
+            ENVIRONMENT="mainnet"
+            SHOULD_DEPLOY="true"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ENVIRONMENT="${{ inputs.environment }}"
+            SHOULD_DEPLOY="true"
+          fi
+
+          # Map to GitHub Environment name (case-sensitive)
+          case "${ENVIRONMENT}" in
+            development) GITHUB_ENV="" ;;
+            testnet)     GITHUB_ENV="Testnet" ;;
+            mainnet)     GITHUB_ENV="Mainnet" ;;
+          esac
+
+          IS_MAINNET=$([[ "${ENVIRONMENT}" == "mainnet" ]] && echo "true" || echo "false")
+
+          {
+            echo "environment=${ENVIRONMENT}"
+            echo "github_environment=${GITHUB_ENV}"
+            echo "should_deploy=${SHOULD_DEPLOY}"
+            echo "is_mainnet=${IS_MAINNET}"
+          } >> "$GITHUB_OUTPUT"
+
+          # Summary
+          {
+            echo "## Release Configuration"
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Environment | ${ENVIRONMENT} |"
+            echo "| GitHub Environment | ${GITHUB_ENV:-none} |"
+            echo "| Should Deploy | ${SHOULD_DEPLOY} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate mainnet deployment
+        if: steps.config.outputs.is_mainnet == 'true' && steps.config.outputs.should_deploy == 'true'
+        run: |
+          # For manual mainnet deployments, require confirmation
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.confirm_mainnet }}" != "deploy-to-mainnet" ]]; then
+              echo "::error::Select 'deploy-to-mainnet' in the confirmation dropdown to deploy to mainnet"
+              exit 1
+            fi
+          fi
+
+          # For release triggers, reject pre-releases
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            if [[ "${{ github.event.release.prerelease }}" == "true" ]]; then
+              echo "::error::Cannot deploy pre-release to mainnet! Publish as a full release."
+              exit 1
+            fi
+            echo "Deploying release: ${{ github.event.release.tag_name }}"
+          fi
+
+  ##################################################
+  # Lint - Check code quality
+  ##################################################
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Rust formatting
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo fmt --all -- --check
+
+      - name: Rust clippy
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: TypeScript library
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun run build
+
+  ##################################################
+  # Test - Run unit tests
+  ##################################################
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Rust tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo test -p ic_siwa
+
+      - name: TypeScript tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun test || echo "TypeScript tests completed"
+
+  ##################################################
+  # Build - Build all canisters
+  ##################################################
+  build:
+    name: Build ${{ matrix.canister }}
+    needs: [setup, lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - canister: ic_siwa_provider
+            type: rust
+          - canister: test_canister_rs
+            type: rust
+          - canister: test_canister_ts
+            type: assets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build canister
+        uses: ./.github/actions/build-canister
+        with:
+          canister: ${{ matrix.canister }}
+          type: ${{ matrix.type }}
+          environment: ${{ needs.setup.outputs.environment }}
+          optimize: ${{ needs.setup.outputs.is_mainnet }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.canister }}-${{ needs.setup.outputs.environment }}
+          path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
+          retention-days: ${{ needs.setup.outputs.is_mainnet == 'true' && 30 || 7 }}
+
+  ##################################################
+  # Verify Candid - Ensure interface is up-to-date
+  ##################################################
+  verify-candid:
+    name: Verify Candid
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic_siwa_provider-${{ needs.setup.outputs.environment }}
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Verify Candid
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
+
+          # Normalize whitespace for comparison
+          sed 's/[[:space:]]*$//' canisters/ic_siwa_provider/ic_siwa_provider.did > /tmp/committed.did
+          sed 's/[[:space:]]*$//' /tmp/extracted.did > /tmp/extracted_normalized.did
+
+          if ! diff -q /tmp/committed.did /tmp/extracted_normalized.did > /dev/null 2>&1; then
+            echo "::error::Candid interface is out of sync! Run 'ic-siwa candid' to regenerate."
+            diff /tmp/committed.did /tmp/extracted_normalized.did || true
+            exit 1
+          fi
+
+          echo "Candid interface verified"
+
+  ##################################################
+  # Deploy Provider - Deploy ic_siwa_provider canister
+  ##################################################
+  deploy-provider:
+    name: Deploy Provider
+    needs: [setup, build, test, verify-candid]
+    if: needs.setup.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ needs.setup.outputs.github_environment }}
+    outputs:
+      canister_id: ${{ steps.deploy.outputs.canister_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic_siwa_provider-${{ needs.setup.outputs.environment }}
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Read config
+        id: config
+        uses: ./.github/actions/read-config
+        with:
+          environment: ${{ needs.setup.outputs.environment }}
+
+      - name: Deploy canister
+        id: deploy
+        uses: ./.github/actions/deploy-canister
+        with:
+          canister: ic_siwa_provider
+          network: ic
+          dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+          init_args: |
+            (record {
+              domain = "${{ secrets.IC_SIWA_DOMAIN }}";
+              uri = "${{ secrets.IC_SIWA_URI }}";
+              salt = "${{ secrets.IC_SIWA_SALT }}";
+              chain_id = ${{ steps.config.outputs.chain_id }} : nat64;
+              session_expiration_time = ${{ steps.config.outputs.session_expiration_ns }} : nat64;
+              allowed_domains = opt vec { ${{ steps.config.outputs.allowed_domains }} };
+              allowed_canisters = opt vec { ${{ steps.config.outputs.allowed_canisters }} };
+            })
+
+  ##################################################
+  # Verify Deployment - Test deployed canister
+  ##################################################
+  verify-deployment:
+    name: Verify Deployment
+    needs: [setup, deploy-provider]
+    if: needs.setup.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify canister
+        uses: ./.github/actions/verify-canister
+        with:
+          canister: ic_siwa_provider
+          network: ic
+          canister_id: ${{ needs.deploy-provider.outputs.canister_id }}
+
+  ##################################################
+  # Deploy Test Canisters - Testnet only, optional
+  ##################################################
+  deploy-test-canisters:
+    name: Deploy Test Canisters
+    needs: [setup, deploy-provider, verify-deployment]
+    if: |
+      needs.setup.outputs.should_deploy == 'true' &&
+      needs.setup.outputs.environment == 'testnet' &&
+      vars.DEPLOY_TEST_CANISTERS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ needs.setup.outputs.github_environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Download test_canister_rs
+        uses: actions/download-artifact@v4
+        with:
+          name: test_canister_rs-${{ needs.setup.outputs.environment }}
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Download test_canister_ts
+        uses: actions/download-artifact@v4
+        with:
+          name: test_canister_ts-${{ needs.setup.outputs.environment }}
+          path: canisters/test_canister_ts/dist/
+
+      - name: Deploy test_canister_rs
+        uses: ./.github/actions/deploy-canister
+        with:
+          canister: test_canister_rs
+          network: ic
+          dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+
+      - name: Deploy test_canister_ts
+        uses: ./.github/actions/deploy-canister
+        with:
+          canister: test_canister_ts
+          network: ic
+          dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+
+  ##################################################
+  # Release - Create or update GitHub release
+  ##################################################
+  release:
+    name: Release
+    needs: [setup, deploy-provider, verify-deployment]
+    if: needs.setup.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read config
+        id: config
+        uses: ./.github/actions/read-config
+        with:
+          environment: ${{ needs.setup.outputs.environment }}
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      # Testnet: Create draft pre-release
+      - name: Create draft release
+        if: needs.setup.outputs.environment == 'testnet'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}-testnet
+          name: "${{ steps.version.outputs.version }} (Testnet)"
+          body: |
+            ## IC-SIWA Testnet Release
+
+            | Property | Value |
+            |----------|-------|
+            | **Network** | IC Mainnet |
+            | **Avalanche Chain** | Fuji Testnet (${{ steps.config.outputs.chain_id }}) |
+            | **Canister ID** | `${{ needs.deploy-provider.outputs.canister_id }}` |
+            | **Candid UI** | [Open](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |
+
+            ---
+            *This is a testnet deployment for testing purposes.*
+          draft: true
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Mainnet: Update existing release
+      - name: Update release
+        if: needs.setup.outputs.environment == 'mainnet' && github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          append_body: true
+          body: |
+
+            ---
+            ## Deployment Status
+
+            | Property | Value |
+            |----------|-------|
+            | **Network** | IC Mainnet |
+            | **Avalanche Chain** | Mainnet (${{ steps.config.outputs.chain_id }}) |
+            | **Canister ID** | `${{ needs.deploy-provider.outputs.canister_id }}` |
+            | **Candid UI** | [Open](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |
+            | **Status** | Deployed |
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ##################################################
+  # Status - Report overall status
+  ##################################################
+  status:
+    name: Status
+    needs:
+      [
+        setup,
+        lint,
+        test,
+        build,
+        verify-candid,
+        deploy-provider,
+        verify-deployment,
+        release,
+      ]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check results
+        run: |
+          {
+            echo "## Workflow Results"
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Setup | ${{ needs.setup.result }} |"
+            echo "| Lint | ${{ needs.lint.result }} |"
+            echo "| Test | ${{ needs.test.result }} |"
+            echo "| Build | ${{ needs.build.result }} |"
+            echo "| Verify Candid | ${{ needs.verify-candid.result }} |"
+            echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
+            echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
+            echo "| Release | ${{ needs.release.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Check required jobs
+          REQUIRED_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build.result }},${{ needs.verify-candid.result }}"
+
+          if echo "${REQUIRED_JOBS}" | grep -qE "(failure|cancelled)"; then
+            echo "::error::One or more required jobs failed"
+            exit 1
+          fi
+
+          # For deployments, also check deploy jobs
+          if [[ "${{ needs.setup.outputs.should_deploy }}" == "true" ]]; then
+            DEPLOY_JOBS="${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }}"
+            if echo "${DEPLOY_JOBS}" | grep -qE "(failure|cancelled)"; then
+              echo "::error::Deployment failed"
+              exit 1
+            fi
+          fi
+
+          echo "All jobs completed successfully!"

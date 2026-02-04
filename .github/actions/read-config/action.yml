@@ -1,0 +1,81 @@
+name: "Read Config"
+description: "Read configuration values from environment-specific YAML config file"
+
+inputs:
+  environment:
+    description: "Deployment environment: development, testnet, or mainnet"
+    required: true
+
+outputs:
+  config_file:
+    description: "Path to config file"
+    value: ${{ steps.read.outputs.config_file }}
+  chain_id:
+    description: "Avalanche chain ID"
+    value: ${{ steps.read.outputs.chain_id }}
+  session_expiration_ns:
+    description: "Session expiration in nanoseconds"
+    value: ${{ steps.read.outputs.session_expiration_ns }}
+  allowed_domains:
+    description: "Allowed domains as Candid vec format"
+    value: ${{ steps.read.outputs.allowed_domains }}
+  allowed_canisters:
+    description: "Allowed canisters as Candid vec format"
+    value: ${{ steps.read.outputs.allowed_canisters }}
+  provider_canister_id:
+    description: "IC SIWA Provider canister ID"
+    value: ${{ steps.read.outputs.provider_canister_id }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Read config values
+      id: read
+      shell: bash
+      run: |
+        # Map environment to config file
+        case "${{ inputs.environment }}" in
+          development) CONFIG_FILE="config/development.yaml" ;;
+          testnet)     CONFIG_FILE="config/testnet.yaml" ;;
+          mainnet)     CONFIG_FILE="config/mainnet.yaml" ;;
+          *)           echo "Invalid environment: ${{ inputs.environment }}" && exit 1 ;;
+        esac
+
+        echo "Environment: ${{ inputs.environment }}"
+        echo "Config file: ${CONFIG_FILE}"
+
+        # Read values from config file
+        CHAIN_ID=$(yq -r '.avalanche.chain_id' "${CONFIG_FILE}")
+        SESSION_EXP=$(yq -r '.security.session_expiration_seconds' "${CONFIG_FILE}")
+        SESSION_EXP_NS=$((SESSION_EXP * 1000000000))
+
+        # Read allowed_domains as Candid vec
+        ALLOWED_DOMAINS=$(yq -r '.domains.allowed | map("\"" + . + "\"") | join("; ")' "${CONFIG_FILE}")
+
+        # Read allowed_canisters as Candid vec
+        ALLOWED_CANISTERS=$(yq -r '.security.allowed_canisters | map("principal \"" + . + "\"") | join("; ")' "${CONFIG_FILE}")
+
+        # Read provider canister ID
+        PROVIDER_ID=$(yq -r '.ic.canisters.ic_siwa_provider // ""' "${CONFIG_FILE}")
+
+        # Output values
+        {
+          echo "config_file=${CONFIG_FILE}"
+          echo "chain_id=${CHAIN_ID}"
+          echo "session_expiration_ns=${SESSION_EXP_NS}"
+          echo "allowed_domains=${ALLOWED_DOMAINS}"
+          echo "allowed_canisters=${ALLOWED_CANISTERS}"
+          echo "provider_canister_id=${PROVIDER_ID}"
+        } >> "$GITHUB_OUTPUT"
+
+        # Summary
+        {
+          echo "## Config Values"
+          echo "| Key | Value |"
+          echo "|-----|-------|"
+          echo "| Environment | ${{ inputs.environment }} |"
+          echo "| Config File | ${CONFIG_FILE} |"
+          echo "| Chain ID | ${CHAIN_ID} |"
+          echo "| Session Expiration | ${SESSION_EXP}s |"
+          echo "| Provider Canister ID | ${PROVIDER_ID:-not set} |"
+        } >> "$GITHUB_STEP_SUMMARY"
