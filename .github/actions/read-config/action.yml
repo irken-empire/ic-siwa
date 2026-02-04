@@ -67,6 +67,7 @@ runs:
 
         # Read values from config file
         CHAIN_ID=$(yq -r '.avalanche.chain_id' "${CONFIG_FILE}")
+        # Note: domain and uri are output as raw values - workflow must quote them in Candid
         DOMAIN=$(yq -r '.siwa.domain' "${CONFIG_FILE}")
         URI=$(yq -r '.siwa.uri' "${CONFIG_FILE}")
         SESSION_EXP=$(yq -r '.security.session_expiration_seconds' "${CONFIG_FILE}")
