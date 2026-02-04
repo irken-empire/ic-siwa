@@ -1,0 +1,244 @@
+---
+##################################################
+# Name: release-npm.yml
+# Description: Publish ic-siwa TypeScript library to npm
+#
+# Triggers:
+#   - workflow_run: After successful Build workflow on release
+#   - workflow_dispatch: Manual publish with dry-run option
+#
+# This workflow downloads pre-built npm package artifacts from the
+# Build workflow and publishes them to the npm registry.
+#
+# Uses Trusted Publishing (OIDC) - no npm token required!
+# Setup on npmjs.com:
+#   1. Go to package settings -> Trusted Publisher
+#   2. Select GitHub Actions
+#   3. Configure:
+#      - Organization/user: irken-empire
+#      - Repository: ic-siwa
+#      - Workflow filename: release-npm.yml
+##################################################
+
+name: Release npm
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+    branches:
+      - trunk
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (don't actually publish)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      run_id:
+        description: "Build workflow run ID (leave empty for latest)"
+        required: false
+        type: string
+
+concurrency:
+  group: release-npm
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write # Required for OIDC trusted publishing
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Setup - Determine if we should publish
+  ##################################################
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    # Only run if:
+    # - Manual trigger, OR
+    # - Build workflow succeeded AND it was triggered by a release
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'release')
+    outputs:
+      should_publish: ${{ steps.config.outputs.should_publish }}
+      is_dry_run: ${{ steps.config.outputs.is_dry_run }}
+      run_id: ${{ steps.config.outputs.run_id }}
+      environment: ${{ steps.config.outputs.environment }}
+
+    steps:
+      - name: Determine configuration
+        id: config
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            IS_DRY_RUN="${{ inputs.dry_run }}"
+            SHOULD_PUBLISH="true"
+            ENVIRONMENT="mainnet"  # Manual publishes use mainnet artifacts
+
+            # Use provided run_id or leave empty for latest
+            if [[ -n "${{ inputs.run_id }}" ]]; then
+              RUN_ID="${{ inputs.run_id }}"
+            else
+              RUN_ID=""
+            fi
+          else
+            # workflow_run trigger from release
+            IS_DRY_RUN="false"
+            SHOULD_PUBLISH="true"
+            RUN_ID="${{ github.event.workflow_run.id }}"
+            ENVIRONMENT="mainnet"
+          fi
+
+          {
+            echo "should_publish=${SHOULD_PUBLISH}"
+            echo "is_dry_run=${IS_DRY_RUN}"
+            echo "run_id=${RUN_ID}"
+            echo "environment=${ENVIRONMENT}"
+          } >> "$GITHUB_OUTPUT"
+
+          # Summary
+          {
+            echo "## npm Release Configuration"
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Dry Run | ${IS_DRY_RUN} |"
+            echo "| Build Run ID | ${RUN_ID:-latest} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  ##################################################
+  # Publish - Download artifacts and publish to npm
+  ##################################################
+  publish:
+    name: Publish
+    needs: [setup]
+    if: needs.setup.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: Mainnet
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node (for npm publish)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic-siwa-npm-${{ needs.setup.outputs.environment }}
+          path: libs/ic_siwa_ts/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ needs.setup.outputs.run_id }}
+
+      - name: Verify package contents
+        working-directory: libs/ic_siwa_ts
+        run: |
+          {
+            echo "## Package Contents"
+            echo '```'
+            ls -la
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Verify dist exists
+          if [[ ! -d "dist" ]]; then
+            echo "::error::dist directory not found in artifact"
+            exit 1
+          fi
+
+          # Show what will be published
+          npm pack --dry-run
+
+      - name: Publish to npm (dry run)
+        if: needs.setup.outputs.is_dry_run == 'true'
+        working-directory: libs/ic_siwa_ts
+        run: |
+          echo "## Dry Run Output" >> "$GITHUB_STEP_SUMMARY"
+          npm publish --dry-run 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to npm
+        if: needs.setup.outputs.is_dry_run == 'false'
+        working-directory: libs/ic_siwa_ts
+        run: |
+          # Trusted publishing via OIDC - provenance is automatically generated
+          npm publish --access public
+
+      - name: Summary
+        run: |
+          VERSION="$(jq -r .version libs/ic_siwa_ts/package.json)"
+          IS_DRY_RUN="${{ needs.setup.outputs.is_dry_run }}"
+
+          if [[ "${IS_DRY_RUN}" == "true" ]]; then
+            {
+              echo "## Dry Run Complete"
+              echo ""
+              echo "Would have published: \`ic-siwa@${VERSION}\`"
+              echo ""
+              echo "Run with \`dry_run: false\` to actually publish."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Published ic-siwa@${VERSION}"
+              echo ""
+              echo "Install with:"
+              echo '```bash'
+              echo "bun add ic-siwa@${VERSION}"
+              echo "# or"
+              echo "npm install ic-siwa@${VERSION}"
+              echo '```'
+              echo ""
+              echo "[View on npm](https://www.npmjs.com/package/ic-siwa/v/${VERSION})"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  ##################################################
+  # Status - Report overall status
+  ##################################################
+  status:
+    name: Status
+    needs: [setup, publish]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check results
+        run: |
+          {
+            echo "## npm Release Results"
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Setup | ${{ needs.setup.result }} |"
+            echo "| Publish | ${{ needs.publish.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${{ needs.publish.result }}" == "failure" ]]; then
+            echo "::error::npm publish failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.setup.outputs.is_dry_run }}" == "true" ]]; then
+            echo "Dry run completed successfully!"
+          else
+            echo "npm package published successfully!"
+          fi
