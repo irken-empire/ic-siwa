@@ -22,6 +22,8 @@ runs:
       id: verify
       if: inputs.canister == 'ic_siwa_provider'
       shell: devenv shell --quiet bash -- -e {0}
+      env:
+        DFX_WARNING: "-mainnet_plaintext_identity"
       run: |
         echo "Verifying ${{ inputs.canister }} on IC mainnet..."
         echo ""
