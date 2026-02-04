@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@dfinity/agent": "2.4.1",
-    "@dfinity/candid": "2.4.1",
+    "@dfinity/candid": "3.4.3",
     "@dfinity/identity": "2.4.1",
     "@dfinity/principal": "2.4.1"
   },
