@@ -1,0 +1,515 @@
+---
+##################################################
+# Name: release-testnet.yml
+# Description: Automated testnet release pipeline
+#
+# Triggers:
+#   - Push to trunk branch
+#
+# This is a self-contained workflow that:
+#   1. Builds all canisters and npm package
+#   2. Deploys to IC (testnet configuration)
+#   3. Creates a GitHub pre-release
+#   4. Publishes npm package (dry run)
+#
+# Uses Testnet GitHub Environment for secrets:
+#   - DFX_IDENTITY_PEM
+#   - IC_SIWA_SALT
+##################################################
+
+name: Release Testnet
+
+on:
+  push:
+    branches:
+      - trunk
+
+concurrency:
+  group: release-testnet
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+  ENVIRONMENT: testnet
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Setup - Read configuration
+  ##################################################
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      debug: ${{ steps.config.outputs.debug }}
+      domain: ${{ steps.config.outputs.domain }}
+      uri: ${{ steps.config.outputs.uri }}
+      chain_id: ${{ steps.config.outputs.chain_id }}
+      session_expiration_ns: ${{ steps.config.outputs.session_expiration_ns }}
+      allowed_domains: ${{ steps.config.outputs.allowed_domains }}
+      allowed_canisters: ${{ steps.config.outputs.allowed_canisters }}
+      delegation_targets: ${{ steps.config.outputs.delegation_targets }}
+      rate_limit_per_address: ${{ steps.config.outputs.rate_limit_per_address }}
+      rate_limit_total: ${{ steps.config.outputs.rate_limit_total }}
+      rate_limit_window: ${{ steps.config.outputs.rate_limit_window }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Read config
+        id: config
+        uses: ./.github/actions/read-config
+        with:
+          environment: testnet
+
+  ##################################################
+  # Lint - Check code quality
+  ##################################################
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Rust formatting
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo fmt --all -- --check
+
+      - name: Rust clippy
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo clippy --all-targets -- -D warnings
+
+  ##################################################
+  # Test - Run unit tests
+  ##################################################
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Rust tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: cargo test -p ic_siwa
+
+      - name: TypeScript tests
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cd libs/ic_siwa_ts
+          bun install
+          bun test || echo "TypeScript tests completed"
+
+  ##################################################
+  # Build Canisters
+  ##################################################
+  build-canisters:
+    name: Build ${{ matrix.canister }}
+    needs: [lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - canister: ic_siwa_provider
+            type: rust
+          - canister: test_canister_rs
+            type: rust
+          - canister: test_canister_ts
+            type: assets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build canister
+        uses: ./.github/actions/build-canister
+        with:
+          canister: ${{ matrix.canister }}
+          type: ${{ matrix.type }}
+          environment: testnet
+          optimize: "false"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.canister }}-testnet
+          path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
+          retention-days: 7
+
+  ##################################################
+  # Build npm Package
+  ##################################################
+  build-npm:
+    name: Build npm
+    needs: [lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.build.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build npm package
+        id: build
+        uses: ./.github/actions/build-npm
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ic-siwa-npm-testnet
+          path: |
+            libs/ic_siwa_ts/dist/
+            libs/ic_siwa_ts/package.json
+            libs/ic_siwa_ts/README.md
+          retention-days: 7
+
+  ##################################################
+  # Deploy Provider Canister
+  ##################################################
+  deploy-provider:
+    name: Deploy Provider
+    needs: [setup, build-canisters, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Testnet
+    outputs:
+      canister_id: ${{ steps.deploy.outputs.canister_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Setup canister IDs
+        uses: ./.github/actions/setup-canister-ids
+        with:
+          environment: testnet
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic_siwa_provider-testnet
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Deploy canister
+        id: deploy
+        uses: ./.github/actions/deploy-canister
+        with:
+          canister: ic_siwa_provider
+          dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+          init_args: |
+            (record {
+              domain = "${{ needs.setup.outputs.domain }}";
+              uri = "${{ needs.setup.outputs.uri }}";
+              salt = "${{ secrets.IC_SIWA_SALT }}";
+              chain_id = ${{ needs.setup.outputs.chain_id }} : nat64;
+              session_expiration_time = ${{ needs.setup.outputs.session_expiration_ns }} : nat64;
+              allowed_domains = opt vec { ${{ needs.setup.outputs.allowed_domains }} };
+              allowed_canisters = opt vec { ${{ needs.setup.outputs.allowed_canisters }} };
+              delegation_targets = opt vec { ${{ needs.setup.outputs.delegation_targets }} };
+              rate_limits = opt record {
+                max_logins_per_address = ${{ needs.setup.outputs.rate_limit_per_address }} : nat32;
+                max_logins_total = ${{ needs.setup.outputs.rate_limit_total }} : nat32;
+                window_seconds = ${{ needs.setup.outputs.rate_limit_window }} : nat64;
+              };
+              debug = opt ${{ needs.setup.outputs.debug }};
+            })
+
+  ##################################################
+  # Verify Deployment
+  ##################################################
+  verify-deployment:
+    name: Verify Deployment
+    needs: [deploy-provider]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup canister IDs
+        uses: ./.github/actions/setup-canister-ids
+        with:
+          environment: testnet
+
+      - name: Verify canister
+        uses: ./.github/actions/verify-canister
+        with:
+          canister: ic_siwa_provider
+          canister_id: ${{ needs.deploy-provider.outputs.canister_id }}
+
+  ##################################################
+  # Deploy Test Canisters (when debug=true)
+  ##################################################
+  deploy-test-canisters:
+    name: Deploy Test Canisters
+    needs: [setup, build-canisters, deploy-provider, verify-deployment]
+    if: needs.setup.outputs.debug == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Testnet
+    outputs:
+      test_canister_rs_id: ${{ steps.deploy-rs.outputs.canister_id }}
+      test_canister_ts_id: ${{ steps.deploy-ts.outputs.canister_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Setup canister IDs
+        uses: ./.github/actions/setup-canister-ids
+        with:
+          environment: testnet
+
+      - name: Download test_canister_rs
+        uses: actions/download-artifact@v4
+        with:
+          name: test_canister_rs-testnet
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Download test_canister_ts
+        uses: actions/download-artifact@v4
+        with:
+          name: test_canister_ts-testnet
+          path: canisters/test_canister_ts/dist/
+
+      - name: Deploy test_canister_rs
+        id: deploy-rs
+        uses: ./.github/actions/deploy-canister
+        with:
+          canister: test_canister_rs
+          dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+
+      - name: Deploy test_canister_ts
+        id: deploy-ts
+        uses: ./.github/actions/deploy-canister
+        with:
+          canister: test_canister_ts
+          dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+
+  ##################################################
+  # Publish npm (dry run)
+  ##################################################
+  publish-npm:
+    name: Publish npm (dry run)
+    needs: [build-npm, verify-deployment]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.publish.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ic-siwa-npm-testnet
+          path: libs/ic_siwa_ts/
+
+      - name: Publish npm package
+        id: publish
+        uses: ./.github/actions/publish-npm
+        with:
+          dry_run: "true"
+
+  ##################################################
+  # Create Release
+  ##################################################
+  create-release:
+    name: Create Release
+    needs:
+      [
+        setup,
+        deploy-provider,
+        verify-deployment,
+        deploy-test-canisters,
+        publish-npm,
+      ]
+    if: always() && needs.verify-deployment.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.setup.outputs.version }}-testnet
+          name: "${{ needs.setup.outputs.version }} (Testnet)"
+          body: |
+            ## IC-SIWA Testnet Release
+
+            ### Provider Canister
+
+            | Property | Value |
+            |----------|-------|
+            | **Network** | IC Mainnet |
+            | **Avalanche Chain** | Fuji Testnet (${{ needs.setup.outputs.chain_id }}) |
+            | **Canister ID** | `${{ needs.deploy-provider.outputs.canister_id }}` |
+            | **Candid UI** | [Open](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |
+
+            ### Test Canisters
+
+            | Canister | ID | Link |
+            |----------|----|----- |
+            | **test_canister_ts** | `${{ needs.deploy-test-canisters.outputs.test_canister_ts_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id && format('[Open UI](https://{0}.icp0.io)', needs.deploy-test-canisters.outputs.test_canister_ts_id) || 'N/A' }} |
+            | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_rs_id && format('[Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id={0})', needs.deploy-test-canisters.outputs.test_canister_rs_id) || 'N/A' }} |
+
+            ### npm Package
+
+            **Version:** `ic-siwa@${{ needs.publish-npm.outputs.version }}`
+
+            *This is a testnet deployment. npm package was validated with dry run.*
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ##################################################
+  # Status
+  ##################################################
+  status:
+    name: Status
+    needs:
+      [
+        setup,
+        lint,
+        test,
+        build-canisters,
+        build-npm,
+        deploy-provider,
+        verify-deployment,
+        deploy-test-canisters,
+        publish-npm,
+        create-release,
+      ]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write results summary
+        run: |
+          {
+            echo "## Testnet Release Results"
+            echo ""
+            echo "### Job Status"
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Setup | ${{ needs.setup.result }} |"
+            echo "| Lint | ${{ needs.lint.result }} |"
+            echo "| Test | ${{ needs.test.result }} |"
+            echo "| Build Canisters | ${{ needs.build-canisters.result }} |"
+            echo "| Build npm | ${{ needs.build-npm.result }} |"
+            echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
+            echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
+            echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
+            echo "| Publish npm | ${{ needs.publish-npm.result }} |"
+            echo "| Create Release | ${{ needs.create-release.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${{ needs.deploy-provider.result }}" == "success" ]]; then
+            {
+              echo ""
+              echo "### Deployed Canisters"
+              echo "| Canister | ID |"
+              echo "|----------|----|"
+              echo "| ic_siwa_provider | \`${{ needs.deploy-provider.outputs.canister_id }}\` |"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [[ "${{ needs.deploy-test-canisters.result }}" == "success" ]]; then
+              {
+                echo "| test_canister_rs | \`${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}\` |"
+                echo "| test_canister_ts | \`${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}\` |"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+      - name: Check for failures
+        run: |
+          CRITICAL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }}"
+          if echo "${CRITICAL_JOBS}" | grep -qE "(failure|cancelled)"; then
+            echo "::error::Testnet release failed"
+            exit 1
+          fi
+
+          echo "Testnet release completed successfully!"

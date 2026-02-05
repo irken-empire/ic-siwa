@@ -1,51 +1,28 @@
 ---
 ##################################################
-# Name: build.yml
-# Description: Build, Lint, and Test IC-SIWA
+# Name: ci.yml
+# Description: CI checks for pull requests
 #
 # Triggers:
-#   - PR to trunk:        Build & test only (development)
-#   - Push to trunk:      Build & test (testnet) → triggers release-canisters
-#   - Manual:             Build & test for selected environment → triggers release-canisters
+#   - Pull requests to trunk
 #
-# Downstream workflows (via workflow_run):
-#   - release-canisters.yml: Deploys canisters and creates GitHub release
-#
-# Note: npm publishing is triggered by release-canisters creating a release,
-# not directly from this workflow.
+# This workflow runs lint, test, and build checks without deploying
+# or uploading artifacts. It validates that the code is ready to merge.
 ##################################################
 
-name: Build
+name: CI
 
 on:
-  # Build on PRs (development - no deploy)
   pull_request:
     branches:
       - trunk
-  # Build on pushes to trunk (testnet - triggers deploy)
-  push:
-    branches:
-      - trunk
-  # Allow manual runs with environment selection
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Build environment"
-        required: true
-        type: choice
-        options:
-          - development
-          - testnet
-          - mainnet
-        default: testnet
 
 concurrency:
-  group: build-${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  packages: write
   pull-requests: write
   statuses: write
 
@@ -58,59 +35,6 @@ defaults:
     shell: bash
 
 jobs:
-  ##################################################
-  # Setup - Determine environment and build mode
-  ##################################################
-  setup:
-    name: Setup
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.config.outputs.environment }}
-      is_mainnet: ${{ steps.config.outputs.is_mainnet }}
-      should_release: ${{ steps.config.outputs.should_release }}
-
-    steps:
-      - name: Determine configuration
-        id: config
-        run: |
-          # Determine environment based on trigger
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            ENVIRONMENT="development"
-            SHOULD_RELEASE="false"
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            ENVIRONMENT="testnet"
-            SHOULD_RELEASE="true"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            ENVIRONMENT="${{ inputs.environment }}"
-            # Manual builds trigger release for testnet/mainnet, not development
-            if [[ "${ENVIRONMENT}" == "development" ]]; then
-              SHOULD_RELEASE="false"
-            else
-              SHOULD_RELEASE="true"
-            fi
-          fi
-
-          IS_MAINNET=$([[ "${ENVIRONMENT}" == "mainnet" ]] && echo "true" || echo "false")
-
-          {
-            echo "environment=${ENVIRONMENT}"
-            echo "is_mainnet=${IS_MAINNET}"
-            echo "should_release=${SHOULD_RELEASE}"
-          } >> "$GITHUB_OUTPUT"
-
-          # Summary
-          {
-            echo "## Build Configuration"
-            echo "| Setting | Value |"
-            echo "|---------|-------|"
-            echo "| Trigger | \`${{ github.event_name }}\` |"
-            echo "| Ref | \`${{ github.ref_name }}\` |"
-            echo "| SHA | \`${{ github.sha }}\` |"
-            echo "| Environment | ${ENVIRONMENT} |"
-            echo "| Is Mainnet | ${IS_MAINNET} |"
-            echo "| Should Release | ${SHOULD_RELEASE} |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
   ##################################################
   # Lint - Check code quality
   ##################################################
@@ -169,11 +93,11 @@ jobs:
           bun test || echo "TypeScript tests completed"
 
   ##################################################
-  # Build Canisters - Build all WASM canisters
+  # Build Canisters - Verify all canisters build
   ##################################################
   build-canisters:
     name: Build ${{ matrix.canister }}
-    needs: [setup, lint]
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -204,22 +128,14 @@ jobs:
         with:
           canister: ${{ matrix.canister }}
           type: ${{ matrix.type }}
-          environment: ${{ needs.setup.outputs.environment }}
-          optimize: ${{ needs.setup.outputs.is_mainnet }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.canister }}-${{ needs.setup.outputs.environment }}
-          path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
-          retention-days: ${{ needs.setup.outputs.is_mainnet == 'true' && 30 || 7 }}
+          environment: development
 
   ##################################################
-  # Build TypeScript Library - Build npm package
+  # Build TypeScript - Verify npm package builds
   ##################################################
   build-typescript:
-    name: Build typescript
-    needs: [setup, lint]
+    name: Build TypeScript
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -234,29 +150,15 @@ jobs:
           cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build library
-        shell: devenv shell --quiet bash -- -e {0}
-        run: |
-          cd libs/ic_siwa_ts
-          bun install
-          bun run build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ic-siwa-npm-${{ needs.setup.outputs.environment }}
-          path: |
-            libs/ic_siwa_ts/dist/
-            libs/ic_siwa_ts/package.json
-            libs/ic_siwa_ts/README.md
-          retention-days: ${{ needs.setup.outputs.is_mainnet == 'true' && 30 || 7 }}
+      - name: Build npm package
+        uses: ./.github/actions/build-npm
 
   ##################################################
   # Verify Candid - Ensure interface is up-to-date
   ##################################################
   verify-candid:
-    name: Verify candid
-    needs: [setup, build-canisters]
+    name: Verify Candid
+    needs: [build-canisters]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -269,11 +171,12 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Build provider canister
+        uses: ./.github/actions/build-canister
         with:
-          name: ic_siwa_provider-${{ needs.setup.outputs.environment }}
-          path: target/wasm32-unknown-unknown/release/
+          canister: ic_siwa_provider
+          type: rust
+          environment: development
 
       - name: Verify Candid
         shell: devenv shell --quiet bash -- -e {0}
@@ -297,7 +200,7 @@ jobs:
   ##################################################
   status:
     name: Status
-    needs: [setup, lint, test, build-canisters, build-typescript, verify-candid]
+    needs: [lint, test, build-canisters, build-typescript, verify-candid]
     if: always()
     runs-on: ubuntu-latest
 
@@ -305,12 +208,10 @@ jobs:
       - name: Write results summary
         run: |
           {
-            echo "## Build Results"
+            echo "## CI Results"
             echo ""
-            echo "### Job Status"
             echo "| Job | Status |"
             echo "|-----|--------|"
-            echo "| Setup | ${{ needs.setup.result }} |"
             echo "| Lint | ${{ needs.lint.result }} |"
             echo "| Test | ${{ needs.test.result }} |"
             echo "| Build Canisters | ${{ needs.build-canisters.result }} |"
@@ -318,27 +219,13 @@ jobs:
             echo "| Verify Candid | ${{ needs.verify-candid.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Show artifacts if build succeeded
-          if [[ "${{ needs.build-canisters.result }}" == "success" ]]; then
-            {
-              echo ""
-              echo "### Build Artifacts"
-              echo "| Artifact | Environment |"
-              echo "|----------|-------------|"
-              echo "| ic_siwa_provider | ${{ needs.setup.outputs.environment }} |"
-              echo "| test_canister_rs | ${{ needs.setup.outputs.environment }} |"
-              echo "| test_canister_ts | ${{ needs.setup.outputs.environment }} |"
-              echo "| ic-siwa-npm | ${{ needs.setup.outputs.environment }} |"
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
       - name: Check for failures
         run: |
           ALL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.build-typescript.result }},${{ needs.verify-candid.result }}"
 
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
-            echo "::error::One or more jobs failed"
+            echo "::error::One or more CI jobs failed"
             exit 1
           fi
 
-          echo "All build jobs completed successfully!"
+          echo "All CI checks passed!"
