@@ -1,0 +1,65 @@
+name: "Publish npm Package"
+description: "Publish the ic-siwa TypeScript library to npm"
+
+inputs:
+  dry_run:
+    description: "Perform a dry run without actually publishing"
+    required: false
+    default: "false"
+
+outputs:
+  version:
+    description: "Published package version"
+    value: ${{ steps.verify.outputs.version }}
+  published:
+    description: "Whether the package was actually published (false for dry run)"
+    value: ${{ steps.publish.outputs.published }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Setup Node (for npm publish)
+      uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+        registry-url: "https://registry.npmjs.org"
+
+    - name: Verify package contents
+      id: verify
+      shell: bash
+      working-directory: libs/ic_siwa_ts
+      run: |
+        # Verify dist exists
+        if [[ ! -d "dist" ]]; then
+          echo "::error::dist directory not found"
+          exit 1
+        fi
+
+        # Get version
+        VERSION="$(jq -r .version package.json)"
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+        # Show what will be published
+        echo "Package contents:"
+        npm pack --dry-run
+
+    - name: Publish to npm
+      id: publish
+      shell: bash
+      working-directory: libs/ic_siwa_ts
+      run: |
+        if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+          echo "Performing dry run..."
+          npm publish --dry-run
+          echo "published=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "Publishing to npm..."
+          # Trusted publishing via OIDC - provenance is automatically generated
+          npm publish --access public
+          echo "published=true" >> "$GITHUB_OUTPUT"
+        fi
