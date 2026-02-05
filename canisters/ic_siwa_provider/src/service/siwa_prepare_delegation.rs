@@ -44,6 +44,15 @@ pub fn prepare_delegation(
     let delegation_hash =
         compute_delegation_hash(&session_key, final_expiration, targets.as_deref());
 
+    ic_cdk::println!(
+        "[PREPARE_DELEGATION] address: {}, seed_hash: {}, delegation_hash: {}, final_expiration: {}, session_key_len: {}",
+        address,
+        hex::encode(seed_hash),
+        hex::encode(delegation_hash),
+        final_expiration,
+        session_key.len()
+    );
+
     // Store the delegation in the signature map
     store_delegation(seed_hash, delegation_hash);
 
@@ -56,6 +65,11 @@ pub fn prepare_delegation(
         final_expiration,
         delegation_hash,
         targets,
+    );
+
+    ic_cdk::println!(
+        "[PREPARE_DELEGATION] Stored delegation. session_key_hash: {}",
+        session_key_hash
     );
 
     Ok(())

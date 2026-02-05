@@ -172,8 +172,16 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
     let now = ic_cdk::api::time();
     with_state_mut(|state| {
         state.signature_map.put(seed_hash, delegation_hash, now);
+        ic_cdk::println!(
+            "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, now: {}, map_len: {}",
+            hex::encode(seed_hash),
+            hex::encode(delegation_hash),
+            now,
+            state.signature_map.len()
+        );
     });
     update_certified_data();
+    ic_cdk::println!("[STORE_DELEGATION] Certified data updated");
 }
 
 /// Create a certified signature for a delegation
@@ -191,27 +199,83 @@ pub fn create_certified_delegation_signature(
     seed_hash: Hash,
     delegation_hash: Hash,
 ) -> Option<Vec<u8>> {
+    ic_cdk::println!(
+        "[CERTIFIED_SIG] Called with seed_hash: {}, delegation_hash: {}",
+        hex::encode(seed_hash),
+        hex::encode(delegation_hash)
+    );
+
     // Get the data certificate from the IC (only available in query calls)
-    let certificate = ic_cdk::api::data_certificate()?;
+    let certificate = ic_cdk::api::data_certificate();
+    if certificate.is_none() {
+        ic_cdk::println!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
+        return None;
+    }
+    let certificate = certificate.unwrap();
+    ic_cdk::println!(
+        "[CERTIFIED_SIG] Got data certificate, len: {}",
+        certificate.len()
+    );
 
     with_state(|state| {
         // Check if expired first
         let now = ic_cdk::api::time();
+        let map_len = state.signature_map.len();
+        ic_cdk::println!(
+            "[CERTIFIED_SIG] Checking expiration. now: {}, signature_map_len: {}",
+            now,
+            map_len
+        );
+
         if state
             .signature_map
             .is_expired(now, seed_hash, delegation_hash)
         {
+            ic_cdk::println!(
+                "[CERTIFIED_SIG] Delegation expired or not found. seed_hash: {}, delegation_hash: {}, now: {}",
+                hex::encode(seed_hash),
+                hex::encode(delegation_hash),
+                now
+            );
             return None;
         }
 
+        ic_cdk::println!("[CERTIFIED_SIG] Delegation is valid, getting witness");
+
         // Get the witness from the signature map
-        let witness = state.signature_map.witness(seed_hash, delegation_hash)?;
+        let witness = state.signature_map.witness(seed_hash, delegation_hash);
+        if witness.is_none() {
+            ic_cdk::println!(
+                "[CERTIFIED_SIG] Failed to get witness. seed_hash: {}, delegation_hash: {}",
+                hex::encode(seed_hash),
+                hex::encode(delegation_hash)
+            );
+            return None;
+        }
+        let witness = witness.unwrap();
+
+        ic_cdk::println!("[CERTIFIED_SIG] Got witness, creating labeled tree");
 
         // Create the labeled tree with the signature label
         let tree = ic_certified_map::labeled(LABEL_SIG, witness);
 
         // Create the certified signature (CBOR-encoded with self-describing tag)
-        ic_siwa::create_certified_signature(certificate.clone(), tree).ok()
+        match ic_siwa::create_certified_signature(certificate.clone(), tree) {
+            Ok(sig) => {
+                ic_cdk::println!(
+                    "[CERTIFIED_SIG] Successfully created certified signature, len: {}",
+                    sig.len()
+                );
+                Some(sig)
+            }
+            Err(e) => {
+                ic_cdk::println!(
+                    "[CERTIFIED_SIG] Failed to create certified signature: {:?}",
+                    e
+                );
+                None
+            }
+        }
     })
 }
 

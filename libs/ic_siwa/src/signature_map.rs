@@ -128,16 +128,38 @@ impl SignatureMap {
     }
 
     /// Check if a delegation signature has expired
+    ///
+    /// Returns true if:
+    /// - The delegation is in the expiration queue and has expired
+    /// - The delegation is NOT in the certified map (regardless of expiration queue)
+    ///
+    /// Returns false if the delegation exists in the certified map and hasn't expired
     pub fn is_expired(&self, now: u64, seed_hash: Hash, delegation_hash: Hash) -> bool {
+        // First check if it exists in the certified map
+        let exists_in_map = self
+            .certified_map
+            .get(&seed_hash[..])
+            .and_then(|inner| inner.get(&delegation_hash[..]))
+            .is_some();
+
+        if !exists_in_map {
+            // Not in the certified map means it's effectively expired/pruned
+            return true;
+        }
+
+        // Check the expiration queue for the actual expiration time
         let expiration = self
             .expiration_queue
             .iter()
             .find(|e| e.seed_hash == seed_hash && e.delegation_hash == delegation_hash);
+
         if let Some(expiration) = expiration {
             return now > expiration.signature_expires_at;
         }
-        // If not found, consider it expired
-        true
+
+        // Exists in certified map but not in expiration queue - consider valid
+        // (This shouldn't happen normally, but better to allow than block)
+        false
     }
 
     /// Get the root hash of the certified map

@@ -64,6 +64,14 @@ pub fn get_delegation(
     // Get the session key hash for looking up the prepared delegation
     let session_key_hash = hash_session_key(&session_key);
 
+    ic_cdk::println!(
+        "[GET_DELEGATION] address: {}, seed_hash: {}, session_key_hash: {}, session_key_len: {}",
+        address,
+        hex::encode(seed_hash),
+        session_key_hash,
+        session_key.len()
+    );
+
     // Look up the prepared delegation to get the exact expiration and hash that was stored
     let prepared = get_prepared_delegation(&seed_hash, &session_key_hash).ok_or_else(|| {
         format!(
@@ -79,6 +87,12 @@ pub fn get_delegation(
     let final_expiration = prepared.final_expiration;
     let delegation_hash = prepared.delegation_hash;
     let targets = prepared.targets;
+
+    ic_cdk::println!(
+        "[GET_DELEGATION] Found prepared delegation. delegation_hash: {}, final_expiration: {}",
+        hex::encode(delegation_hash),
+        final_expiration
+    );
 
     // Create the certified signature (includes certificate + witness tree, CBOR-encoded)
     let signature =
