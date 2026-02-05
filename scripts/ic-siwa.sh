@@ -1177,21 +1177,21 @@ cmd_logs() {
 	local network="${1:-dfx}"
 	cd "${PROJECT_ROOT}"
 
+	log_info "Tailing ic_siwa_provider canister logs on network '${network}' (Ctrl+C to stop)..."
+
 	case "${network}" in
+	dfx)
+		dfx canister logs ic_siwa_provider --follow
+		;;
 	juno)
-		log_warn "Juno satellite logs are not directly accessible via dfx"
-		log_info "For Juno, check the Juno console or use ic_cdk::println! with a debug endpoint"
-		return 1
+		dfx canister logs ic_siwa_provider --follow --network juno
 		;;
 	ic)
-		log_warn "Mainnet canister logs require the IC management canister"
-		log_info "Use: dfx canister logs ic_siwa_provider --network ic"
-		log_info "Note: ic_cdk::println! output may not be available on mainnet"
-		return 1
+		dfx canister logs ic_siwa_provider --follow --network ic
 		;;
 	*)
-		log_info "Tailing ic_siwa_provider canister logs (Ctrl+C to stop)..."
-		dfx canister logs ic_siwa_provider --follow
+		log_error "Unknown network: ${network}"
+		return 1
 		;;
 	esac
 }
