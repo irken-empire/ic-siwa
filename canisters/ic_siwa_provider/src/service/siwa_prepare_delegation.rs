@@ -65,7 +65,7 @@ pub fn prepare_delegation(
 
     // Generate the seed and compute hashes
     let seed = generate_seed(&settings.salt, &address);
-    let seed_hash = hash_bytes(&seed);
+    let seed_hash = hash_bytes(seed);
 
     // Create the delegation info for hashing
     let delegation_info = DelegationInfo {

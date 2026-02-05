@@ -102,7 +102,7 @@ pub fn get_delegation(
 
     // Generate the seed and compute hashes for signature map lookup
     let seed = generate_seed(&settings.salt, &address);
-    let seed_hash = hash_bytes(&seed);
+    let seed_hash = hash_bytes(seed);
 
     // Create the delegation info for hashing (must match what was stored during prepare_delegation)
     let delegation_info = DelegationInfo {
