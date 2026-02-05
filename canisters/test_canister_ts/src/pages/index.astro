@@ -138,9 +138,12 @@ const title = "IC-SIWA Test";
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <div>
+                <div class="flex-1">
                   <span id="error-message"></span>
-                  <button id="retry-btn" class="btn btn-xs btn-ghost ml-2">Retry</button>
+                </div>
+                <div class="flex gap-1">
+                  <button id="retry-btn" class="btn btn-xs btn-ghost">Retry</button>
+                  <button id="dismiss-error-btn" class="btn btn-xs btn-ghost">Dismiss</button>
                 </div>
               </div>
             </div>
@@ -347,6 +350,7 @@ const title = "IC-SIWA Test";
       const logoutBtn = document.getElementById("logout-btn");
       const switchNetworkBtn = document.getElementById("switch-network-btn");
       const retryBtn = document.getElementById("retry-btn");
+      const dismissErrorBtn = document.getElementById("dismiss-error-btn");
       const networkBadge = document.getElementById("network-badge");
       const currentChainName = document.getElementById("current-chain-name");
       const refreshDiagnostics = document.getElementById("refresh-diagnostics");
@@ -819,6 +823,10 @@ const title = "IC-SIWA Test";
       switchNetworkBtn?.addEventListener("click", handleNetworkSwitch);
       logoutBtn?.addEventListener("click", handleLogout);
       retryBtn?.addEventListener("click", () => {
+        showState("wallets");
+        updateDiagnostics();
+      });
+      dismissErrorBtn?.addEventListener("click", () => {
         showState("wallets");
         updateDiagnostics();
       });
