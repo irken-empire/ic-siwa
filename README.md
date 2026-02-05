@@ -433,7 +433,7 @@ ic-siwa loop
 # Update dependencies
 ic-siwa update
 
-# Bump version (uses conventional commits)
+# Bump version (uses conventional commits based on tags)
 ic-siwa version --bump
 ```
 
