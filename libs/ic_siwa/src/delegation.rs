@@ -142,10 +142,8 @@ mod tests {
 
     #[test]
     fn test_generate_seed_case_insensitive() {
-        let seed_lower =
-            generate_seed("test-salt", "0x1234567890abcdef1234567890abcdef12345678");
-        let seed_upper =
-            generate_seed("test-salt", "0x1234567890ABCDEF1234567890ABCDEF12345678");
+        let seed_lower = generate_seed("test-salt", "0x1234567890abcdef1234567890abcdef12345678");
+        let seed_upper = generate_seed("test-salt", "0x1234567890ABCDEF1234567890ABCDEF12345678");
         assert_eq!(seed_lower, seed_upper);
     }
 
