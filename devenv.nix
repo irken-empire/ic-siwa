@@ -349,6 +349,7 @@ in
       ripsecrets = {
         enable = true;
       };
+      rustfmt.enable = true;
       shellcheck = {
         enable = true;
       };
