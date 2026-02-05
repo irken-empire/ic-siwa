@@ -1427,10 +1427,7 @@ cmd_cycles() {
 	cd "${PROJECT_ROOT}"
 
 	local canister_ids_file="${PROJECT_ROOT}/canister_ids.json"
-	if [[ ! -f ${canister_ids_file} ]]; then
-		log_error "canister_ids.json not found"
-		return 1
-	fi
+	local environments=("testnet" "mainnet")
 
 	# Network to identity mapping
 	declare -A NETWORK_IDENTITIES=(
@@ -1438,35 +1435,62 @@ cmd_cycles() {
 		["mainnet"]="ic-siwa-mainnet"
 	)
 
-	local networks=("testnet" "mainnet")
 	local current_identity
 	current_identity=$(dfx identity whoami)
+
+	# Cleanup function to remove temporary canister_ids.json and restore identity
+	cleanup_cycles() {
+		if [[ -f ${canister_ids_file} ]]; then
+			rm -f "${canister_ids_file}"
+			log_debug "Cleaned up temporary canister_ids.json"
+		fi
+		dfx identity use "${current_identity}" >/dev/null 2>&1
+	}
+
+	# Set trap to ensure cleanup runs on exit, error, or interrupt
+	trap cleanup_cycles EXIT ERR INT TERM
 
 	log_info "Checking cycles balances..."
 	echo ""
 
-	for network in "${networks[@]}"; do
-		local identity="${NETWORK_IDENTITIES[$network]}"
+	for env in "${environments[@]}"; do
+		local env_file="${PROJECT_ROOT}/canister_ids.${env}.json"
+		local identity="${NETWORK_IDENTITIES[$env]}"
 
-		# Check if identity exists
-		if ! dfx identity list 2>/dev/null | grep -q "^${identity}"; then
-			log_warn "Identity '${identity}' not found, skipping ${network}"
+		# Check if environment file exists
+		if [[ ! -f ${env_file} ]]; then
+			log_warn "canister_ids.${env}.json not found, skipping ${env}"
 			continue
 		fi
 
+		# Check if identity exists
+		if ! dfx identity list 2>/dev/null | grep -q "^${identity}"; then
+			log_warn "Identity '${identity}' not found, skipping ${env}"
+			continue
+		fi
+
+		# Copy environment-specific file to canister_ids.json
+		cp "${env_file}" "${canister_ids_file}" || {
+			log_error "Failed to copy canister_ids.${env}.json"
+			return 1
+		}
+
 		# Switch to the appropriate identity
-		dfx identity use "${identity}" >/dev/null 2>&1
+		dfx identity use "${identity}" >/dev/null 2>&1 || {
+			log_error "Failed to switch to identity '${identity}'"
+			return 1
+		}
 
 		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-		echo -e "${BLUE}Network: ${network}${NC} (identity: ${identity})"
+		echo -e "${BLUE}Environment: ${env}${NC} (identity: ${identity})"
 		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-		# Get all canisters for this network from canister_ids.json
+		# Get all canisters from the environment file (they use "ic" as the network key)
 		local canisters
-		canisters=$(jq -r "to_entries[] | select(.value.${network} != null) | .key" "${canister_ids_file}" 2>/dev/null)
+		canisters=$(jq -r 'to_entries[] | select(.value.ic != null) | .key' "${env_file}" 2>/dev/null)
 
 		if [[ -z ${canisters} ]]; then
-			log_warn "  No canisters found for ${network}"
+			log_warn "  No canisters found for ${env}"
 			echo ""
 			continue
 		fi
@@ -1477,7 +1501,7 @@ cmd_cycles() {
 
 		for canister in ${canisters}; do
 			local canister_id
-			canister_id=$(jq -r ".\"${canister}\".${network} // empty" "${canister_ids_file}")
+			canister_id=$(jq -r ".\"${canister}\".ic // empty" "${env_file}")
 
 			if [[ -z ${canister_id} ]]; then
 				continue
@@ -1525,8 +1549,8 @@ cmd_cycles() {
 	printf "  %-25s %s\n" "IDENTITY" "BALANCE"
 	printf "  %-25s %s\n" "-------------------------" "---------------"
 
-	for network in "${networks[@]}"; do
-		local identity="${NETWORK_IDENTITIES[$network]}"
+	for env in "${environments[@]}"; do
+		local identity="${NETWORK_IDENTITIES[$env]}"
 		if dfx identity list 2>/dev/null | grep -q "^${identity}"; then
 			dfx identity use "${identity}" >/dev/null 2>&1
 			local ledger_balance
@@ -1536,8 +1560,9 @@ cmd_cycles() {
 	done
 	echo ""
 
-	# Restore original identity
-	dfx identity use "${current_identity}" >/dev/null 2>&1
+	# Cleanup is handled by trap, but clear it now since we're done successfully
+	trap - EXIT ERR INT TERM
+	cleanup_cycles
 	log_info "Restored identity: ${current_identity}"
 }
 
