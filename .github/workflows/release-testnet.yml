@@ -176,7 +176,7 @@ jobs:
           optimize: "false"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.canister }}-testnet
           path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
@@ -209,7 +209,7 @@ jobs:
         uses: ./.github/actions/build-npm
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ic-siwa-npm-testnet
           path: |
