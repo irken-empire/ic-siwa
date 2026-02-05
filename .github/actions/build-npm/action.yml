@@ -13,14 +13,20 @@ runs:
   using: "composite"
   steps:
     - name: Install dependencies
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: bash
       working-directory: libs/ic_siwa_ts
-      run: bun install
+      run: |
+        # Use devenv from repository root
+        cd "$GITHUB_WORKSPACE"
+        devenv shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun install"
 
     - name: Build library
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: bash
       working-directory: libs/ic_siwa_ts
-      run: bun run build
+      run: |
+        # Use devenv from repository root
+        cd "$GITHUB_WORKSPACE"
+        devenv shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun run build"
 
     - name: Get version
       id: version

@@ -96,7 +96,7 @@ jobs:
   # Build Canisters - Verify all canisters build
   ##################################################
   build-canisters:
-    name: Build ${{ matrix.canister }}
+    name: Build Canister ${{ matrix.canister }}
     needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 30
