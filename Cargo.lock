@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "ic_siwa"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "candid",
  "getrandom",
@@ -423,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "ic_siwa_provider"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "candid",
  "getrandom",
@@ -815,7 +815,7 @@ dependencies = [
 
 [[package]]
 name = "test_canister_rs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "candid",
  "getrandom",
