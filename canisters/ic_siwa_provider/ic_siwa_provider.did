@@ -29,7 +29,11 @@ type InitArgs = record {
   debug : opt bool;
   session_expiration_time : nat64;
 };
-type LoginResponse = record { user_principal : principal; expiration : nat64 };
+type LoginResponse = record {
+  user_principal : principal;
+  user_canister_pubkey : blob;
+  expiration : nat64;
+};
 type PrepareLoginRequest = record {
   uri : opt text;
   domain : opt text;

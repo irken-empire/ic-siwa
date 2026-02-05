@@ -108,7 +108,7 @@ pub mod types;
 
 // Re-exports for convenience
 pub use config::Config;
-pub use delegation::Delegation;
+pub use delegation::{create_user_canister_pubkey, generate_seed, Delegation};
 pub use error::SiwaError;
 pub use rate_limit::RateLimiter;
 pub use security::{CanisterGuard, ControllerGuard, SecurityMode};

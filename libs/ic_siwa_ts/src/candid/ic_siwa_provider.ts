@@ -44,6 +44,7 @@ export interface InitArgs {
 }
 export interface LoginResponse {
   'user_principal' : Principal,
+  'user_canister_pubkey' : Uint8Array | number[],
   'expiration' : bigint,
 }
 export interface PrepareLoginRequest {
@@ -211,6 +212,7 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
   const Result_3 = IDL.Variant({ 'Ok' : SignedDelegation, 'Err' : IDL.Text });
   const LoginResponse = IDL.Record({
     'user_principal' : IDL.Principal,
+    'user_canister_pubkey' : IDL.Vec(IDL.Nat8),
     'expiration' : IDL.Nat64,
   });
   const Result_4 = IDL.Variant({ 'Ok' : LoginResponse, 'Err' : IDL.Text });

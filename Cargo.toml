@@ -39,6 +39,7 @@ getrandom = { version = "0.2", features = ["custom"] }
 # Utilities
 thiserror = "2.0"
 time = "0.3"
+simple_asn1 = "0.6"
 
 [profile.release]
 lto = true

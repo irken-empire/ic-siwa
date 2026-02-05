@@ -21,6 +21,8 @@ export interface SerializedIdentity {
   expiration: number;
   /** Avalanche address */
   address: string;
+  /** Canister's public key (hex encoded) - root of delegation chain */
+  canisterPubkey?: string;
 }
 
 /**

@@ -8,16 +8,18 @@ use crate::state::{
 use candid::Principal;
 use ic_siwa::siwa::{derive_principal, hash_session_key, validate_address};
 use ic_siwa::types::DomainValidator;
-use ic_siwa::SiwaMessage;
+use ic_siwa::{create_user_canister_pubkey, generate_seed, SiwaMessage};
+use serde_bytes::ByteBuf;
 
-/// Login response with principal and expiration
+/// Login response with principal, expiration, and canister public key
 #[derive(candid::CandidType, serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct LoginResponse {
     /// The derived ICP principal for the user
-    #[serde(rename = "user_principal")]
-    pub principal: Principal,
+    pub user_principal: Principal,
     /// Session expiration timestamp in nanoseconds
     pub expiration: u64,
+    /// The canister's public key for this user (used as root of delegation chain)
+    pub user_canister_pubkey: ByteBuf,
 }
 
 /// Complete SIWA login with a signed message
@@ -107,6 +109,12 @@ pub fn login(
     let principal = derive_principal(&address, &settings.salt)
         .map_err(|e| format!("Failed to derive principal: {}", e))?;
 
+    // Generate the seed and user canister public key for the delegation chain
+    let seed = generate_seed(&settings.salt, &address);
+    let canister_id = ic_cdk::api::id();
+    let user_canister_pubkey = create_user_canister_pubkey(&canister_id, &seed)
+        .map_err(|e| format!("Failed to create user canister pubkey: {}", e))?;
+
     // Calculate session expiration
     let session_expiration = now + settings.session_expiration_time;
 
@@ -125,8 +133,9 @@ pub fn login(
     store_auth_session(key_hash, auth_session);
 
     Ok(LoginResponse {
-        principal,
+        user_principal: principal,
         expiration: session_expiration,
+        user_canister_pubkey: ByteBuf::from(user_canister_pubkey),
     })
 }
 
