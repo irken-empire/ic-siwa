@@ -1,7 +1,7 @@
 {
   "name": "ic-siwa-workspace",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "install-deps": "bun install && cd libs/ic_siwa_ts && bun install && bun run build && cd ../../canisters/test_canister_ts && bun install"

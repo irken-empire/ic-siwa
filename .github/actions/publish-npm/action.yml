@@ -29,6 +29,16 @@ runs:
         node-version: "24"
         registry-url: "https://registry.npmjs.org"
 
+    - name: Install dependencies
+      shell: bash
+      working-directory: libs/ic_siwa_ts
+      run: bun install
+
+    - name: Build package
+      shell: bash
+      working-directory: libs/ic_siwa_ts
+      run: bun run build
+
     - name: Verify package contents
       id: verify
       shell: bash
