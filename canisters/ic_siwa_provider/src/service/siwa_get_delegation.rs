@@ -3,7 +3,7 @@
 //! Returns a signed delegation for authenticated principals.
 
 use crate::service::delegation_utils::{
-    compute_seed_hash, create_prepared_delegation_key, get_prepared_delegation, validate_session,
+    compute_seed_hash, get_prepared_delegation, validate_session,
 };
 use crate::state::create_certified_delegation_signature;
 use candid::{CandidType, Principal};
@@ -63,13 +63,12 @@ pub fn get_delegation(
 
     // Get the session key hash for looking up the prepared delegation
     let session_key_hash = hash_session_key(&session_key);
-    let prepared_key = create_prepared_delegation_key(seed_hash, &session_key_hash);
 
     // Look up the prepared delegation to get the exact expiration and hash that was stored
-    let prepared = get_prepared_delegation(&prepared_key).ok_or_else(|| {
+    let prepared = get_prepared_delegation(&seed_hash, &session_key_hash).ok_or_else(|| {
         format!(
             "Delegation not found in signature map - please call siwa_prepare_delegation first. \
-             address: {}, seed_hash: {:?}, session_key_hash: {}",
+             address: {}, seed_hash: {}, session_key_hash: {}",
             address,
             hex::encode(seed_hash),
             session_key_hash
@@ -86,7 +85,7 @@ pub fn get_delegation(
         create_certified_delegation_signature(seed_hash, delegation_hash).ok_or_else(|| {
             format!(
                 "Failed to create certified signature - delegation may have expired or been pruned. \
-                 seed_hash: {:?}, delegation_hash: {:?}, expiration: {}",
+                 seed_hash: {}, delegation_hash: {}, expiration: {}",
                 hex::encode(seed_hash),
                 hex::encode(delegation_hash),
                 final_expiration

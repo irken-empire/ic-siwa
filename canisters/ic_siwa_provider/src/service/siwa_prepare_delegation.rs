@@ -4,8 +4,7 @@
 
 use crate::service::delegation_utils::{
     cleanup_expired_prepared_delegations, compute_delegation_hash, compute_final_expiration,
-    compute_seed_hash, create_prepared_delegation_key, get_delegation_targets,
-    store_prepared_delegation, validate_session, PreparedDelegationValue,
+    compute_seed_hash, get_delegation_targets, store_prepared_delegation, validate_session,
 };
 use crate::state::store_delegation;
 use ic_siwa::siwa::hash_session_key;
@@ -51,14 +50,12 @@ pub fn prepare_delegation(
     // Store the prepared delegation info so get_delegation can retrieve the exact
     // expiration value, avoiding hash mismatches due to time differences
     let session_key_hash = hash_session_key(&session_key);
-    let prepared_key = create_prepared_delegation_key(seed_hash, &session_key_hash);
     store_prepared_delegation(
-        prepared_key,
-        PreparedDelegationValue {
-            final_expiration,
-            delegation_hash,
-            targets,
-        },
+        &seed_hash,
+        &session_key_hash,
+        final_expiration,
+        delegation_hash,
+        targets,
     );
 
     Ok(())

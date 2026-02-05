@@ -43,6 +43,20 @@ pub struct AuthSession {
     pub expires_at: u64,
 }
 
+/// Prepared delegation metadata stored for later retrieval
+#[derive(Clone, Debug)]
+pub struct PreparedDelegation {
+    /// The computed final expiration that was used when storing the delegation
+    pub final_expiration: u64,
+    /// The delegation hash that was stored in the signature map
+    pub delegation_hash: [u8; 32],
+    /// Optional delegation targets
+    pub targets: Option<Vec<Principal>>,
+}
+
+/// Key for looking up prepared delegations (seed_hash + session_key_hash)
+pub type PreparedDelegationKey = String;
+
 /// Global canister state
 #[derive(Default)]
 pub struct State {
@@ -60,6 +74,9 @@ pub struct State {
     pub rate_limiter: RateLimiter,
     /// Signature map for certified delegations
     pub signature_map: SignatureMap,
+    /// Prepared delegations for certified retrieval
+    /// Key: "{seed_hash_hex}:{session_key_hash}"
+    pub prepared_delegations: HashMap<PreparedDelegationKey, PreparedDelegation>,
 }
 
 thread_local! {
@@ -304,5 +321,48 @@ pub fn cleanup_rate_limits() {
     let now_ns = ic_cdk::api::time();
     with_state_mut(|state| {
         state.rate_limiter.cleanup_expired(now_ns);
+    });
+}
+
+/// Store a prepared delegation for later retrieval
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed (hex-encoded for the key)
+/// * `session_key_hash` - Hash of the session key
+/// * `delegation` - The prepared delegation metadata
+pub fn store_prepared_delegation(
+    seed_hash: &[u8; 32],
+    session_key_hash: &str,
+    delegation: PreparedDelegation,
+) {
+    let key = format!("{}:{}", hex::encode(seed_hash), session_key_hash);
+    with_state_mut(|state| {
+        state.prepared_delegations.insert(key, delegation);
+    });
+}
+
+/// Get a prepared delegation by seed hash and session key hash
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed
+/// * `session_key_hash` - Hash of the session key
+///
+/// # Returns
+/// The prepared delegation if found
+pub fn get_prepared_delegation(
+    seed_hash: &[u8; 32],
+    session_key_hash: &str,
+) -> Option<PreparedDelegation> {
+    let key = format!("{}:{}", hex::encode(seed_hash), session_key_hash);
+    with_state(|state| state.prepared_delegations.get(&key).cloned())
+}
+
+/// Cleanup expired prepared delegations
+pub fn cleanup_expired_prepared_delegations() {
+    let now = ic_cdk::api::time();
+    with_state_mut(|state| {
+        state
+            .prepared_delegations
+            .retain(|_, v| v.final_expiration > now);
     });
 }

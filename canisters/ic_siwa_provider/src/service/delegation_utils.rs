@@ -3,60 +3,15 @@
 //! This module provides common functions used by both `siwa_prepare_delegation`
 //! and `siwa_get_delegation` to ensure consistent behavior.
 
-use crate::state::{get_auth_session, get_settings};
+use crate::state::{
+    cleanup_expired_prepared_delegations as state_cleanup_expired_prepared_delegations,
+    get_auth_session, get_prepared_delegation as state_get_prepared_delegation, get_settings,
+    store_prepared_delegation as state_store_prepared_delegation, PreparedDelegation,
+};
 use ic_certified_map::Hash;
 use ic_siwa::hash::hash_bytes;
 use ic_siwa::siwa::hash_session_key;
 use ic_siwa::{create_delegation_hash, generate_seed, DelegationInfo};
-use std::collections::HashMap;
-
-/// Key for looking up prepared delegations
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PreparedDelegationKey {
-    /// Hash of the seed (derived from address + salt)
-    pub seed_hash: [u8; 32],
-    /// Hash of the session key
-    pub session_key_hash: String,
-}
-
-/// Value stored for prepared delegations
-#[derive(Clone, Debug)]
-pub struct PreparedDelegationValue {
-    /// The computed final expiration that was used when storing the delegation
-    pub final_expiration: u64,
-    /// The delegation hash that was stored in the signature map
-    pub delegation_hash: [u8; 32],
-    /// Optional delegation targets
-    pub targets: Option<Vec<candid::Principal>>,
-}
-
-thread_local! {
-    /// Storage for prepared delegation expirations
-    /// This allows get_delegation to look up the exact expiration that was used
-    /// in prepare_delegation, avoiding hash mismatches due to time differences.
-    static PREPARED_DELEGATIONS: std::cell::RefCell<HashMap<PreparedDelegationKey, PreparedDelegationValue>>
-        = std::cell::RefCell::new(HashMap::new());
-}
-
-/// Store a prepared delegation for later retrieval
-pub fn store_prepared_delegation(key: PreparedDelegationKey, value: PreparedDelegationValue) {
-    PREPARED_DELEGATIONS.with(|map| {
-        map.borrow_mut().insert(key, value);
-    });
-}
-
-/// Retrieve a prepared delegation
-pub fn get_prepared_delegation(key: &PreparedDelegationKey) -> Option<PreparedDelegationValue> {
-    PREPARED_DELEGATIONS.with(|map| map.borrow().get(key).cloned())
-}
-
-/// Remove a prepared delegation after use (optional cleanup)
-#[allow(dead_code)]
-pub fn remove_prepared_delegation(key: &PreparedDelegationKey) {
-    PREPARED_DELEGATIONS.with(|map| {
-        map.borrow_mut().remove(key);
-    });
-}
 
 /// Validate a session and return common data needed for delegation operations
 ///
@@ -147,23 +102,40 @@ pub fn compute_delegation_hash(
     create_delegation_hash(&delegation_info)
 }
 
-/// Create the key for looking up prepared delegations
-pub fn create_prepared_delegation_key(
-    seed_hash: Hash,
+/// Store a prepared delegation for later retrieval
+///
+/// This stores the delegation metadata in the canister's persistent state,
+/// making it accessible to query calls.
+pub fn store_prepared_delegation(
+    seed_hash: &Hash,
     session_key_hash: &str,
-) -> PreparedDelegationKey {
-    PreparedDelegationKey {
+    final_expiration: u64,
+    delegation_hash: Hash,
+    targets: Option<Vec<candid::Principal>>,
+) {
+    state_store_prepared_delegation(
         seed_hash,
-        session_key_hash: session_key_hash.to_string(),
-    }
+        session_key_hash,
+        PreparedDelegation {
+            final_expiration,
+            delegation_hash,
+            targets,
+        },
+    );
+}
+
+/// Retrieve a prepared delegation
+///
+/// Returns the delegation metadata that was stored by `siwa_prepare_delegation`.
+pub fn get_prepared_delegation(
+    seed_hash: &Hash,
+    session_key_hash: &str,
+) -> Option<PreparedDelegation> {
+    state_get_prepared_delegation(seed_hash, session_key_hash)
 }
 
 /// Cleanup expired prepared delegations
 /// This should be called periodically to prevent memory growth
 pub fn cleanup_expired_prepared_delegations() {
-    let now = ic_cdk::api::time();
-    PREPARED_DELEGATIONS.with(|map| {
-        map.borrow_mut()
-            .retain(|_, value| value.final_expiration > now);
-    });
+    state_cleanup_expired_prepared_delegations();
 }
