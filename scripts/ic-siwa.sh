@@ -668,6 +668,16 @@ cmd_build() {
 
 	run_cmd "Building WASM canisters..." cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider || return 1
 
+	# Build TypeScript library (required before test_canister_ts can use it)
+	if [[ -f "${PROJECT_ROOT}/libs/ic_siwa_ts/package.json" ]]; then
+		cd "${PROJECT_ROOT}/libs/ic_siwa_ts"
+		if [[ ! -d "node_modules" ]]; then
+			run_cmd "Installing ic_siwa_ts dependencies..." bun install || return 1
+		fi
+		run_cmd "Building ic_siwa_ts library..." bun run build || return 1
+		cd "${PROJECT_ROOT}"
+	fi
+
 	log_success "Build complete!"
 }
 
