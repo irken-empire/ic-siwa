@@ -207,6 +207,7 @@ show_help() {
 		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
+		  logs               Tail canister logs in real-time (dfx canister logs --all --follow)
 		  update             Update all dependencies (cargo, bun) and pin versions
 		  check              Check if all required dependencies are installed
 		  version            Show current version (from Cargo.toml)
@@ -264,6 +265,7 @@ declare -A CMD_DEPS=(
 	["loop"]="dfx,cargo,bun,yq,candid-extractor,didc"
 	["start"]="dfx"
 	["stop"]="dfx"
+	["logs"]="dfx"
 	["update"]="cargo,bun"
 	["version"]="toml"
 	["cleanup"]="dfx"
@@ -1170,6 +1172,30 @@ cmd_stop() {
 	esac
 }
 
+# Tail canister logs in real-time
+cmd_logs() {
+	local network="${1:-dfx}"
+	cd "${PROJECT_ROOT}"
+
+	case "${network}" in
+	juno)
+		log_warn "Juno satellite logs are not directly accessible via dfx"
+		log_info "For Juno, check the Juno console or use ic_cdk::println! with a debug endpoint"
+		return 1
+		;;
+	ic)
+		log_warn "Mainnet canister logs require the IC management canister"
+		log_info "Use: dfx canister logs ic_siwa_provider --network ic"
+		log_info "Note: ic_cdk::println! output may not be available on mainnet"
+		return 1
+		;;
+	*)
+		log_info "Tailing canister logs (Ctrl+C to stop)..."
+		dfx canister logs --all --follow
+		;;
+	esac
+}
+
 # Build init argument for canister
 build_init_arg() {
 	local network="${1:-dfx}"
@@ -1801,6 +1827,9 @@ parse_args() {
 		;;
 	stop)
 		cmd_stop "${NETWORK}"
+		;;
+	logs)
+		cmd_logs "${NETWORK}"
 		;;
 	update)
 		cmd_update
