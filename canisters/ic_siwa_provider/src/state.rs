@@ -198,15 +198,6 @@ pub fn create_certified_delegation_signature(
     })
 }
 
-/// Prune expired entries from the signature map
-pub fn prune_signature_map() {
-    let now = ic_cdk::api::time();
-    let pruned = with_state_mut(|state| state.signature_map.prune_expired(now, 100));
-    if pruned > 0 {
-        update_certified_data();
-    }
-}
-
 /// Get settings reference if initialized
 pub fn try_get_settings() -> Option<Settings> {
     with_state(|state| state.settings.clone())
