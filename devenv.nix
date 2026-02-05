@@ -260,6 +260,7 @@ in
     ];
     hooks = {
       actionlint.enable = true;
+      action-validator.enable = true;
       convco = {
         enable = true;
         settings = {
