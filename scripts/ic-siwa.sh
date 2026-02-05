@@ -207,7 +207,7 @@ show_help() {
 		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
-		  logs               Tail canister logs in real-time (dfx canister logs --all --follow)
+		  logs               Tail ic_siwa_provider logs in real-time
 		  update             Update all dependencies (cargo, bun) and pin versions
 		  check              Check if all required dependencies are installed
 		  version            Show current version (from Cargo.toml)
@@ -1190,8 +1190,8 @@ cmd_logs() {
 		return 1
 		;;
 	*)
-		log_info "Tailing canister logs (Ctrl+C to stop)..."
-		dfx canister logs --all --follow
+		log_info "Tailing ic_siwa_provider canister logs (Ctrl+C to stop)..."
+		dfx canister logs ic_siwa_provider --follow
 		;;
 	esac
 }
