@@ -98,8 +98,11 @@ pub fn init_state(settings: Settings) {
         // Initialize rate limiter with settings
         state.rate_limiter = RateLimiter::new(settings.rate_limits.clone());
         state.settings = Some(settings);
+        // Clear all session and mapping data on init/upgrade
         state.login_sessions.clear();
         state.auth_sessions.clear();
+        state.address_to_principal.clear();
+        state.principal_to_address.clear();
     });
 }
 

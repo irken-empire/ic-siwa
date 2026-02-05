@@ -452,6 +452,11 @@ cmd_version() {
 		return 0
 	fi
 
+	# Ensure we have the latest tags pulled down.
+	git fetch --tags >/dev/null 2>&1 || {
+		log_warn "Failed to fetch tags, convco may not work correctly."
+	}
+
 	# Get next version from convco based on conventional commits
 	local next_version
 	next_version=$(convco version --bump 2>/dev/null || echo "")

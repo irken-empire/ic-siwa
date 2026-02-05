@@ -25,6 +25,10 @@ runs:
       env:
         DFX_WARNING: "-mainnet_plaintext_identity"
       run: |
+        # Create anonymous identity silently to prevent seed phrase from being printed
+        dfx identity new --storage-mode=plaintext anonymous-ci 2>/dev/null || true
+        dfx identity use anonymous-ci 2>/dev/null
+
         echo "Verifying ${{ inputs.canister }} on IC mainnet..."
         echo ""
 
@@ -96,6 +100,10 @@ runs:
       if: inputs.canister == 'test_canister_rs'
       shell: devenv shell --quiet bash -- -e {0}
       run: |
+        # Create anonymous identity silently to prevent seed phrase from being printed
+        dfx identity new --storage-mode=plaintext anonymous-ci 2>/dev/null || true
+        dfx identity use anonymous-ci 2>/dev/null
+
         echo "Verifying ${{ inputs.canister }} on IC mainnet..."
 
         # Test: health check
