@@ -132,6 +132,9 @@ pub fn login(
     };
     store_auth_session(key_hash, auth_session);
 
+    // Note: The delegation is stored in the signature map when get_delegation is called,
+    // not here. This allows flexible expiration times in the delegation.
+
     Ok(LoginResponse {
         user_principal: principal,
         expiration: session_expiration,

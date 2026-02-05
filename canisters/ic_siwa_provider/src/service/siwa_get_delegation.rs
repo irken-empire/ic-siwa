@@ -2,10 +2,11 @@
 //!
 //! Returns a signed delegation for authenticated principals.
 
-use crate::state::{get_auth_session, get_settings};
+use crate::state::{create_certified_delegation_signature, get_auth_session, get_settings};
 use candid::{CandidType, Principal};
-use ic_siwa::hash::sha256;
+use ic_siwa::hash::hash_bytes;
 use ic_siwa::siwa::hash_session_key;
+use ic_siwa::{create_delegation_hash, generate_seed, DelegationInfo};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
@@ -96,62 +97,30 @@ pub fn get_delegation(
     let delegation = Delegation {
         pubkey: ByteBuf::from(session_key.clone()),
         expiration: final_expiration,
-        targets,
+        targets: targets.clone(),
     };
 
-    // Create a hash of the delegation for signing
-    // The hash format follows the IC delegation hash standard
-    let delegation_hash = create_delegation_hash(&delegation)?;
+    // Generate the seed and compute hashes for signature map lookup
+    let seed = generate_seed(&settings.salt, &address);
+    let seed_hash = hash_bytes(&seed);
 
-    // Sign the delegation
-    // Note: In production, this would use ic_cdk::api::management_canister::main::sign_with_ecdsa
-    // For now, we create a placeholder signature that will be replaced with threshold signing
-    let signature = sign_delegation(&delegation_hash, &settings.salt)?;
+    // Create the delegation info for hashing (must match what was stored during prepare_delegation)
+    let delegation_info = DelegationInfo {
+        pubkey: &session_key,
+        expiration: final_expiration,
+        targets: targets.as_deref(),
+    };
+    let delegation_hash = create_delegation_hash(&delegation_info);
+
+    // Create the certified signature (includes certificate + witness tree, CBOR-encoded)
+    let signature =
+        create_certified_delegation_signature(seed_hash, delegation_hash).ok_or_else(|| {
+            "Delegation not found in signature map - please call siwa_prepare_delegation first"
+                .to_string()
+        })?;
 
     Ok(SignedDelegation {
         delegation,
         signature: ByteBuf::from(signature),
     })
-}
-
-/// Create a hash of a delegation following IC conventions
-fn create_delegation_hash(delegation: &Delegation) -> Result<[u8; 32], String> {
-    // Serialize the delegation in a canonical format for hashing
-    // IC uses a specific domain separator for delegations
-    let domain_separator = b"\x1Aic-request-auth-delegation";
-
-    let mut data = domain_separator.to_vec();
-
-    // Add pubkey
-    data.extend_from_slice(&delegation.pubkey);
-
-    // Add expiration as big-endian u64
-    data.extend_from_slice(&delegation.expiration.to_be_bytes());
-
-    // Add targets if present
-    if let Some(ref targets) = delegation.targets {
-        for target in targets {
-            data.extend_from_slice(target.as_slice());
-        }
-    }
-
-    Ok(sha256(&data))
-}
-
-/// Sign a delegation hash
-/// Note: This is a placeholder. Production implementation would use
-/// ic_cdk::api::management_canister::main::sign_with_ecdsa
-fn sign_delegation(delegation_hash: &[u8; 32], salt: &str) -> Result<Vec<u8>, String> {
-    // For now, create a deterministic signature based on the hash and salt
-    // This will be replaced with proper threshold ECDSA signing
-    let mut sign_data = delegation_hash.to_vec();
-    sign_data.extend_from_slice(salt.as_bytes());
-    let signature_hash = sha256(&sign_data);
-
-    // Return a placeholder signature (64 bytes for ECDSA)
-    // The actual implementation will call the management canister's sign_with_ecdsa
-    let mut signature = signature_hash.to_vec();
-    signature.extend_from_slice(&signature_hash);
-
-    Ok(signature)
 }

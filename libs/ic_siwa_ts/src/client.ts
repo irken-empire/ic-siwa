@@ -14,7 +14,7 @@ import {
   type _SERVICE,
   type Result_3,
   type Result_4,
-  type Result_5,
+  type Result_6,
   type Delegation as CandidDelegation,
 } from "./candid";
 import {SiwaError, SiwaErrorCode} from "./errors";
@@ -198,7 +198,7 @@ export class SiwaClient {
       const actor = await this.createProviderActor();
 
       // Use the new multi-tenant endpoint if domain/uri provided
-      const response: Result_5 = await actor.siwa_prepare_login_with_options({
+      const response: Result_6 = await actor.siwa_prepare_login_with_options({
         address: options.address,
         domain: options.domain ? [options.domain] : [],
         uri: options.uri ? [options.uri] : [],
@@ -282,6 +282,22 @@ export class SiwaClient {
         loginExpiration ??
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
 
+      // Prepare delegation first (stores in signature map for certified response)
+      const prepareResult = await actor.siwa_prepare_delegation(
+        address,
+        sessionKeyBytes,
+        expirationNs
+      );
+
+      if ("Err" in prepareResult) {
+        throw new SiwaError(
+          SiwaErrorCode.CanisterError,
+          prepareResult.Err,
+          prepareResult
+        );
+      }
+
+      // Now get the certified delegation
       const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
@@ -456,6 +472,21 @@ export class SiwaClient {
       // Get new delegation
       const expirationNs =
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
+
+      // Prepare delegation first (stores in signature map for certified response)
+      const prepareResult = await actor.siwa_prepare_delegation(
+        address,
+        sessionKeyBytes,
+        expirationNs
+      );
+
+      if ("Err" in prepareResult) {
+        // Session may have expired, need to re-login
+        await this.logout();
+        return null;
+      }
+
+      // Now get the certified delegation
       const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,

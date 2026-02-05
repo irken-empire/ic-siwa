@@ -30,6 +30,7 @@ thiserror.workspace = true
 time.workspace = true
 getrandom.workspace = true
 simple_asn1.workspace = true
+serde_cbor.workspace = true
 
 [dev-dependencies]
 

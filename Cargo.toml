@@ -40,6 +40,7 @@ getrandom = { version = "0.2", features = ["custom"] }
 thiserror = "2.0"
 time = "0.3"
 simple_asn1 = "0.6"
+serde_cbor = "0.11"
 
 [profile.release]
 lto = true

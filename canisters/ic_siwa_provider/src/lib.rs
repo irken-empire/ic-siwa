@@ -126,6 +126,28 @@ fn siwa_login(
     service::siwa_login::login(signature, address, session_key)
 }
 
+/// Prepare a delegation for an authenticated session
+///
+/// This must be called before `siwa_get_delegation` to store the delegation
+/// in the signature map for certified responses.
+///
+/// # Arguments
+/// * `address` - The Avalanche address
+/// * `session_key` - The session public key from login
+/// * `expiration` - Requested expiration timestamp (may be capped)
+///
+/// # Returns
+/// * `Ok(())` - Delegation prepared successfully
+/// * `Err(String)` - Error if not authenticated or expired
+#[update]
+fn siwa_prepare_delegation(
+    address: String,
+    session_key: Vec<u8>,
+    expiration: u64,
+) -> Result<(), String> {
+    service::siwa_prepare_delegation::prepare_delegation(address, session_key, expiration)
+}
+
 /// Get delegation for authenticated principal
 ///
 /// # Arguments

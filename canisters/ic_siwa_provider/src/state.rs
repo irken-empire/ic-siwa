@@ -1,12 +1,17 @@
 //! Canister state management for IC-SIWA Provider
 //!
-//! Stores settings, active login sessions, address-principal mappings, and rate limiter.
+//! Stores settings, active login sessions, address-principal mappings, rate limiter,
+//! and the signature map for certified delegations.
 
 use candid::{CandidType, Principal};
-use ic_siwa::{RateLimiter, Settings};
+use ic_certified_map::{labeled_hash, Hash};
+use ic_siwa::{RateLimiter, Settings, SignatureMap};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+/// Label for the signature tree in certified data
+pub const LABEL_SIG: &[u8] = b"sig";
 
 /// Active login session (pending signature verification)
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -53,6 +58,8 @@ pub struct State {
     pub principal_to_address: HashMap<Principal, String>,
     /// Rate limiter for login attempts
     pub rate_limiter: RateLimiter,
+    /// Signature map for certified delegations
+    pub signature_map: SignatureMap,
 }
 
 thread_local! {
@@ -103,7 +110,27 @@ pub fn init_state(settings: Settings) {
         state.auth_sessions.clear();
         state.address_to_principal.clear();
         state.principal_to_address.clear();
+        // Reset signature map
+        state.signature_map = SignatureMap::default();
     });
+    // Update certified data with empty signature map
+    update_certified_data();
+}
+
+/// Update the canister's certified data with the current signature map root hash
+///
+/// This must be called after any modification to the signature map.
+pub fn update_certified_data() {
+    with_state(|state| {
+        let root_hash = compute_root_hash(&state.signature_map);
+        ic_cdk::api::set_certified_data(&root_hash);
+    });
+}
+
+/// Compute the root hash for certified data
+fn compute_root_hash(signature_map: &SignatureMap) -> Hash {
+    // Create a labeled hash for the signature tree
+    labeled_hash(LABEL_SIG, &signature_map.root_hash())
 }
 
 /// Get current settings (panics if not initialized)
@@ -114,6 +141,70 @@ pub fn get_settings() -> Settings {
             .clone()
             .expect("Canister not initialized - settings not set")
     })
+}
+
+/// Store a delegation hash in the signature map
+///
+/// This adds the delegation to the certified data so it can be verified
+/// by the IC when used in queries.
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed (derived from address + salt)
+/// * `delegation_hash` - Hash of the delegation
+pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
+    let now = ic_cdk::api::time();
+    with_state_mut(|state| {
+        state.signature_map.put(seed_hash, delegation_hash, now);
+    });
+    update_certified_data();
+}
+
+/// Create a certified signature for a delegation
+///
+/// This creates the full CBOR-encoded signature with certificate and witness tree,
+/// suitable for use as an IC canister signature.
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed
+/// * `delegation_hash` - Hash of the delegation
+///
+/// # Returns
+/// The CBOR-encoded certified signature bytes, or None if delegation not found
+pub fn create_certified_delegation_signature(
+    seed_hash: Hash,
+    delegation_hash: Hash,
+) -> Option<Vec<u8>> {
+    // Get the data certificate from the IC (only available in query calls)
+    let certificate = ic_cdk::api::data_certificate()?;
+
+    with_state(|state| {
+        // Check if expired first
+        let now = ic_cdk::api::time();
+        if state
+            .signature_map
+            .is_expired(now, seed_hash, delegation_hash)
+        {
+            return None;
+        }
+
+        // Get the witness from the signature map
+        let witness = state.signature_map.witness(seed_hash, delegation_hash)?;
+
+        // Create the labeled tree with the signature label
+        let tree = ic_certified_map::labeled(LABEL_SIG, witness);
+
+        // Create the certified signature (CBOR-encoded with self-describing tag)
+        ic_siwa::create_certified_signature(certificate.clone(), tree).ok()
+    })
+}
+
+/// Prune expired entries from the signature map
+pub fn prune_signature_map() {
+    let now = ic_cdk::api::time();
+    let pruned = with_state_mut(|state| state.signature_map.prune_expired(now, 100));
+    if pruned > 0 {
+        update_certified_data();
+    }
 }
 
 /// Get settings reference if initialized
