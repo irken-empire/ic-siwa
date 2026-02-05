@@ -1284,7 +1284,7 @@ cmd_deploy() {
 	log_debug "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
 	log_debug "  Chain ID: $([[ ${network} == "ic" ]] && echo "43114" || echo "43113")"
 
-	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" || {
+	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" --yes || {
 		log_error "Failed to deploy ic_siwa_provider"
 		return 1
 	}
@@ -1294,7 +1294,7 @@ cmd_deploy() {
 	log_success "ic_siwa_provider deployed: ${provider_id}"
 
 	# Deploy Rust test canister
-	run_cmd "Deploying test_canister_rs..." dfx deploy test_canister_rs --network "${network}" || {
+	run_cmd "Deploying test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --yes || {
 		log_error "Failed to deploy test_canister_rs"
 		return 1
 	}
@@ -1304,7 +1304,7 @@ cmd_deploy() {
 	ic_host=$(get_ic_host "${network}")
 	build_ts_canister "${provider_id}" "${ic_host}" || return 1
 
-	run_cmd "Deploying test_canister_ts..." dfx deploy test_canister_ts --network "${network}" || {
+	run_cmd "Deploying test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --yes || {
 		log_error "Failed to deploy test_canister_ts"
 		return 1
 	}
@@ -1401,17 +1401,17 @@ cmd_upgrade() {
 	# Upgrade ic_siwa_provider
 	# Use --upgrade-unchanged to force upgrade even if WASM hash is the same
 	# This ensures new init_args (config) are applied
-	run_cmd "Upgrading ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --upgrade-unchanged --argument "${init_arg}" || return 1
+	run_cmd "Upgrading ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --upgrade-unchanged --argument "${init_arg}" --yes || return 1
 
 	# Upgrade test_canister_rs
-	run_cmd "Upgrading test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --mode upgrade || return 1
+	run_cmd "Upgrading test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --mode upgrade --yes || return 1
 
 	# Rebuild and upgrade test_canister_ts
 	local ic_host
 	ic_host=$(get_ic_host "${network}")
 	build_ts_canister "${canister_id}" "${ic_host}" || return 1
 
-	run_cmd "Upgrading test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --mode upgrade || return 1
+	run_cmd "Upgrading test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --mode upgrade --yes || return 1
 
 	log_success "All canisters upgraded!"
 
