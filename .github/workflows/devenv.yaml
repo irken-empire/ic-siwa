@@ -11,12 +11,6 @@ on:
   pull_request:
     branches:
       - trunk
-    paths:
-      - .github/workflows/devenv.yaml
-      - .github/actions/setup-devenv/**
-      - devenv.nix
-      - devenv.yaml
-      - devenv.lock
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -81,6 +75,18 @@ jobs:
       - name: Devenv test
         id: devenv_test
         run: devenv test
+
+      - name: Write results summary
+        if: always()
+        run: |
+          {
+            echo "## Devenv Results"
+            echo ""
+            echo "### Test Status"
+            echo "| Step | Status |"
+            echo "|------|--------|"
+            echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Report status
         if: always()

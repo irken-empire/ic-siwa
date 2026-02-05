@@ -164,6 +164,8 @@ jobs:
     if: needs.setup.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      version: ${{ steps.verify.outputs.version }}
 
     steps:
       - name: Checkout
@@ -189,30 +191,27 @@ jobs:
           run-id: ${{ needs.setup.outputs.run_id }}
 
       - name: Verify package contents
+        id: verify
         working-directory: libs/ic_siwa_ts
         run: |
-          {
-            echo "## Package Contents"
-            echo '```'
-            ls -la
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
           # Verify dist exists
           if [[ ! -d "dist" ]]; then
             echo "::error::dist directory not found in artifact"
             exit 1
           fi
 
-          # Show what will be published
+          # Get version for outputs
+          VERSION="$(jq -r .version package.json)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          # Show what will be published (console only, not summary)
           npm pack --dry-run
 
       - name: Publish to npm (dry run)
         if: needs.setup.outputs.is_dry_run == 'true'
         working-directory: libs/ic_siwa_ts
         run: |
-          echo "## Dry Run Output" >> "$GITHUB_STEP_SUMMARY"
-          npm publish --dry-run 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          npm publish --dry-run
 
       - name: Publish to npm
         if: needs.setup.outputs.is_dry_run == 'false'
@@ -220,34 +219,6 @@ jobs:
         run: |
           # Trusted publishing via OIDC - provenance is automatically generated
           npm publish --access public
-
-      - name: Summary
-        run: |
-          VERSION="$(jq -r .version libs/ic_siwa_ts/package.json)"
-          IS_DRY_RUN="${{ needs.setup.outputs.is_dry_run }}"
-
-          if [[ "${IS_DRY_RUN}" == "true" ]]; then
-            {
-              echo "## Dry Run Complete"
-              echo ""
-              echo "Would have published: \`ic-siwa@${VERSION}\`"
-              echo ""
-              echo "Run with \`dry_run: false\` to actually publish."
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "## Published ic-siwa@${VERSION}"
-              echo ""
-              echo "Install with:"
-              echo '```bash'
-              echo "bun add ic-siwa@${VERSION}"
-              echo "# or"
-              echo "npm install ic-siwa@${VERSION}"
-              echo '```'
-              echo ""
-              echo "[View on npm](https://www.npmjs.com/package/ic-siwa/v/${VERSION})"
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
 
   ##################################################
   # Status - Report overall status
@@ -259,16 +230,53 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check results
+      - name: Write results summary
         run: |
           {
             echo "## npm Release Results"
+            echo ""
+            echo "### Job Status"
             echo "| Job | Status |"
             echo "|-----|--------|"
             echo "| Setup | ${{ needs.setup.result }} |"
             echo "| Publish | ${{ needs.publish.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+          # Show publish result if successful
+          if [[ "${{ needs.publish.result }}" == "success" ]]; then
+            VERSION="${{ needs.publish.outputs.version }}"
+            IS_DRY_RUN="${{ needs.setup.outputs.is_dry_run }}"
+
+            if [[ "${IS_DRY_RUN}" == "true" ]]; then
+              {
+                echo ""
+                echo "### Dry Run Complete"
+                echo ""
+                echo "Would have published: \`ic-siwa@${VERSION}\`"
+                echo ""
+                echo "Run with \`dry_run: false\` to actually publish."
+              } >> "$GITHUB_STEP_SUMMARY"
+            else
+              {
+                echo ""
+                echo "### Published Package"
+                echo ""
+                echo "**Package:** \`ic-siwa@${VERSION}\`"
+                echo ""
+                echo "Install with:"
+                echo '```bash'
+                echo "bun add ic-siwa@${VERSION}"
+                echo "# or"
+                echo "npm install ic-siwa@${VERSION}"
+                echo '```'
+                echo ""
+                echo "[View on npm](https://www.npmjs.com/package/ic-siwa/v/${VERSION})"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+      - name: Check for failures
+        run: |
           if [[ "${{ needs.publish.result }}" == "failure" ]]; then
             echo "::error::npm publish failed"
             exit 1

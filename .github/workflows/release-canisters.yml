@@ -87,8 +87,12 @@ jobs:
       is_mainnet: ${{ steps.config.outputs.is_mainnet }}
       run_id: ${{ steps.config.outputs.run_id }}
       should_deploy: ${{ steps.config.outputs.should_deploy }}
+      debug: ${{ steps.read-config.outputs.debug }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Determine Environment configuration
         id: config
         env:
@@ -162,20 +166,7 @@ jobs:
             echo "should_deploy=${SHOULD_DEPLOY}"
           } >> "$GITHUB_OUTPUT"
 
-          # Summary
-          {
-            echo "## Release Canisters Configuration"
-            echo "| Setting | Value |"
-            echo "|---------|-------|"
-            echo "| Trigger | \`${{ github.event_name }}\` |"
-            echo "| Ref | \`${{ github.ref_name }}\` |"
-            echo "| SHA | \`${{ github.sha }}\` |"
-            echo "| Environment | ${ENVIRONMENT} |"
-            echo "| GitHub Environment | ${GITHUB_ENV} |"
-            echo "| Is Mainnet | ${IS_MAINNET} |"
-            echo "| Should Deploy | ${SHOULD_DEPLOY} |"
-            echo "| Build Run ID | ${RUN_ID:-latest} |"
-          } >> "$GITHUB_STEP_SUMMARY"
+          # Summary will be written after read-config to include all values
 
       - name: Validate mainnet deployment
         if: steps.config.outputs.is_mainnet == 'true'
@@ -191,6 +182,48 @@ jobs:
           # For workflow_run from release, check it's not a pre-release
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
             echo "Deploying from Build workflow run: ${{ github.event.workflow_run.id }}"
+          fi
+
+      - name: Read config
+        id: read-config
+        if: steps.config.outputs.should_deploy == 'true'
+        uses: ./.github/actions/read-config
+        with:
+          environment: ${{ steps.config.outputs.environment }}
+          skip_summary: "true"
+
+      - name: Write configuration summary
+        if: always()
+        run: |
+          {
+            echo "## Release Canisters Configuration"
+            echo ""
+            echo "### Workflow"
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Ref | \`${{ github.ref_name }}\` |"
+            echo "| SHA | \`${{ github.sha }}\` |"
+            echo "| Environment | ${{ steps.config.outputs.environment }} |"
+            echo "| Is Mainnet | ${{ steps.config.outputs.is_mainnet }} |"
+            echo "| Should Deploy | ${{ steps.config.outputs.should_deploy }} |"
+            echo "| Build Run ID | ${{ steps.config.outputs.run_id || 'latest' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Only show config values if deploying
+          if [[ "${{ steps.config.outputs.should_deploy }}" == "true" ]]; then
+            {
+              echo ""
+              echo "### Canister Configuration"
+              echo "| Setting | Value |"
+              echo "|---------|-------|"
+              echo "| Config File | \`${{ steps.read-config.outputs.config_file }}\` |"
+              echo "| Chain ID | ${{ steps.read-config.outputs.chain_id }} |"
+              echo "| Domain | ${{ steps.read-config.outputs.domain }} |"
+              echo "| URI | ${{ steps.read-config.outputs.uri }} |"
+              echo "| Provider Canister ID | \`${{ steps.read-config.outputs.provider_canister_id || 'not set' }}\` |"
+              echo "| Debug Mode | ${{ steps.read-config.outputs.debug }} |"
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
   ##################################################
@@ -235,6 +268,7 @@ jobs:
         uses: ./.github/actions/read-config
         with:
           environment: ${{ needs.setup.outputs.environment }}
+          skip_summary: "true"
 
       - name: Deploy canister
         id: deploy
@@ -299,7 +333,7 @@ jobs:
     if: |
       needs.setup.outputs.should_deploy == 'true' &&
       needs.setup.outputs.environment == 'testnet' &&
-      vars.DEPLOY_TEST_CANISTERS == 'true'
+      needs.setup.outputs.debug == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: ${{ needs.setup.outputs.github_environment }}
@@ -377,6 +411,7 @@ jobs:
         uses: ./.github/actions/read-config
         with:
           environment: ${{ needs.setup.outputs.environment }}
+          skip_summary: "true"
 
       - name: Get version
         id: version
@@ -407,8 +442,8 @@ jobs:
 
             | Canister | ID | Link |
             |----------|----|----- |
-            | **test_canister_ts** | `${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}` | [Open UI](https://${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}.icp0.io) |
-            | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}` | [Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}) |
+            | **test_canister_ts** | `${{ needs.deploy-test-canisters.outputs.test_canister_ts_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id && format('[Open UI](https://{0}.icp0.io)', needs.deploy-test-canisters.outputs.test_canister_ts_id) || 'N/A' }} |
+            | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_rs_id && format('[Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id={0})', needs.deploy-test-canisters.outputs.test_canister_rs_id) || 'N/A' }} |
 
             ---
             *This is a testnet deployment. npm package was published as a dry run.*
@@ -461,10 +496,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check results
+      - name: Write results summary
         run: |
           {
             echo "## Release Canisters Results"
+            echo ""
+            echo "### Job Status"
             echo "| Job | Status |"
             echo "|-----|--------|"
             echo "| Setup | ${{ needs.setup.result }} |"
@@ -474,6 +511,27 @@ jobs:
             echo "| Release | ${{ needs.release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+          # Show deployed artifacts if successful
+          if [[ "${{ needs.deploy-provider.result }}" == "success" ]]; then
+            {
+              echo ""
+              echo "### Deployed Canisters"
+              echo "| Canister | ID | Link |"
+              echo "|----------|----|----- |"
+              echo "| **ic_siwa_provider** | \`${{ needs.deploy-provider.outputs.canister_id }}\` | [Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            # Add test canisters if deployed
+            if [[ "${{ needs.deploy-test-canisters.result }}" == "success" ]]; then
+              {
+                echo "| **test_canister_ts** | \`${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}\` | [Open UI](https://${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}.icp0.io) |"
+                echo "| **test_canister_rs** | \`${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}\` | [Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}) |"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+      - name: Check for failures
+        run: |
           DEPLOY_JOBS="${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }}"
           if echo "${DEPLOY_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::Deployment failed"
