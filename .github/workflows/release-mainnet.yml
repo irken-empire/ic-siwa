@@ -49,6 +49,7 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
+    environment: Mainnet
     outputs:
       version: ${{ steps.version.outputs.version }}
       debug: ${{ steps.config.outputs.debug }}
@@ -86,6 +87,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: Mainnet
 
     steps:
       - name: Checkout
@@ -113,6 +115,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: Mainnet
 
     steps:
       - name: Checkout
@@ -144,6 +147,7 @@ jobs:
     needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: Mainnet
 
     strategy:
       fail-fast: false
@@ -190,6 +194,7 @@ jobs:
     needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: Mainnet
     outputs:
       version: ${{ steps.build.outputs.version }}
 
@@ -284,6 +289,7 @@ jobs:
     needs: [deploy-provider]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: Mainnet
 
     steps:
       - name: Checkout
@@ -369,6 +375,7 @@ jobs:
     needs: [build-npm, verify-deployment]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: Mainnet
     outputs:
       version: ${{ steps.publish.outputs.version }}
 
@@ -404,6 +411,7 @@ jobs:
     if: always() && needs.verify-deployment.result == 'success' && needs.publish-npm.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: Mainnet
 
     steps:
       - name: Checkout
@@ -464,6 +472,7 @@ jobs:
       ]
     if: always()
     runs-on: ubuntu-latest
+    environment: Mainnet
 
     steps:
       - name: Write results summary
