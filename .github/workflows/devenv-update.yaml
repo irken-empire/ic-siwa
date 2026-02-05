@@ -76,7 +76,20 @@ jobs:
         run: bun run install-deps
 
       - name: Devenv test
+        id: devenv_test
         run: devenv test
+
+      - name: Write results summary
+        if: always()
+        run: |
+          {
+            echo "## Devenv Update Results"
+            echo ""
+            echo "### Test Status"
+            echo "| Step | Status |"
+            echo "|------|--------|"
+            echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8

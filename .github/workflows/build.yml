@@ -302,10 +302,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check results
+      - name: Write results summary
         run: |
           {
             echo "## Build Results"
+            echo ""
+            echo "### Job Status"
             echo "| Job | Status |"
             echo "|-----|--------|"
             echo "| Setup | ${{ needs.setup.result }} |"
@@ -316,7 +318,22 @@ jobs:
             echo "| Verify Candid | ${{ needs.verify-candid.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Check all jobs
+          # Show artifacts if build succeeded
+          if [[ "${{ needs.build-canisters.result }}" == "success" ]]; then
+            {
+              echo ""
+              echo "### Build Artifacts"
+              echo "| Artifact | Environment |"
+              echo "|----------|-------------|"
+              echo "| ic_siwa_provider | ${{ needs.setup.outputs.environment }} |"
+              echo "| test_canister_rs | ${{ needs.setup.outputs.environment }} |"
+              echo "| test_canister_ts | ${{ needs.setup.outputs.environment }} |"
+              echo "| ic-siwa-npm | ${{ needs.setup.outputs.environment }} |"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Check for failures
+        run: |
           ALL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.build-typescript.result }},${{ needs.verify-candid.result }}"
 
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then

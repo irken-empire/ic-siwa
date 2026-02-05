@@ -5,6 +5,10 @@ inputs:
   environment:
     description: "Deployment environment: development, testnet, or mainnet"
     required: true
+  skip_summary:
+    description: "Skip writing to GITHUB_STEP_SUMMARY (default: false)"
+    required: false
+    default: "false"
 
 outputs:
   config_file:
@@ -110,19 +114,21 @@ runs:
           echo "debug=${DEBUG}"
         } >> "$GITHUB_OUTPUT"
 
-        # Summary
-        {
-          echo "## Config Values"
-          echo "| Key | Value |"
-          echo "|-----|-------|"
-          echo "| Environment | ${{ inputs.environment }} |"
-          echo "| Config File | ${CONFIG_FILE} |"
-          echo "| Chain ID | ${CHAIN_ID} |"
-          echo "| Domain | ${DOMAIN} |"
-          echo "| URI | ${URI} |"
-          echo "| Session Expiration | ${SESSION_EXP}s |"
-          echo "| Provider Canister ID | ${PROVIDER_ID:-not set} |"
-          echo "| Rate Limit (per address) | ${RATE_LIMIT_PER_ADDRESS} |"
-          echo "| Rate Limit (total) | ${RATE_LIMIT_TOTAL} |"
-          echo "| Rate Limit Window | ${RATE_LIMIT_WINDOW}s |"
-        } >> "$GITHUB_STEP_SUMMARY"
+        # Summary (optional)
+        if [[ "${{ inputs.skip_summary }}" != "true" ]]; then
+          {
+            echo "## Config Values"
+            echo "| Key | Value |"
+            echo "|-----|-------|"
+            echo "| Environment | ${{ inputs.environment }} |"
+            echo "| Config File | ${CONFIG_FILE} |"
+            echo "| Chain ID | ${CHAIN_ID} |"
+            echo "| Domain | ${DOMAIN} |"
+            echo "| URI | ${URI} |"
+            echo "| Session Expiration | ${SESSION_EXP}s |"
+            echo "| Provider Canister ID | ${PROVIDER_ID:-not set} |"
+            echo "| Rate Limit (per address) | ${RATE_LIMIT_PER_ADDRESS} |"
+            echo "| Rate Limit (total) | ${RATE_LIMIT_TOTAL} |"
+            echo "| Rate Limit Window | ${RATE_LIMIT_WINDOW}s |"
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
