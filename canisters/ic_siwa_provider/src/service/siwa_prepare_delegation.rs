@@ -2,10 +2,13 @@
 //!
 //! Prepares a delegation by storing it in the signature map for certified responses.
 
-use crate::state::{get_auth_session, get_settings, store_delegation};
-use ic_siwa::hash::hash_bytes;
+use crate::service::delegation_utils::{
+    cleanup_expired_prepared_delegations, compute_delegation_hash, compute_final_expiration,
+    compute_seed_hash, create_prepared_delegation_key, get_delegation_targets,
+    store_prepared_delegation, validate_session, PreparedDelegationValue,
+};
+use crate::state::store_delegation;
 use ic_siwa::siwa::hash_session_key;
-use ic_siwa::{create_delegation_hash, generate_seed, DelegationInfo};
 
 /// Prepare a delegation for an authenticated session
 ///
@@ -25,58 +28,38 @@ pub fn prepare_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<(), String> {
-    // Get settings
-    let settings = get_settings();
+    // Periodically cleanup expired prepared delegations
+    cleanup_expired_prepared_delegations();
 
-    // Look up the auth session
-    let key_hash = hash_session_key(&session_key);
-    let auth_session = get_auth_session(&key_hash)
-        .ok_or_else(|| format!("No authenticated session found for address {}", address))?;
+    // Validate the session and get session data
+    let (_key_hash, session_expires_at) = validate_session(&address, &session_key)?;
 
-    // Verify the address matches
-    if auth_session.address.to_lowercase() != address.to_lowercase() {
-        return Err("Address mismatch".to_string());
-    }
-
-    // Verify the session key matches
-    if auth_session.session_key != session_key {
-        return Err("Session key mismatch".to_string());
-    }
-
-    // Check if the auth session has expired
-    let now = ic_cdk::api::time();
-    if now > auth_session.expires_at {
-        return Err("Session has expired".to_string());
-    }
-
-    // Cap the requested expiration to the session expiration
-    let capped_expiration = expiration.min(auth_session.expires_at);
-
-    // Also cap to the configured session expiration time from now
-    let max_expiration = now + settings.session_expiration_time;
-    let final_expiration = capped_expiration.min(max_expiration);
+    // Compute the final expiration (capped to session and settings limits)
+    let final_expiration = compute_final_expiration(expiration, session_expires_at);
 
     // Get targets from settings
-    let targets = if settings.delegation_targets.is_empty() {
-        None
-    } else {
-        Some(settings.delegation_targets.clone())
-    };
+    let targets = get_delegation_targets();
 
-    // Generate the seed and compute hashes
-    let seed = generate_seed(&settings.salt, &address);
-    let seed_hash = hash_bytes(seed);
-
-    // Create the delegation info for hashing
-    let delegation_info = DelegationInfo {
-        pubkey: &session_key,
-        expiration: final_expiration,
-        targets: targets.as_deref(),
-    };
-    let delegation_hash = create_delegation_hash(&delegation_info);
+    // Compute the seed hash and delegation hash
+    let seed_hash = compute_seed_hash(&address);
+    let delegation_hash =
+        compute_delegation_hash(&session_key, final_expiration, targets.as_deref());
 
     // Store the delegation in the signature map
     store_delegation(seed_hash, delegation_hash);
+
+    // Store the prepared delegation info so get_delegation can retrieve the exact
+    // expiration value, avoiding hash mismatches due to time differences
+    let session_key_hash = hash_session_key(&session_key);
+    let prepared_key = create_prepared_delegation_key(seed_hash, &session_key_hash);
+    store_prepared_delegation(
+        prepared_key,
+        PreparedDelegationValue {
+            final_expiration,
+            delegation_hash,
+            targets,
+        },
+    );
 
     Ok(())
 }

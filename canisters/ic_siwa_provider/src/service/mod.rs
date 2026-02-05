@@ -2,6 +2,7 @@
 //!
 //! Contains implementation of SIWA endpoints.
 
+pub mod delegation_utils;
 pub mod get_address;
 pub mod get_caller_address;
 pub mod get_principal;

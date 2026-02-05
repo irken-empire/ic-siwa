@@ -2,11 +2,12 @@
 //!
 //! Returns a signed delegation for authenticated principals.
 
-use crate::state::{create_certified_delegation_signature, get_auth_session, get_settings};
+use crate::service::delegation_utils::{
+    compute_seed_hash, create_prepared_delegation_key, get_prepared_delegation, validate_session,
+};
+use crate::state::create_certified_delegation_signature;
 use candid::{CandidType, Principal};
-use ic_siwa::hash::hash_bytes;
 use ic_siwa::siwa::hash_session_key;
-use ic_siwa::{create_delegation_hash, generate_seed, DelegationInfo};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
@@ -44,7 +45,7 @@ pub struct DelegationChain {
 /// # Arguments
 /// * `address` - The Avalanche address to get delegation for
 /// * `session_key` - The session public key
-/// * `expiration` - Requested expiration timestamp (may be capped)
+/// * `expiration` - Requested expiration timestamp (used for validation, not lookup)
 ///
 /// # Returns
 /// * `Ok(SignedDelegation)` - The signed delegation
@@ -52,72 +53,52 @@ pub struct DelegationChain {
 pub fn get_delegation(
     address: String,
     session_key: Vec<u8>,
-    expiration: u64,
+    _expiration: u64,
 ) -> Result<SignedDelegation, String> {
-    // Get settings
-    let settings = get_settings();
+    // Validate the session (this also checks expiration)
+    let (_key_hash, _session_expires_at) = validate_session(&address, &session_key)?;
 
-    // Look up the auth session
-    let key_hash = hash_session_key(&session_key);
-    let auth_session = get_auth_session(&key_hash)
-        .ok_or_else(|| format!("No authenticated session found for address {}", address))?;
+    // Compute the seed hash for this address
+    let seed_hash = compute_seed_hash(&address);
 
-    // Verify the address matches
-    if auth_session.address.to_lowercase() != address.to_lowercase() {
-        return Err("Address mismatch".to_string());
-    }
+    // Get the session key hash for looking up the prepared delegation
+    let session_key_hash = hash_session_key(&session_key);
+    let prepared_key = create_prepared_delegation_key(seed_hash, &session_key_hash);
 
-    // Verify the session key matches
-    if auth_session.session_key != session_key {
-        return Err("Session key mismatch".to_string());
-    }
+    // Look up the prepared delegation to get the exact expiration and hash that was stored
+    let prepared = get_prepared_delegation(&prepared_key).ok_or_else(|| {
+        format!(
+            "Delegation not found in signature map - please call siwa_prepare_delegation first. \
+             address: {}, seed_hash: {:?}, session_key_hash: {}",
+            address,
+            hex::encode(seed_hash),
+            session_key_hash
+        )
+    })?;
 
-    // Check if the auth session has expired
-    let now = ic_cdk::api::time();
-    if now > auth_session.expires_at {
-        return Err("Session has expired".to_string());
-    }
-
-    // Cap the requested expiration to the session expiration
-    let capped_expiration = expiration.min(auth_session.expires_at);
-
-    // Also cap to the configured session expiration time from now
-    let max_expiration = now + settings.session_expiration_time;
-    let final_expiration = capped_expiration.min(max_expiration);
-
-    // Create the delegation with optional targets from settings
-    // If delegation_targets is configured, the delegation will only work for those canisters
-    // This prevents the delegation from being used to call arbitrary canisters
-    let targets = if settings.delegation_targets.is_empty() {
-        None
-    } else {
-        Some(settings.delegation_targets.clone())
-    };
-
-    let delegation = Delegation {
-        pubkey: ByteBuf::from(session_key.clone()),
-        expiration: final_expiration,
-        targets: targets.clone(),
-    };
-
-    // Generate the seed and compute hashes for signature map lookup
-    let seed = generate_seed(&settings.salt, &address);
-    let seed_hash = hash_bytes(seed);
-
-    // Create the delegation info for hashing (must match what was stored during prepare_delegation)
-    let delegation_info = DelegationInfo {
-        pubkey: &session_key,
-        expiration: final_expiration,
-        targets: targets.as_deref(),
-    };
-    let delegation_hash = create_delegation_hash(&delegation_info);
+    // Use the exact values from the prepared delegation
+    let final_expiration = prepared.final_expiration;
+    let delegation_hash = prepared.delegation_hash;
+    let targets = prepared.targets;
 
     // Create the certified signature (includes certificate + witness tree, CBOR-encoded)
     let signature =
         create_certified_delegation_signature(seed_hash, delegation_hash).ok_or_else(|| {
-            "Delegation not found in signature map - please call siwa_prepare_delegation first"
-                .to_string()
+            format!(
+                "Failed to create certified signature - delegation may have expired or been pruned. \
+                 seed_hash: {:?}, delegation_hash: {:?}, expiration: {}",
+                hex::encode(seed_hash),
+                hex::encode(delegation_hash),
+                final_expiration
+            )
         })?;
+
+    // Create the delegation with the exact values used during prepare
+    let delegation = Delegation {
+        pubkey: ByteBuf::from(session_key),
+        expiration: final_expiration,
+        targets,
+    };
 
     Ok(SignedDelegation {
         delegation,
