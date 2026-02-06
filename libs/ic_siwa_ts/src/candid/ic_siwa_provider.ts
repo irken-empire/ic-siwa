@@ -103,14 +103,18 @@ export interface _SERVICE {
   /**
    * Get delegation for authenticated principal
    * 
+   * This is a **query** call that retrieves the certified delegation.
+   * You **must** call `siwa_prepare_delegation` first (an update call) and wait
+   * for it to complete before calling this query.
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
-   * * `expiration` - Requested expiration timestamp (may be capped)
+   * * `expiration` - Requested expiration timestamp (used for validation)
    * 
    * # Returns
    * * `Ok(SignedDelegation)` - The signed delegation for the session
-   * * `Err(String)` - Error if not authenticated or expired
+   * * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
    */
   'siwa_get_delegation' : ActorMethod<
     [string, Uint8Array | number[], bigint],
