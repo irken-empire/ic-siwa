@@ -58,6 +58,16 @@ NPM_PACKAGES=(
 	"canisters/test_canister_ts/package.json"
 )
 
+# Agent documentation sources for LLM context
+# Format: "name|url"
+AGENT_DOC_SOURCES=(
+	"daisyui|https://daisyui.com/llms.txt"
+	"astro|https://docs.astro.build/llms-full.txt"
+	"juno|https://juno.build/llms-full.txt"
+	"oisy|https://docs.oisy.com/llms-full.txt"
+)
+AGENT_DOCS_DIR="docs/agents"
+
 # ==========================================
 # Logging Functions
 # ==========================================
@@ -209,6 +219,7 @@ show_help() {
 		  stop               Stop local DFX replica
 		  logs               Tail ic_siwa_provider logs in real-time
 		  update             Update all dependencies (cargo, bun) and pin versions
+		  agent-docs         Download LLM documentation for AI agents
 		  check              Check if all required dependencies are installed
 		  version            Show current version (from Cargo.toml)
 		  version --bump     Bump version based on conventional commits
@@ -271,6 +282,7 @@ declare -A CMD_DEPS=(
 	["cleanup"]="dfx"
 	["urls"]="dfx"
 	["cycles"]="dfx,jq"
+	["agent-docs"]="curl"
 )
 
 # Check if a command exists
@@ -334,6 +346,9 @@ check_deps() {
 				;;
 			nc)
 				echo -e "  ${RED}✗${NC} nc (netcat) - Install via package manager"
+				;;
+			curl)
+				echo -e "  ${RED}✗${NC} curl - Install via package manager"
 				;;
 			*)
 				echo -e "  ${RED}✗${NC} ${dep}"
@@ -674,6 +689,52 @@ cmd_update() {
 	log_info "  1. Review changes: git diff"
 	log_info "  2. Test: ic-siwa test"
 	log_info "  3. Commit: git commit -am 'chore(deps): update dependencies'"
+}
+
+# Download LLM documentation for AI agents
+cmd_agent_docs() {
+	log_info "Downloading AI agent documentation..."
+
+	mkdir -p "${PROJECT_ROOT}/${AGENT_DOCS_DIR}"
+
+	local failed=0
+	local success=0
+
+	for entry in "${AGENT_DOC_SOURCES[@]}"; do
+		# Split entry by pipe
+		local name="${entry%%|*}"
+		local url="${entry##*|}"
+		local filename="${name,,}.txt" # lowercase
+		local filepath="${PROJECT_ROOT}/${AGENT_DOCS_DIR}/${filename}"
+
+		log_info "Downloading ${name} docs from ${url}..."
+
+		if curl -s --connect-timeout 10 --max-time 60 -o "${filepath}" "${url}"; then
+			# Check if file has content
+			if [[ -s "${filepath}" ]]; then
+				local size
+				size=$(wc -c <"${filepath}" | tr -d ' ')
+				log_success "${name} docs saved (${size} bytes)"
+				((success++))
+			else
+				log_warn "${name} docs downloaded but file is empty"
+				rm -f "${filepath}"
+				((failed++))
+			fi
+		else
+			log_error "Failed to download ${name} docs"
+			((failed++))
+		fi
+	done
+
+	log_info ""
+	log_info "Download complete: ${success} succeeded, ${failed} failed"
+
+	if [[ ${success} -gt 0 ]]; then
+		log_info ""
+		log_info "Documentation files saved to: ${AGENT_DOCS_DIR}/"
+		log_info "Reference these in your AI agent prompts for context."
+	fi
 }
 
 # Build the project
@@ -1848,6 +1909,9 @@ parse_args() {
 		;;
 	update)
 		cmd_update
+		;;
+	agent-docs)
+		cmd_agent_docs
 		;;
 	check)
 		cmd_check_deps

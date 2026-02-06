@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get version
         id: version
@@ -91,7 +91,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -119,7 +119,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -162,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -180,7 +180,7 @@ jobs:
           optimize: "false"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.canister }}-testnet
           path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
@@ -200,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -214,7 +214,7 @@ jobs:
         uses: ./.github/actions/build-npm
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ic-siwa-npm-testnet
           path: |
@@ -237,7 +237,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -252,7 +252,7 @@ jobs:
           environment: testnet
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ic_siwa_provider-testnet
           path: target/wasm32-unknown-unknown/release/
@@ -293,7 +293,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -327,7 +327,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -342,13 +342,13 @@ jobs:
           environment: testnet
 
       - name: Download test_canister_rs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: test_canister_rs-testnet
           path: target/wasm32-unknown-unknown/release/
 
       - name: Download test_canister_ts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: test_canister_ts-testnet
           path: canisters/test_canister_ts/dist/
@@ -381,10 +381,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ic-siwa-npm-testnet
           path: libs/ic_siwa_ts/
@@ -415,7 +415,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

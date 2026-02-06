@@ -19,8 +19,8 @@ categories = ["authentication", "cryptography", "wasm"]
 # Internet Computer
 candid = "0.10"
 ic-cdk = "0.16"
-ic-cdk-macros = "0.16"
-ic-stable-structures = "0.6"
+ic-cdk-macros = "0.19.0"
+ic-stable-structures = "0.7.2"
 ic-certified-map = "0.4"
 
 # Serialization

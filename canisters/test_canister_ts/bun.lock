@@ -5,22 +5,22 @@
     "": {
       "name": "test_canister_ts",
       "dependencies": {
-        "@walletconnect/ethereum-provider": "2.23.4",
-        "@walletconnect/modal": "2.7.0",
-        "astro": "5.17.1",
+        "@walletconnect/ethereum-provider": "latest",
+        "@walletconnect/modal": "latest",
+        "astro": "latest",
         "ic-siwa": "file:../../libs/ic_siwa_ts",
-        "viem": "2.45.1",
+        "viem": "latest",
       },
       "devDependencies": {
-        "@astrojs/check": "0.9.6",
-        "@eslint/js": "9.39.2",
-        "@tailwindcss/vite": "4.1.18",
-        "daisyui": "5.5.17",
-        "eslint": "9.39.2",
-        "globals": "17.3.0",
-        "tailwindcss": "4.1.18",
-        "typescript": "5.9.3",
-        "typescript-eslint": "8.54.0",
+        "@astrojs/check": "latest",
+        "@eslint/js": "latest",
+        "@tailwindcss/vite": "latest",
+        "daisyui": "latest",
+        "eslint": "latest",
+        "globals": "latest",
+        "tailwindcss": "latest",
+        "typescript": "latest",
+        "typescript-eslint": "latest",
       },
     },
   },
@@ -729,7 +729,7 @@
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
 
-    "daisyui": ["daisyui@5.5.17", "", {}, "sha512-Y8QWps/990Epp0Gn+7ReeALSXgwrd3W36waokJvHgqUdYx6t2sj0e1krW3+YqviBa57XTJqHJNTt8HMvcODL2Q=="],
+    "daisyui": ["daisyui@5.5.18", "", {}, "sha512-VVzjpOitMGB6DWIBeRSapbjdOevFqyzpk9u5Um6a4tyId3JFrU5pbtF0vgjXDth76mJZbueN/j9Ok03SPrh/og=="],
 
     "dayjs": ["dayjs@1.11.13", "", {}, "sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg=="],
 

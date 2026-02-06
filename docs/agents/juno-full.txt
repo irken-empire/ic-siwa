@@ -599,9 +599,9 @@ Go to the [Setup](https://console.juno.build/analytics/?tab=setup) tab in the An
 There are two ways to integrate Juno Analytics into your project:
 
 1.  Using your favorite package manager (`npm`, `yarn`, `pnpm`). ([Learn how](#1-with-package-manager)).
-    
+
 2.  Without installation by fetching the library from a CDN. ([Learn how](#2-from-a-cdn)).
-    
+
 
 ---
 
@@ -1072,9 +1072,9 @@ To let users keep the same identity across domains, you must also configure your
 If you're unsure which domain to use as the primary domain, here are two common approaches:
 
 *   **Use your custom domain** (e.g. `mydomain.com`) if you're confident it will remain the main entry point for users. This ensures a consistent user experience - users will always see and recognize the same URL when signing in.
-    
+
 *   Alternatively, stick with **the default domain** (`{satellite-id}.icp0.io`) if:
-    
+
     *   You're still experimenting with your domain setup and might change it later.
     *   You're not ready to commit to a long-term domain.
     *   You plan to host multiple Satellites under different domains and don't want to tie user identity to just one.
@@ -1545,78 +1545,78 @@ import { listDocs } from "@junobuild/core";const myList = await listDocs({  coll
 The function requires a collection and accepts various optional parameters, including a matcher (a regex applied to the document keys and descriptions), pagination options, and sorting order.
 
 1.  **`collection`** (required)
-    
+
     *   **Description**: The key of the collection from which documents are to be listed.
     *   **Type**: `string`
 2.  **`filter`** (optional)
-    
+
     *   **Description**: An optional object that can be used to provide various parameters to filter documents.
-    
+
     a. **`matcher`** (optional)
-    
+
     *   **Description**: An object used to filter documents based on their keys or descriptions using regular expressions.
-        
+
     *   **Type**: `ListMatcher`
-        
+
         ```
         interface ListMatcher {  key?: string;  description?: string;  createdAt?: ListTimestampMatcher;  updatedAt?: ListTimestampMatcher;}
         ```
-        
+
         *   **key**: A regex to match against document keys.
         *   **description**: A regex to match against document descriptions.
         *   **createdAt**: A `ListTimestampMatcher` to filter documents based on their creation timestamp.
         *   **updatedAt**: A `ListTimestampMatcher` to filter documents based on their last update timestamp.
     *   **Type**: `ListTimestampMatcher` can be used to specify criteria for timestamp matching.
-        
+
         ```
         type ListTimestampMatcher =  | {      matcher: "equal";      timestamp: bigint;    }  | {      matcher: "greaterThan";      timestamp: bigint;    }  | {      matcher: "lessThan";      timestamp: bigint;    }  | {      matcher: "between";      timestamps: {        start: bigint;        end: bigint;      };    };
         ```
-        
+
         *   **matcher**: Specifies the type of timestamp comparison. Can be one of the following:
-            
+
             *   **equal**: Matches documents where the timestamp is exactly equal to the specified value.
             *   **greaterThan**: Matches documents where the timestamp is greater than the specified value.
             *   **lessThan**: Matches documents where the timestamp is less than the specified value.
             *   **between**: Matches documents where the timestamp falls within a specified range.
         *   **timestamp**: Used with `equal`, `greaterThan`, and `lessThan` matchers to specify the exact timestamp for comparison.
-            
+
         *   **timestamps**: Used with the `between` matcher to specify a range of timestamps. The range is inclusive of both the start and end values.
-            
-    
+
+
     b. **`paginate`** (optional)
-    
+
     *   **Description**: An object to control pagination of the results
-        
+
     *   **Type**: `ListPaginate`
-        
+
         ```
         interface ListPaginate {  startAfter?: string;  limit?: number;}
         ```
-        
+
         *   **startAfter**: A string key to start listing documents after this key.
         *   **limit**: The maximum number of documents to return.
-    
+
     c. **`order`** (optional)
-    
+
     *   **Description**: Control the sorting order of the results.
-        
+
     *   **Type**: `ListOrder`
-        
+
         ```
         interface ListOrder {  desc: boolean;  field: ListOrderField;}type ListOrderField = "keys" | "updated_at" | "created_at";
         ```
-        
-    
+
+
     d. **`owner`** (optional)
-    
+
     *   **Description**: The owner of the documents.
-        
+
     *   **Type**: `ListOwner`
-        
+
         ```
         type ListOwner = string | Principal;
         ```
-        
+
 
 **Example:**
 
@@ -2596,78 +2596,78 @@ The function requires a collection and accepts various optional parameters, incl
 `listAssets` uses the same interface as `listDocs`. That is why the parameter `matcher` expect a value `key` to filter the assets according their `fullPath`.
 
 1.  **`collection`** (required)
-    
+
     *   **Description**: The key of the collection from which assets are to be listed.
     *   **Type**: `string`
 2.  **`filter`** (optional)
-    
+
     *   **Description**: An optional object that can be used to provide various parameters to filter assets.
-    
+
     a. **`matcher`** (optional)
-    
+
     *   **Description**: An object used to filter assets based on their keys (fullPaths) or descriptions using regular expressions.
-        
+
     *   **Type**: `ListMatcher`
-        
+
         ```
         interface ListMatcher {  key?: string;  description?: string;  createdAt?: ListTimestampMatcher;  updatedAt?: ListTimestampMatcher;}
         ```
-        
+
         *   **key**: A regex to match against asset keys.
         *   **description**: A regex to match against asset descriptions.
         *   **createdAt**: A `ListTimestampMatcher` to filter assets based on their creation timestamp.
         *   **updatedAt**: A `ListTimestampMatcher` to filter assets based on their last update timestamp.
     *   **Type**: `ListTimestampMatcher` can be used to specify criteria for timestamp matching.
-        
+
         ```
         type ListTimestampMatcher =  | {      matcher: "equal";      timestamp: bigint;    }  | {      matcher: "greaterThan";      timestamp: bigint;    }  | {      matcher: "lessThan";      timestamp: bigint;    }  | {      matcher: "between";      timestamps: {        start: bigint;        end: bigint;      };    };
         ```
-        
+
         *   **matcher**: Specifies the type of timestamp comparison. Can be one of the following:
-            
+
             *   **equal**: Matches assets where the timestamp is exactly equal to the specified value.
             *   **greaterThan**: Matches assets where the timestamp is greater than the specified value.
             *   **lessThan**: Matches assets where the timestamp is less than the specified value.
             *   **between**: Matches assets where the timestamp falls within a specified range.
         *   **timestamp**: Used with `equal`, `greaterThan`, and `lessThan` matchers to specify the exact timestamp for comparison.
-            
+
         *   **timestamps**: Used with the `between` matcher to specify a range of timestamps. The range is inclusive of both the start and end values.
-            
-    
+
+
     b. **`paginate`** (optional)
-    
+
     *   **Description**: An object to control pagination of the results
-        
+
     *   **Type**: `ListPaginate`
-        
+
         ```
         interface ListPaginate {  startAfter?: string;  limit?: number;}
         ```
-        
+
         *   **startAfter**: A string key to start listing assets after this key.
         *   **limit**: The maximum number of assets to return.
-    
+
     c. **`order`** (optional)
-    
+
     *   **Description**: Control the sorting order of the results.
-        
+
     *   **Type**: `ListOrder`
-        
+
         ```
         interface ListOrder {  desc: boolean;  field: ListOrderField;}type ListOrderField = "keys" | "updated_at" | "created_at";
         ```
-        
-    
+
+
     d. **`owner`** (optional)
-    
+
     *   **Description**: The owner of the assets.
-        
+
     *   **Type**: `ListOwner`
-        
+
         ```
         type ListOwner = string | Principal;
         ```
-        
+
 
 **Example:**
 
@@ -2706,13 +2706,13 @@ import { downloadUrl } from "@junobuild/core";const url = downloadUrl({  assetKe
 #### Parameters
 
 *   **`assetKey`** (required)
-    
+
 *   **`fullPath`**: The full path to the asset (e.g., `/images/file.jpg`).
-    
+
 *   **`token`** (optional): A access token used to protect the asset.
-    
+
 *   **`satellite`** (optional) Required only in Node.js environments to specify which Satellite to use.
-    
+
 
 #### Returns
 
@@ -3396,11 +3396,11 @@ angular-example/├── public/                # Static assets├── src/�
 ## Data Structure
 
 *   **Note** (`src/app/types/note.ts`):
-    
+
     ```
     export interface Note {  text: string;  url?: string;}
     ```
-    
+
 
 ---
 
@@ -4669,7 +4669,7 @@ These crates are used to build and extend serverless functions in Rust with Juno
 *   [junobuild-storage](https://docs.rs/junobuild-storage): Storage helpers for working with assets and HTTP headers in Juno.
 
 *   [icrc-ledger-types](https://docs.rs/icrc-ledger-types): Types for interacting with the ICRC ledger standard.
-    
+
 *   [ic-cdk](https://docs.rs/ic-cdk): Internet Computer canister development kit for Rust.
 
 # Generating Assets with Rust Serverless Functions
@@ -5671,7 +5671,7 @@ In the next chapter, we'll apply this config before running the tests.
 To run the tests in your CI, you can either use the [GitHub Actions](/docs/guides/github-actions.md) or install the CLI manually. In the example below, we install the CLI because we chain multiple commands.
 
 ```
-name: E2E Testson:  pull_request:  workflow_dispatch:jobs:  e2e:    runs-on: ubuntu-latest    steps:      - name: Checkout        uses: actions/checkout@v4      - name: Set up Node        uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install dependencies        run: npm ci      - name: Install Juno CLI        run: npm i -g @junobuild/cli      - name: Run emulator        run: |          set -e          juno emulator start --headless &          juno emulator wait          juno login --emulator --mode development --headless          juno config apply --mode development --headless      - name: Run tests        run: npm run e2e:ci      - name: Upload Playwright report on failure        uses: actions/upload-artifact@v4        if: ${{ failure() }}        with:          name: playwright-report          path: playwright-report/          retention-days: 3      - name: Upload Playwright results on failure        uses: actions/upload-artifact@v4        if: ${{ failure() }}        with:          name: test-results          path: test-results/          retention-days: 3  may-merge:    needs: ["e2e"]    runs-on: ubuntu-latest    steps:      - name: Cleared for merging        run: echo OK
+name: E2E Testson:  pull_request:  workflow_dispatch:jobs:  e2e:    runs-on: ubuntu-latest    steps:      - name: Checkout        uses: actions/checkout@v6      - name: Set up Node        uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install dependencies        run: npm ci      - name: Install Juno CLI        run: npm i -g @junobuild/cli      - name: Run emulator        run: |          set -e          juno emulator start --headless &          juno emulator wait          juno login --emulator --mode development --headless          juno config apply --mode development --headless      - name: Run tests        run: npm run e2e:ci      - name: Upload Playwright report on failure        uses: actions/upload-artifact@v6        if: ${{ failure() }}        with:          name: playwright-report          path: playwright-report/          retention-days: 3      - name: Upload Playwright results on failure        uses: actions/upload-artifact@v6        if: ${{ failure() }}        with:          name: test-results          path: test-results/          retention-days: 3  may-merge:    needs: ["e2e"]    runs-on: ubuntu-latest    steps:      - name: Cleared for merging        run: echo OK
 ```
 
 So, how it works:
@@ -6364,7 +6364,7 @@ yarn create juno -- --template angular-example
 pnpm create juno -- --template angular-example
 ```
 
-  
+
 
 Follow the CLI prompts to choose the note-taking app example and select local development. The CLI will manage all configurations and dependencies, allowing you to focus on exploring and customizing your app right away.
 
@@ -6375,17 +6375,17 @@ Use this guide to deploy your project to production.
 ## 1\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 2\. Configure your project
 
@@ -6402,17 +6402,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -6421,19 +6421,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -6467,9 +6467,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -6600,17 +6600,17 @@ Use this guide to deploy and host your project to production.
 ## 1\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 2\. Configure your project
 
@@ -6627,17 +6627,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -6646,19 +6646,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -6692,9 +6692,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -6707,17 +6707,17 @@ Use this guide to deploy and host your project to production.
 ## 1\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 2\. Configure your project
 
@@ -6734,17 +6734,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -6753,19 +6753,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -6799,9 +6799,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -6829,19 +6829,19 @@ To configure an action to deploy your frontend assets, follow these steps:
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 Whenever code is pushed to your `main` branch, this action performs the following tasks: it checks out your repository, installs dependencies. It then utilizes the [junobuild/juno-action](https://github.com/junobuild/juno-action) GitHub Action to build and deploy your dapp.
@@ -6912,19 +6912,19 @@ To configure an action to build and publish serverless functions, follow these s
 .github/workflows/publish.yml
 
 ```
-name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/publish.yml
 
 ```
-name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/publish.yml
 
 ```
-name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 This action will build and publish your serverless function bundle.
@@ -6975,19 +6975,19 @@ To configure an action to upgrade your Satellite container, follow these steps:
 .github/workflows/upgrade.yml
 
 ```
-name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/upgrade.yml
 
 ```
-name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/upgrade.yml
 
 ```
-name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 # Build a Next.js App
@@ -7140,7 +7140,7 @@ yarn create juno -- --template nextjs-example
 pnpm create juno -- --template nextjs-example
 ```
 
-  
+
 
 Follow the CLI prompts to choose the note-taking app example and select local development. The CLI will manage all configurations and dependencies, allowing you to focus on exploring and customizing your app right away.
 
@@ -7169,17 +7169,17 @@ next.config.js
 ## 2\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 3\. Configure your project
 
@@ -7196,17 +7196,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -7215,19 +7215,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -7261,9 +7261,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -7419,7 +7419,7 @@ yarn create juno -- --template react-example
 pnpm create juno -- --template react-example
 ```
 
-  
+
 
 Follow the CLI prompts to choose the note-taking app example and select local development. The CLI will manage all configurations and dependencies, allowing you to focus on exploring and customizing your app right away.
 
@@ -7430,17 +7430,17 @@ Use this guide to deploy and host your project to production.
 ## 1\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 2\. Configure your project
 
@@ -7457,17 +7457,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -7476,19 +7476,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -7522,9 +7522,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -7686,7 +7686,7 @@ yarn create juno -- --template sveltekit-example
 pnpm create juno -- --template sveltekit-example
 ```
 
-  
+
 
 Follow the CLI prompts to choose the note-taking app example and select local development. The CLI will manage all configurations and dependencies, allowing you to focus on exploring and customizing your app right away.
 
@@ -7725,17 +7725,17 @@ export const prerender = true;
 ## 2\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 3\. Configure your project
 
@@ -7752,17 +7752,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -7771,19 +7771,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -7817,9 +7817,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -7975,7 +7975,7 @@ yarn create juno -- --template vue-example
 pnpm create juno -- --template vue-example
 ```
 
-  
+
 
 Follow the CLI prompts to choose the note-taking app example and select local development. The CLI will manage all configurations and dependencies, allowing you to focus on exploring and customizing your app right away.
 
@@ -7986,17 +7986,17 @@ Use this guide to deploy and host your project to production.
 ## 1\. Create a container
 
 1.  Log in to the [Juno Console](https://console.juno.build).
-    
+
 2.  Click the **Launch a new satellite** button (the container for your project) from the launchpad
-    
+
 3.  Enter a **name** and select **Website**
-    
+
 4.  Confirm with **Create a Satellite**
-    
+
 5.  The platform will then provision its resources.
-    
+
 6.  Once the process is complete, click Continue to access the overview page.
-    
+
 
 ## 2\. Configure your project
 
@@ -8013,17 +8013,17 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 ### GitHub Actions deployment
 
 1.  From your Satellite's overview, navigate to the **Setup** tab.
-    
+
 2.  Click on **Add an access key**.
-    
+
 3.  Generate a new key with the default option. Click **Submit**.
-    
+
 4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
+
 5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
+
 6.  Add the following workflow configuration:
-    
+
 
 *   npm
 *   yarn
@@ -8032,19 +8032,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v6      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
 
 ### CLI deployment
@@ -8078,9 +8078,9 @@ juno login
 An access token is used to identify your terminal. That's why the CLI asks whether you want to encrypt it with a password. For security reasons, it's recommended that you do so.
 
 3.  In the browser window, click **Authorize** to grant permission.
-    
+
 4.  Deploy your site:
-    
+
 
 ```
 juno hosting deploy
@@ -8370,7 +8370,7 @@ No DevOps. No backend boilerplate. No surprise complexity.
 
 Juno's architecture is designed to give developers complete control and ownership. It combines familiar developer workflows with an environment that runs independently once deployed — without Juno's intervention.
 
-  
+
 
 ![Juno architecture schema showing developer control flow](/assets/images/architecture-ea813c74e7ec12ec0989052392308143.png)
 
@@ -8528,9 +8528,9 @@ While Juno relies on the Internet Computer as its primary execution layer, it av
 While Juno runs fully on the Internet Computer, two supporting services are maintained to handle a feature that cannot yet be decentralized — sending email notifications.
 
 *   Observatory Proxy: To handle IPv6 and deduplication constraints in Internet Computer HTTPS outcalls, Juno uses an additional [proxy](https://github.com/junobuild/proxy) deployed on Google Firebase. This service may be removed in the future as the Internet Computer layer improves.
-    
+
 *   Email Notifications: Developer notifications triggered by Mission Control monitoring (such as top-up successes or failures) are sent via [Resend](https://resend.com).
-    
+
 
 These services are strictly optional and exist only for this specific use case.
 
@@ -10224,7 +10224,7 @@ required_cycles = (10,000,000,000 × 2,592,000) / 86,400= 25,920,000,000,000,000
 
 Result ✅:
 
-With a freezing threshold of 30 days and an idle burn rate of 0.01 T Cycles per day,  
+With a freezing threshold of 30 days and an idle burn rate of 0.01 T Cycles per day,
 the module must have a cycles balance greater than 0.3 T Cycles to avoid being frozen and to continue processing update requests.
 
 ---
@@ -11923,9 +11923,9 @@ Each module is provisioned with approximately 1.5 T Cycles in usable resources.
 **Note:**
 
 *   For backwards compatibility, modules can still be created using Mission Control (deprecated). The transaction cost for this approach is 1.5 ICP.
-    
+
 *   Additional transaction fees may be introduced in the future, and pricing and models are subject to change.
-    
+
 
 ---
 

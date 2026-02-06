@@ -81,6 +81,8 @@ let
       # Rust
       cargo-audit
       cargo-bump
+      cargo-edit
+      cargo-update
       cargo-watch
       toml-cli
 
