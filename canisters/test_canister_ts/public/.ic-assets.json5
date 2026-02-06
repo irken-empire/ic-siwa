@@ -32,13 +32,14 @@
       // - frame-ancestors 'none': Prevent clickjacking
       // - upgrade-insecure-requests: Force HTTPS
       //
-      "Content-Security-Policy": "default-src 'self'; script-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://icp-api.io https://icp0.io https://*.icp0.io https://*.ic0.app wss://relay.walletconnect.com wss://relay.walletconnect.org https://relay.walletconnect.com https://relay.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org wss://*.reown.com https://*.reown.com https://api.avax-test.network https://api.avax.network; img-src 'self' data: blob: https://*.walletconnect.com https://*.reown.com; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://icp-api.io https://icp0.io https://*.icp0.io https://*.ic0.app wss://relay.walletconnect.com wss://relay.walletconnect.org https://relay.walletconnect.com https://relay.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org https://pulse.walletconnect.org https://*.walletconnect.org wss://*.reown.com https://*.reown.com https://api.avax-test.network https://api.avax.network; img-src 'self' data: blob: https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-src https://verify.walletconnect.com https://verify.walletconnect.org; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;",
 
       // ============================================
       // Permissions Policy (All features disabled)
       // ============================================
-      // Disable all browser features we don't need for security
-      "Permissions-Policy": "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), interest-cohort=()",
+      // Disable browser features we don't need for security
+      // Only includes standardised features recognised by browsers
+      "Permissions-Policy": "accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=()",
 
       // ============================================
       // Additional Security Headers

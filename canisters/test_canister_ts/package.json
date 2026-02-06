@@ -13,8 +13,9 @@
     "astro": "5.17.1",
     "ic-siwa": "file:../../libs/ic_siwa_ts",
     "viem": "2.45.1",
-    "@walletconnect/modal": "2.7.0",
-    "@walletconnect/ethereum-provider": "2.23.4"
+    "@reown/appkit": "latest",
+    "@reown/appkit-adapter-wagmi": "latest",
+    "@wagmi/core": "latest"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.6",

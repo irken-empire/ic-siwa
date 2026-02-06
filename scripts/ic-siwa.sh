@@ -3,6 +3,7 @@
 # IC-SIWA Developer Entrypoint Script
 # Single point of entry for all ic-siwa development tasks
 
+clear
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -61,10 +62,14 @@ NPM_PACKAGES=(
 # Agent documentation sources for LLM context
 # Format: "name|url"
 AGENT_DOC_SOURCES=(
-	"daisyui|https://daisyui.com/llms.txt"
 	"astro|https://docs.astro.build/llms-full.txt"
+	"daisyui|https://daisyui.com/llms.txt"
+	"foundry|https://getfoundry.sh/llms-full.txt"
 	"juno|https://juno.build/llms-full.txt"
 	"oisy|https://docs.oisy.com/llms-full.txt"
+	"reown|https://docs.reown.com/llms-full.txt"
+	"viem|https://viem.sh/llms-full.txt"
+	"xai|https://docs.x.ai/llms.txt"
 )
 AGENT_DOCS_DIR="docs/agents"
 
@@ -715,7 +720,7 @@ cmd_agent_docs() {
 
 		if curl -s --connect-timeout 10 --max-time 60 -o "${filepath}" "${url}"; then
 			# Check if file has content
-			if [[ -s "${filepath}" ]]; then
+			if [[ -s ${filepath} ]]; then
 				local size
 				size=$(wc -c <"${filepath}" | tr -d ' ')
 				log_success "${name} docs saved (${size} bytes)"
@@ -1465,6 +1470,9 @@ show_canister_urls() {
 	if [[ -n ${provider_id} ]]; then
 		if [[ ${network} == "ic" ]]; then
 			log_info "  ic_siwa_provider (Candid): https://${candid_id}.raw.ic0.app/?id=${provider_id}"
+		elif [[ ${network} == "juno" ]]; then
+			# Juno uses subdomain-style URLs which properly route dynamic imports
+			log_info "  ic_siwa_provider (Candid): http://${candid_id}.localhost:${port}/?id=${provider_id}"
 		else
 			log_info "  ic_siwa_provider (Candid): http://127.0.0.1:${port}/?canisterId=${candid_id}&id=${provider_id}"
 		fi
@@ -1473,6 +1481,8 @@ show_canister_urls() {
 	if [[ -n ${rs_id} ]]; then
 		if [[ ${network} == "ic" ]]; then
 			log_info "  test_canister_rs (Candid): https://${candid_id}.raw.ic0.app/?id=${rs_id}"
+		elif [[ ${network} == "juno" ]]; then
+			log_info "  test_canister_rs (Candid): http://${candid_id}.localhost:${port}/?id=${rs_id}"
 		else
 			log_info "  test_canister_rs (Candid): http://127.0.0.1:${port}/?canisterId=${candid_id}&id=${rs_id}"
 		fi
@@ -1481,6 +1491,9 @@ show_canister_urls() {
 	if [[ -n ${ts_id} ]]; then
 		if [[ ${network} == "ic" ]]; then
 			log_info "  test_canister_ts (Frontend): https://${ts_id}.ic0.app"
+		elif [[ ${network} == "juno" ]]; then
+			# Juno subdomain URLs work with dynamic imports (no chunking issues)
+			log_info "  test_canister_ts (Frontend): http://${ts_id}.localhost:${port}/"
 		else
 			log_info "  test_canister_ts (Frontend): http://127.0.0.1:${port}/?canisterId=${ts_id}"
 		fi
@@ -1900,6 +1913,7 @@ parse_args() {
 		cmd_cycles
 		;;
 	loop)
+		clear
 		cmd_loop "${NETWORK}"
 		;;
 	start)
