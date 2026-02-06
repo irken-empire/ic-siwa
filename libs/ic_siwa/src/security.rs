@@ -119,7 +119,7 @@ impl CanisterGuard {
     ///
     /// Convenience method that gets the caller from ic_cdk
     pub fn validate_caller(&self) -> Result<Principal, SiwaError> {
-        let caller = ic_cdk::caller();
+        let caller = ic_cdk::api::msg_caller();
         self.validate(&caller)?;
         Ok(caller)
     }
@@ -191,7 +191,7 @@ impl ControllerGuard {
 
     /// Validate the current IC caller is a controller
     pub fn validate_caller(&self) -> Result<Principal, SiwaError> {
-        let caller = ic_cdk::caller();
+        let caller = ic_cdk::api::msg_caller();
         self.validate(&caller)?;
         Ok(caller)
     }

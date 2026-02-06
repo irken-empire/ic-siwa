@@ -353,7 +353,7 @@ fn is_leap_year(year: u64) -> bool {
 /// Generate a random nonce using IC randomness
 pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
     // Use IC management canister for randomness
-    let (random_bytes,): (Vec<u8>,) = ic_cdk::api::management_canister::main::raw_rand()
+    let random_bytes: Vec<u8> = ic_cdk::management_canister::raw_rand()
         .await
         .map_err(|e| SiwaError::InternalError(format!("Failed to generate randomness: {:?}", e)))?;
 
@@ -366,7 +366,7 @@ pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
 /// Uses a combination of time and caller principal for uniqueness
 pub fn generate_nonce_sync() -> Nonce {
     let time = ic_cdk::api::time();
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     let data = format!("{}{}", time, caller);
     let hash = keccak256(data.as_bytes());
     hex::encode(&hash[..16])

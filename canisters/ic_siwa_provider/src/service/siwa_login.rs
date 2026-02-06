@@ -111,7 +111,7 @@ pub fn login(
 
     // Generate the seed and user canister public key for the delegation chain
     let seed = generate_seed(&settings.salt, &address);
-    let canister_id = ic_cdk::api::id();
+    let canister_id = ic_cdk::api::canister_self();
     let user_canister_pubkey = create_user_canister_pubkey(&canister_id, &seed)
         .map_err(|e| format!("Failed to create user canister pubkey: {}", e))?;
 

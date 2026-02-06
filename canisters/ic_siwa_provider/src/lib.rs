@@ -188,7 +188,7 @@ fn get_address(principal: Principal) -> Result<String, String> {
 /// Get Avalanche address for caller
 #[query]
 fn get_caller_address() -> Result<String, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     state::get_address_for_principal(&caller)
         .ok_or_else(|| "No address found for caller".to_string())
 }
