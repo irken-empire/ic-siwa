@@ -266,7 +266,7 @@ declare -A CMD_DEPS=(
 	["start"]="dfx"
 	["stop"]="dfx"
 	["logs"]="dfx"
-	["update"]="cargo,bun"
+	["update"]="cargo,bun,cargo-upgrade"
 	["version"]="toml"
 	["cleanup"]="dfx"
 	["urls"]="dfx"
@@ -319,6 +319,9 @@ check_deps() {
 				;;
 			didc)
 				echo -e "  ${RED}✗${NC} didc - Install: cargo install didc"
+				;;
+			cargo-upgrade)
+				echo -e "  ${RED}✗${NC} cargo-upgrade - Install: cargo install cargo-edit"
 				;;
 			toml)
 				echo -e "  ${RED}✗${NC} toml - Install: cargo install toml-cli"
@@ -636,10 +639,19 @@ cmd_update() {
 		"canisters/test_canister_ts"
 	)
 
-	# Update Cargo dependencies
-	log_info "Updating Cargo dependencies..."
-	cargo update
-	log_success "Cargo dependencies updated"
+	# Update Cargo dependencies with exact pinned versions
+	log_info "Updating Cargo dependencies (pinned exact versions)..."
+	if command -v cargo-upgrade &>/dev/null; then
+		# cargo-upgrade updates Cargo.toml to latest versions with exact pins
+		cargo upgrade --pinned
+		cargo update
+		log_success "Cargo dependencies upgraded and pinned"
+	else
+		log_warn "cargo-upgrade not found, falling back to cargo update (Cargo.lock only)"
+		log_info "Install cargo-edit for pinned Cargo.toml updates: cargo install cargo-edit"
+		cargo update
+		log_success "Cargo.lock updated (Cargo.toml unchanged)"
+	fi
 
 	# Update bun packages to latest versions with exact versions (no ^ or ~ prefixes)
 	for npm_dir in "${npm_dirs[@]}"; do
