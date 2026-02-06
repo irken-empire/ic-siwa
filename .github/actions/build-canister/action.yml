@@ -108,16 +108,20 @@ runs:
         echo "Custom domain: ${CUSTOM_DOMAIN}"
 
     - name: Generate ic-domains file
-      if: inputs.type == 'assets' && steps.domain.outputs.custom_domain != ''
+      if: inputs.type == 'assets'
       shell: bash
       run: |
         DOMAIN="${{ steps.domain.outputs.custom_domain }}"
-        WELL_KNOWN_DIR="canisters/${{ inputs.canister }}/public/.well-known"
-
-        echo "Generating ic-domains file for: ${DOMAIN}"
-        mkdir -p "${WELL_KNOWN_DIR}"
-        echo "${DOMAIN}" > "${WELL_KNOWN_DIR}/ic-domains"
-        echo "Created ${WELL_KNOWN_DIR}/ic-domains with content: ${DOMAIN}"
+        if [ -n "${DOMAIN}" ]; then
+          WELL_KNOWN_DIR="canisters/${{ inputs.canister }}/public/.well-known"
+          echo "Generating ic-domains file for: ${DOMAIN}"
+          mkdir -p "${WELL_KNOWN_DIR}"
+          echo "${DOMAIN}" > "${WELL_KNOWN_DIR}/ic-domains"
+          echo "Created ${WELL_KNOWN_DIR}/ic-domains with content: ${DOMAIN}"
+          cat "${WELL_KNOWN_DIR}/ic-domains"
+        else
+          echo "No custom domain configured, skipping ic-domains generation"
+        fi
 
     - name: Build Assets canister
       if: inputs.type == 'assets'
@@ -130,3 +134,17 @@ runs:
         cd canisters/${{ inputs.canister }}
         bun install
         bun run build
+
+    - name: Verify ic-domains in build output
+      if: inputs.type == 'assets'
+      shell: bash
+      run: |
+        IC_DOMAINS="canisters/${{ inputs.canister }}/dist/.well-known/ic-domains"
+        if [ -f "${IC_DOMAINS}" ]; then
+          echo "ic-domains file found in build output:"
+          cat "${IC_DOMAINS}"
+        else
+          echo "Warning: ic-domains file NOT found in build output"
+          echo "Contents of dist/.well-known (if exists):"
+          ls -la "canisters/${{ inputs.canister }}/dist/.well-known/" 2>/dev/null || echo "Directory does not exist"
+        fi

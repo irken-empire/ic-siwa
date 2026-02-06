@@ -184,6 +184,7 @@ jobs:
         with:
           name: ${{ matrix.canister }}-testnet
           path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
+          include-hidden-files: true
           retention-days: 7
 
   ##################################################
