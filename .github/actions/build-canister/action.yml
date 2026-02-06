@@ -20,6 +20,10 @@ inputs:
     description: "IC host URL (for assets canister builds)"
     required: false
     default: "https://ic0.app"
+  walletconnect_project_id:
+    description: "WalletConnect project ID (for assets canister builds)"
+    required: false
+    default: ""
 
 outputs:
   artifact_path:
@@ -129,6 +133,7 @@ runs:
       env:
         PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ steps.config.outputs.provider_canister_id }}
         PUBLIC_IC_HOST: ${{ inputs.ic_host }}
+        PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ inputs.walletconnect_project_id }}
       run: |
         echo "Building ${{ inputs.canister }} (Assets)..."
         cd canisters/${{ inputs.canister }}

@@ -178,6 +178,7 @@ jobs:
           type: ${{ matrix.type }}
           environment: mainnet
           optimize: "true"
+          walletconnect_project_id: ${{ vars.PUBLIC_WALLETCONNECT_PROJECT_ID }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
