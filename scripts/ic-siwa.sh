@@ -715,15 +715,15 @@ cmd_agent_docs() {
 				local size
 				size=$(wc -c <"${filepath}" | tr -d ' ')
 				log_success "${name} docs saved (${size} bytes)"
-				((success++))
+				success=$((success + 1))
 			else
 				log_warn "${name} docs downloaded but file is empty"
 				rm -f "${filepath}"
-				((failed++))
+				failed=$((failed + 1))
 			fi
 		else
 			log_error "Failed to download ${name} docs"
-			((failed++))
+			failed=$((failed + 1))
 		fi
 	done
 
