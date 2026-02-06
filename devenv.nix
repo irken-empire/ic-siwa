@@ -63,6 +63,7 @@ let
       # General
       bash
       coreutils
+      dig
       figlet
       gcc
       git
