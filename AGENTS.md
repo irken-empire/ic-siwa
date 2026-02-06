@@ -57,12 +57,14 @@ ic-siwa agent-docs
 
 Available documentation:
 
-| Name    | Local File                | Description            |
-| ------- | ------------------------- | ---------------------- |
-| DaisyUI | `docs/agents/daisyui.txt` | UI component library   |
-| Astro   | `docs/agents/astro.txt`   | Frontend framework     |
-| Juno    | `docs/agents/juno.txt`    | IC deployment platform |
-| Oisy    | `docs/agents/oisy.txt`    | IC wallet integration  |
+| Name    | Local File                | Description              |
+| ------- | ------------------------- | ------------------------ |
+| DaisyUI | `docs/agents/daisyui.txt` | UI component library     |
+| Astro   | `docs/agents/astro.txt`   | Frontend framework       |
+| Juno    | `docs/agents/juno.txt`    | IC deployment platform   |
+| Oisy    | `docs/agents/oisy.txt`    | IC wallet integration    |
+| Viem    | `docs/agents/viem.txt`    | TypeScript Ethereum lib  |
+| Reown   | `docs/agents/reown.txt`   | WalletConnect/Reown APIs |
 
 When working on specific features, reference the relevant documentation file for accurate, up-to-date API information.
 

@@ -14,23 +14,9 @@ export default defineConfig({
       global: "globalThis",
     },
     optimizeDeps: {
-      include: ["@walletconnect/ethereum-provider", "@walletconnect/modal"],
       esbuildOptions: {
         define: {
           global: "globalThis",
-        },
-      },
-    },
-    build: {
-      // Ensure consistent chunking for WalletConnect dynamic imports
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            walletconnect: [
-              "@walletconnect/ethereum-provider",
-              "@walletconnect/modal",
-            ],
-          },
         },
       },
     },

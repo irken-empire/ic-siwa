@@ -25,14 +25,15 @@
       // ============================================
       //
       // Key restrictions:
-      // - script-src: Only 'self' - no inline scripts, no eval
-      // - connect-src: Explicitly list allowed endpoints
+      // - script-src: 'self' + 'unsafe-inline' (AppKit uses inline scripts for wallet detection)
+      // - connect-src: IC, WalletConnect, Reown, web3modal APIs, Avalanche RPC
       // - style-src: Allow 'self' and 'unsafe-inline' (required for Tailwind/DaisyUI)
-      // - img-src: Allow 'self', data: URIs, and wallet icons
+      // - img-src: Allow 'self', data: URIs, and wallet icons from WalletConnect/Reown
+      // - font-src: Allow fonts from wallet providers
       // - frame-ancestors 'none': Prevent clickjacking
       // - upgrade-insecure-requests: Force HTTPS
       //
-      "Content-Security-Policy": "default-src 'self'; script-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://icp-api.io https://icp0.io https://*.icp0.io https://*.ic0.app wss://relay.walletconnect.com wss://relay.walletconnect.org https://relay.walletconnect.com https://relay.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org https://pulse.walletconnect.org https://*.walletconnect.org wss://*.reown.com https://*.reown.com https://api.avax-test.network https://api.avax.network; img-src 'self' data: blob: https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'self'; frame-src https://verify.walletconnect.com https://verify.walletconnect.org; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* http://127.0.0.1:* https://icp-api.io https://icp0.io https://*.icp0.io https://*.ic0.app wss://relay.walletconnect.com wss://relay.walletconnect.org https://relay.walletconnect.com https://relay.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org https://pulse.walletconnect.org https://*.walletconnect.org https://*.walletconnect.com wss://*.walletconnect.com https://api.web3modal.org https://*.web3modal.org wss://*.reown.com https://*.reown.com https://*.coinbase.com https://api.avax-test.network https://api.avax.network; img-src 'self' data: blob: https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://*.web3modal.org https://*.coinbase.com https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; font-src 'self' https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://*.web3modal.org https://fonts.gstatic.com https://fonts.reown.com; object-src 'none'; base-uri 'self'; frame-src https://verify.walletconnect.com https://verify.walletconnect.org https://*.reown.com https://*.coinbase.com; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests;",
 
       // ============================================
       // Permissions Policy (All features disabled)

@@ -140,7 +140,7 @@ pub fn init_state(settings: Settings) {
 pub fn update_certified_data() {
     with_state(|state| {
         let root_hash = compute_root_hash(&state.signature_map);
-        ic_cdk::api::certified_data_set(&root_hash);
+        ic_cdk::api::certified_data_set(root_hash);
     });
 }
 

@@ -70,7 +70,7 @@ const title = "IC-SIWA Test";
               </div>
 
               <p class="text-xs text-base-content/50 text-center">
-                Supports browser wallets (MetaMask, Core, Rabby) and WalletConnect mobile wallets
+                  Supports multiple wallet types include Browser Injected and Wallet Connect.
               </p>
             </div>
 
@@ -244,7 +244,7 @@ const title = "IC-SIWA Test";
       import { defineChain } from "@reown/appkit/networks";
 
       // Wagmi Core (headless, no React)
-      import { signMessage, getAccount, getChainId, switchChain, type Config } from "@wagmi/core";
+      import { signMessage, getAccount, getChainId, switchChain, watchAccount, watchChainId, type Config } from "@wagmi/core";
 
       // IC-SIWA client
       import { SiwaClient } from "ic-siwa";
@@ -449,22 +449,48 @@ const title = "IC-SIWA Test";
               icons: [`${window.location.origin}/favicon.svg`],
             },
             themeMode: "dark",
+            // Provide network images to prevent SVG rendering errors
+            chainImages: {
+              43113: "https://raw.githubusercontent.com/ava-labs/avalanche-docs/main/static/img/Avalanche_Horizontal_Red.svg",
+            },
           });
 
           state.appKit = appKit;
           log.info("AppKit initialized with WagmiAdapter");
 
-          // Subscribe to provider changes
-          appKit.subscribeProvider(({ address, chainId, isConnected }) => {
-            log.debug("Provider state changed", { address, chainId, isConnected });
+          // Use wagmi core's watchAccount to track connection state
+          watchAccount(state.wagmiConfig, {
+            onChange: (account) => {
+              log.debug("Account state changed", {
+                address: account.address,
+                chainId: account.chainId,
+                isConnected: account.isConnected
+              });
 
-            state.address = address || null;
-            state.chainId = chainId || null;
-            state.isConnected = isConnected;
+              state.address = account.address || null;
+              state.chainId = account.chainId || null;
+              state.isConnected = account.isConnected;
 
-            updateDiagnostics();
-            handleConnectionState();
+              updateDiagnostics();
+              handleConnectionState();
+            }
           });
+
+          // Also watch for chain changes
+          watchChainId(state.wagmiConfig, {
+            onChange: (chainId) => {
+              log.debug("Chain changed", { chainId });
+              state.chainId = chainId;
+              updateDiagnostics();
+              handleConnectionState();
+            }
+          });
+
+          // Get initial state
+          const initialAccount = getAccount(state.wagmiConfig);
+          state.address = initialAccount.address || null;
+          state.chainId = initialAccount.chainId || null;
+          state.isConnected = initialAccount.isConnected;
 
           updateDiagnostics();
 
