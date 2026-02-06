@@ -699,15 +699,19 @@ cmd_agent_docs() {
 
 	local failed=0
 	local success=0
+	local total=${#AGENT_DOC_SOURCES[@]}
+	local current=0
 
 	for entry in "${AGENT_DOC_SOURCES[@]}"; do
+		current=$((current + 1))
+
 		# Split entry by pipe
 		local name="${entry%%|*}"
 		local url="${entry##*|}"
 		local filename="${name,,}.txt" # lowercase
 		local filepath="${PROJECT_ROOT}/${AGENT_DOCS_DIR}/${filename}"
 
-		log_info "Downloading ${name} docs from ${url}..."
+		log_info "[${current}/${total}] Downloading ${name} docs from ${url}..."
 
 		if curl -s --connect-timeout 10 --max-time 60 -o "${filepath}" "${url}"; then
 			# Check if file has content
