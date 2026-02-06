@@ -733,7 +733,7 @@ cmd_agent_docs() {
 	if [[ ${success} -gt 0 ]]; then
 		log_info ""
 		log_info "Documentation files saved to: ${AGENT_DOCS_DIR}/"
-		log_info "Reference these in your AI agent prompts for context."
+		log_info "Run this command periodically to fetch updated documentation."
 	fi
 }
 
