@@ -30,22 +30,38 @@ runs:
         echo "Registering custom domain: ${DOMAIN}"
         echo "Canister ID: ${CANISTER_ID}"
 
-        # Check if domain is already registered and get status
+        # Validate domain configuration first
+        echo "Validating domain configuration..."
+        VALIDATION=$(curl -sL "https://icp0.io/custom-domains/v1/${DOMAIN}/validate" 2>/dev/null)
+        echo "Validation response: ${VALIDATION}"
+
+        if echo "${VALIDATION}" | grep -q '"validation_status":"valid"'; then
+          echo "Domain validation passed"
+        else
+          echo "::warning::Domain validation issues detected"
+        fi
+
+        # Check current registration status
         echo "Checking existing registration..."
-        EXISTING=$(curl -sL "https://icp0.io/registrations/${DOMAIN}" 2>/dev/null || echo '{"error":"not found"}')
+        EXISTING=$(curl -sL "https://icp0.io/custom-domains/v1/${DOMAIN}" 2>/dev/null)
+        REG_STATUS=$(echo "${EXISTING}" | jq -r '.data.registration_status // "none"' 2>/dev/null || echo "none")
+        echo "Current registration status: ${REG_STATUS}"
 
-        if echo "${EXISTING}" | grep -q '"error"'; then
-          echo "Domain not yet registered, submitting registration..."
-
-          # Submit new registration
-          RESPONSE=$(curl -sL -X POST "https://icp0.io/registrations" \
-            -H "Content-Type: application/json" \
-            -d "{\"name\": \"${DOMAIN}\"}" 2>&1)
-
+        if [ "${REG_STATUS}" = "registered" ]; then
+          echo "Domain already registered"
+          echo "status=registered" >> $GITHUB_OUTPUT
+          echo "message=Domain already registered" >> $GITHUB_OUTPUT
+        elif [ "${REG_STATUS}" = "registering" ]; then
+          echo "Domain registration already in progress"
+          echo "status=registering" >> $GITHUB_OUTPUT
+          echo "message=Domain registration in progress" >> $GITHUB_OUTPUT
+        else
+          echo "Submitting domain registration..."
+          RESPONSE=$(curl -sL -X POST "https://icp0.io/custom-domains/v1/${DOMAIN}" 2>&1)
           echo "Registration response: ${RESPONSE}"
 
-          if echo "${RESPONSE}" | grep -qE '"id"|"status"'; then
-            echo "status=registered" >> $GITHUB_OUTPUT
+          if echo "${RESPONSE}" | grep -q '"status":"success"'; then
+            echo "status=registering" >> $GITHUB_OUTPUT
             echo "message=Domain registration submitted successfully" >> $GITHUB_OUTPUT
             echo "Domain registration submitted for ${DOMAIN}"
           else
@@ -53,12 +69,6 @@ runs:
             echo "message=Registration failed: ${RESPONSE}" >> $GITHUB_OUTPUT
             echo "::warning::Domain registration may have failed: ${RESPONSE}"
           fi
-        else
-          # Domain already registered, check status
-          STATUS=$(echo "${EXISTING}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
-          echo "Domain already registered with status: ${STATUS}"
-          echo "status=${STATUS}" >> $GITHUB_OUTPUT
-          echo "message=Domain already registered with status: ${STATUS}" >> $GITHUB_OUTPUT
         fi
 
     - name: Verify DNS configuration
