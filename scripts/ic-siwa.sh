@@ -676,13 +676,35 @@ cmd_update() {
 	# Update bun packages to latest versions with exact versions (no ^ or ~ prefixes)
 	for npm_dir in "${npm_dirs[@]}"; do
 		local full_path="${PROJECT_ROOT}/${npm_dir}"
-		if [[ -d ${full_path} ]]; then
+		if [[ -d ${full_path} && -f "${full_path}/package.json" ]]; then
 			log_info "Updating bun packages in ${npm_dir}..."
 			(
 				cd "${full_path}"
-				# --latest updates to newest versions regardless of current constraints
-				# --save-exact ensures no ^ or ~ prefixes are added
-				bun update --latest --save-exact
+				# bun update --latest can write "latest" literally, so we use a different approach:
+				# 1. Install to update bun.lock with resolved versions
+				# 2. Use bun's --save-exact with explicit package names
+
+				# Get all dependencies and devDependencies from package.json
+				local deps
+				deps=$(jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' package.json 2>/dev/null || true)
+
+				if [[ -n ${deps} ]]; then
+					# Update each package individually to get exact versions
+					for pkg in ${deps}; do
+						# Skip local file references
+						if jq -e --arg pkg "$pkg" '(.dependencies[$pkg] // .devDependencies[$pkg]) | startswith("file:")' package.json &>/dev/null; then
+							log_debug "Skipping local package: ${pkg}"
+							continue
+						fi
+
+						# Check if it's a dev dependency
+						if jq -e --arg pkg "$pkg" '.devDependencies[$pkg]' package.json &>/dev/null; then
+							bun add -d --exact "${pkg}@latest" 2>/dev/null || log_warn "Failed to update ${pkg}"
+						else
+							bun add --exact "${pkg}@latest" 2>/dev/null || log_warn "Failed to update ${pkg}"
+						fi
+					done
+				fi
 			)
 			log_success "Updated ${npm_dir}"
 		fi

@@ -5,9 +5,9 @@
     "": {
       "name": "test_canister_ts",
       "dependencies": {
-        "@reown/appkit": "latest",
-        "@reown/appkit-adapter-wagmi": "latest",
-        "@wagmi/core": "latest",
+        "@reown/appkit": "1.8.17",
+        "@reown/appkit-adapter-wagmi": "1.8.17",
+        "@wagmi/core": "3.3.2",
         "astro": "5.17.1",
         "ic-siwa": "file:../../libs/ic_siwa_ts",
         "viem": "2.45.1",
