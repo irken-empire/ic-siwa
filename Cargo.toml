@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Irken Empire <dev@irkenempire.tech>"]
 edition = "2021"
 license = "Unlicense"
@@ -18,9 +18,9 @@ categories = ["authentication", "cryptography", "wasm"]
 [workspace.dependencies]
 # Internet Computer
 candid = "0.10"
-ic-cdk = "0.16"
-ic-cdk-macros = "0.16"
-ic-stable-structures = "0.6"
+ic-cdk = "0.19"
+ic-cdk-macros = "0.19"
+ic-stable-structures = "0.7"
 ic-certified-map = "0.4"
 
 # Serialization
@@ -39,6 +39,8 @@ getrandom = { version = "0.2", features = ["custom"] }
 # Utilities
 thiserror = "2.0"
 time = "0.3"
+simple_asn1 = "0.6"
+serde_cbor = "0.11"
 
 [profile.release]
 lto = true

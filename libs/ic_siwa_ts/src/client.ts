@@ -14,7 +14,7 @@ import {
   type _SERVICE,
   type Result_3,
   type Result_4,
-  type Result_5,
+  type Result_6,
   type Delegation as CandidDelegation,
 } from "./candid";
 import {SiwaError, SiwaErrorCode} from "./errors";
@@ -198,7 +198,7 @@ export class SiwaClient {
       const actor = await this.createProviderActor();
 
       // Use the new multi-tenant endpoint if domain/uri provided
-      const response: Result_5 = await actor.siwa_prepare_login_with_options({
+      const response: Result_6 = await actor.siwa_prepare_login_with_options({
         address: options.address,
         domain: options.domain ? [options.domain] : [],
         uri: options.uri ? [options.uri] : [],
@@ -263,15 +263,41 @@ export class SiwaClient {
         );
       }
 
-      // LoginResponse contains user_principal and expiration
-      const {user_principal: principal, expiration: loginExpiration} =
-        loginResponse.Ok;
+      // LoginResponse contains user_principal, expiration, and user_canister_pubkey
+      const {
+        user_principal: principal,
+        expiration: loginExpiration,
+        user_canister_pubkey: userCanisterPubkey,
+      } = loginResponse.Ok;
+
+      // Convert the canister's public key to Uint8Array
+      // This is the ROOT of the delegation chain (the signer)
+      const canisterPubkeyBytes =
+        userCanisterPubkey instanceof Uint8Array
+          ? userCanisterPubkey
+          : new Uint8Array(userCanisterPubkey);
 
       // Use the expiration from login response, or default to 30 minutes
       const expirationNs =
         loginExpiration ??
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
 
+      // Prepare delegation first (stores in signature map for certified response)
+      const prepareResult = await actor.siwa_prepare_delegation(
+        address,
+        sessionKeyBytes,
+        expirationNs
+      );
+
+      if ("Err" in prepareResult) {
+        throw new SiwaError(
+          SiwaErrorCode.CanisterError,
+          prepareResult.Err,
+          prepareResult
+        );
+      }
+
+      // Now get the certified delegation
       const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
@@ -297,13 +323,20 @@ export class SiwaClient {
           : new Uint8Array(delegationSignature);
 
       // Build delegation chain from the canister's delegation
+      // The canister's public key is the root (signer) of the delegation chain
       const delegationChain = this.buildDelegationChain(
         candidDelegation,
-        signatureBytes
+        signatureBytes,
+        canisterPubkeyBytes
       );
 
       // Calculate expiration in milliseconds
       const expirationMs = Number(expirationNs / BigInt(1_000_000));
+
+      // Convert canister pubkey to hex for storage
+      const canisterPubkeyHex = Array.from(canisterPubkeyBytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
 
       // Create serialized identity data
       const serializedIdentity: SerializedIdentity = {
@@ -311,6 +344,7 @@ export class SiwaClient {
         delegationChain: JSON.stringify(delegationChain.toJSON()),
         expiration: expirationMs,
         address,
+        canisterPubkey: canisterPubkeyHex,
       };
 
       // Create identity
@@ -350,12 +384,18 @@ export class SiwaClient {
   /**
    * Build delegation chain from canister response
    *
-   * @param candidDelegation - Delegation record from canister
-   * @param signatureBytes - Signature from canister
+   * The delegation chain structure is:
+   * - Root (publicKey parameter): The canister's derived public key for this user
+   * - Delegation: Grants the session key the ability to act on behalf of the user
+   *
+   * @param candidDelegation - Delegation record from canister (contains session key as pubkey)
+   * @param signatureBytes - Signature from canister over the delegation
+   * @param canisterPubkey - The canister's public key (root of the chain, the signer)
    */
   private buildDelegationChain(
     candidDelegation: CandidDelegation,
-    signatureBytes: Uint8Array
+    signatureBytes: Uint8Array,
+    canisterPubkey: Uint8Array
   ): DelegationChain {
     if (!this.sessionKey) {
       throw new SiwaError(
@@ -364,9 +404,9 @@ export class SiwaClient {
       );
     }
 
-    // Convert pubkey from the canister response to Uint8Array
+    // The delegation's pubkey is the session key - the key being delegated TO
     // @dfinity/identity v3.x uses Uint8Array instead of ArrayBuffer
-    const pubkeyBytes =
+    const sessionKeyPubkey =
       candidDelegation.pubkey instanceof Uint8Array
         ? candidDelegation.pubkey
         : new Uint8Array(candidDelegation.pubkey);
@@ -375,12 +415,17 @@ export class SiwaClient {
     // Note: targets are optional in the candid type
     const targets = candidDelegation.targets[0]; // opt vec principal -> [] | [Principal[]]
     const delegation = new Delegation(
-      pubkeyBytes,
+      sessionKeyPubkey,
       candidDelegation.expiration,
       targets
     );
 
-    // Create delegation chain with single delegation signed by canister
+    // Create delegation chain:
+    // - delegations[0]: canister delegates to session key
+    // - publicKey: canister's public key (the root/signer of the chain)
+    //
+    // This allows the session key to sign requests that will be verified
+    // as coming from the user's canister-derived identity.
     return DelegationChain.fromDelegations(
       [
         {
@@ -388,7 +433,7 @@ export class SiwaClient {
           signature: signatureBytes as Signature,
         },
       ],
-      pubkeyBytes
+      canisterPubkey as unknown as import("@dfinity/agent").DerEncodedPublicKey
     );
   }
 
@@ -407,12 +452,41 @@ export class SiwaClient {
       new Uint8Array(this.sessionKey.getPublicKey().toDer())
     );
 
+    // Get the stored canister pubkey from the serialized identity
+    const serialized = identity.serialize();
+    if (!serialized.canisterPubkey) {
+      // Legacy identity without canister pubkey, need to re-login
+      await this.logout();
+      return null;
+    }
+
+    // Convert hex back to Uint8Array
+    const canisterPubkeyBytes = new Uint8Array(
+      serialized.canisterPubkey.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) ??
+        []
+    );
+
     try {
       const actor = await this.createProviderActor();
 
       // Get new delegation
       const expirationNs =
         BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
+
+      // Prepare delegation first (stores in signature map for certified response)
+      const prepareResult = await actor.siwa_prepare_delegation(
+        address,
+        sessionKeyBytes,
+        expirationNs
+      );
+
+      if ("Err" in prepareResult) {
+        // Session may have expired, need to re-login
+        await this.logout();
+        return null;
+      }
+
+      // Now get the certified delegation
       const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
@@ -435,7 +509,8 @@ export class SiwaClient {
 
       const delegationChain = this.buildDelegationChain(
         candidDelegation,
-        signatureBytes
+        signatureBytes,
+        canisterPubkeyBytes
       );
 
       const expirationMs = Number(expirationNs / BigInt(1_000_000));
@@ -445,6 +520,7 @@ export class SiwaClient {
         delegationChain: JSON.stringify(delegationChain.toJSON()),
         expiration: expirationMs,
         address,
+        canisterPubkey: serialized.canisterPubkey,
       };
 
       this.identity = await createSiwaIdentity(serializedIdentity);

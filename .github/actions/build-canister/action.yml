@@ -90,6 +90,35 @@ runs:
         echo "Config file: ${CONFIG_FILE}"
         echo "Provider canister ID: ${PROVIDER_ID}"
 
+    - name: Read custom domain from config
+      if: inputs.type == 'assets'
+      id: domain
+      shell: bash
+      run: |
+        # Map environment to config file
+        case "${{ inputs.environment }}" in
+          development) CONFIG_FILE="config/development.yaml" ;;
+          testnet)     CONFIG_FILE="config/testnet.yaml" ;;
+          mainnet)     CONFIG_FILE="config/mainnet.yaml" ;;
+          *)           echo "Invalid environment: ${{ inputs.environment }}" && exit 1 ;;
+        esac
+
+        CUSTOM_DOMAIN=$(yq -r '.siwa.domain // ""' "${CONFIG_FILE}")
+        echo "custom_domain=${CUSTOM_DOMAIN}" >> $GITHUB_OUTPUT
+        echo "Custom domain: ${CUSTOM_DOMAIN}"
+
+    - name: Generate ic-domains file
+      if: inputs.type == 'assets' && steps.domain.outputs.custom_domain != ''
+      shell: bash
+      run: |
+        DOMAIN="${{ steps.domain.outputs.custom_domain }}"
+        WELL_KNOWN_DIR="canisters/${{ inputs.canister }}/public/.well-known"
+
+        echo "Generating ic-domains file for: ${DOMAIN}"
+        mkdir -p "${WELL_KNOWN_DIR}"
+        echo "${DOMAIN}" > "${WELL_KNOWN_DIR}/ic-domains"
+        echo "Created ${WELL_KNOWN_DIR}/ic-domains with content: ${DOMAIN}"
+
     - name: Build Assets canister
       if: inputs.type == 'assets'
       shell: devenv shell --quiet bash -- -e {0}

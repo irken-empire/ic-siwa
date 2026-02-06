@@ -44,6 +44,7 @@ export interface InitArgs {
 }
 export interface LoginResponse {
   'user_principal' : Principal,
+  'user_canister_pubkey' : Uint8Array | number[],
   'expiration' : bigint,
 }
 export interface PrepareLoginRequest {
@@ -71,7 +72,9 @@ export type Result_3 = { 'Ok' : SignedDelegation } |
   { 'Err' : string };
 export type Result_4 = { 'Ok' : LoginResponse } |
   { 'Err' : string };
-export type Result_5 = { 'Ok' : PrepareLoginResponse } |
+export type Result_5 = { 'Ok' : null } |
+  { 'Err' : string };
+export type Result_6 = { 'Ok' : PrepareLoginResponse } |
   { 'Err' : string };
 export interface SignedDelegation {
   'signature' : Uint8Array | number[],
@@ -100,14 +103,18 @@ export interface _SERVICE {
   /**
    * Get delegation for authenticated principal
    * 
+   * This is a **query** call that retrieves the certified delegation.
+   * You **must** call `siwa_prepare_delegation` first (an update call) and wait
+   * for it to complete before calling this query.
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
-   * * `expiration` - Requested expiration timestamp (may be capped)
+   * * `expiration` - Requested expiration timestamp (used for validation)
    * 
    * # Returns
    * * `Ok(SignedDelegation)` - The signed delegation for the session
-   * * `Err(String)` - Error if not authenticated or expired
+   * * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
    */
   'siwa_get_delegation' : ActorMethod<
     [string, Uint8Array | number[], bigint],
@@ -127,6 +134,25 @@ export interface _SERVICE {
    */
   'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_4>,
   /**
+   * Prepare a delegation for an authenticated session
+   * 
+   * This must be called before `siwa_get_delegation` to store the delegation
+   * in the signature map for certified responses.
+   * 
+   * # Arguments
+   * * `address` - The Avalanche address
+   * * `session_key` - The session public key from login
+   * * `expiration` - Requested expiration timestamp (may be capped)
+   * 
+   * # Returns
+   * * `Ok(())` - Delegation prepared successfully
+   * * `Err(String)` - Error if not authenticated or expired
+   */
+  'siwa_prepare_delegation' : ActorMethod<
+    [string, Uint8Array | number[], bigint],
+    Result_5
+  >,
+  /**
    * Prepare a SIWA login message for signing (simple version)
    * 
    * Uses the canister's default domain/uri from init args.
@@ -139,7 +165,7 @@ export interface _SERVICE {
    * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
    * * `Err(String)` - Error description if address is invalid
    */
-  'siwa_prepare_login' : ActorMethod<[string], Result_5>,
+  'siwa_prepare_login' : ActorMethod<[string], Result_6>,
   /**
    * Prepare a SIWA login message with custom domain/uri (multi-tenant version)
    * 
@@ -160,7 +186,7 @@ export interface _SERVICE {
    */
   'siwa_prepare_login_with_options' : ActorMethod<
     [PrepareLoginRequest],
-    Result_5
+    Result_6
   >,
 }
 
@@ -211,15 +237,17 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
   const Result_3 = IDL.Variant({ 'Ok' : SignedDelegation, 'Err' : IDL.Text });
   const LoginResponse = IDL.Record({
     'user_principal' : IDL.Principal,
+    'user_canister_pubkey' : IDL.Vec(IDL.Nat8),
     'expiration' : IDL.Nat64,
   });
   const Result_4 = IDL.Variant({ 'Ok' : LoginResponse, 'Err' : IDL.Text });
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   const PrepareLoginResponse = IDL.Record({
     'expiration' : IDL.Nat64,
     'message' : IDL.Text,
     'nonce' : IDL.Text,
   });
-  const Result_5 = IDL.Variant({
+  const Result_6 = IDL.Variant({
     'Ok' : PrepareLoginResponse,
     'Err' : IDL.Text,
   });
@@ -243,10 +271,15 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
         [Result_4],
         [],
       ),
-    'siwa_prepare_login' : IDL.Func([IDL.Text], [Result_5], []),
+    'siwa_prepare_delegation' : IDL.Func(
+        [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Nat64],
+        [Result_5],
+        [],
+      ),
+    'siwa_prepare_login' : IDL.Func([IDL.Text], [Result_6], []),
     'siwa_prepare_login_with_options' : IDL.Func(
         [PrepareLoginRequest],
-        [Result_5],
+        [Result_6],
         [],
       ),
   });

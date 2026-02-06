@@ -81,6 +81,8 @@ let
       # Rust
       cargo-audit
       cargo-bump
+      cargo-edit
+      cargo-update
       cargo-watch
       toml-cli
 
@@ -131,6 +133,9 @@ in
   # GitHub Token
   // (lib.optionalAttrs (config.secretspec.secrets ? GITHUB_TOKEN) {
     inherit (config.secretspec.secrets) GITHUB_TOKEN;
+  })
+  // (lib.optionalAttrs (config.secretspec.secrets ? PUBLIC_WALLETCONNECT_PROJECT_ID) {
+    inherit (config.secretspec.secrets) PUBLIC_WALLETCONNECT_PROJECT_ID;
   });
 
   cachix = {
@@ -349,6 +354,7 @@ in
       ripsecrets = {
         enable = true;
       };
+      rustfmt.enable = true;
       shellcheck = {
         enable = true;
       };

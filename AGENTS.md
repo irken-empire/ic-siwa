@@ -29,6 +29,7 @@ ic-siwa/
 ├── scripts/                   # Development and deployment scripts
 ├── docs/                      # Documentation
 │   ├── spec.md                # Functional specifications
+│   ├── agents/                # LLM documentation files
 │   └── todo/                  # Ticket/task tracking
 ├── .github/workflows/         # CI/CD pipelines
 ├── Cargo.toml                 # Rust workspace configuration
@@ -36,6 +37,36 @@ ic-siwa/
 ├── devenv.nix                 # Development environment (Nix)
 └── secretspec.toml            # Secret management configuration
 ```
+
+## Documentation
+
+**Critical Reference:**
+
+- Always consult `docs/spec.md` for current SIWA specifications before implementation.
+- All documentation (other than this file and `README.md`) should reside in the `docs/` folder.
+
+## AI Agent Documentation
+
+LLM-optimized documentation is available locally in `docs/agents/` for reference when working on specific technologies.
+
+To download/update all agent documentation, run:
+
+```bash
+ic-siwa agent-docs
+```
+
+Available documentation:
+
+| Name    | Local File                | Description              |
+| ------- | ------------------------- | ------------------------ |
+| DaisyUI | `docs/agents/daisyui.txt` | UI component library     |
+| Astro   | `docs/agents/astro.txt`   | Frontend framework       |
+| Juno    | `docs/agents/juno.txt`    | IC deployment platform   |
+| Oisy    | `docs/agents/oisy.txt`    | IC wallet integration    |
+| Viem    | `docs/agents/viem.txt`    | TypeScript Ethereum lib  |
+| Reown   | `docs/agents/reown.txt`   | WalletConnect/Reown APIs |
+
+When working on specific features, reference the relevant documentation file for accurate, up-to-date API information.
 
 ## Technology Stack
 
@@ -60,6 +91,22 @@ ic-siwa/
 
 ## Development Workflow
 
+### Helper Script
+
+The `ic-siwa` script (or `./scripts/ic-siwa.sh`) provides all common development tasks:
+
+```bash
+ic-siwa help          # Show all available commands
+ic-siwa build         # Build all canisters and libraries
+ic-siwa deploy        # Deploy to local dfx replica
+ic-siwa deploy --network juno  # Deploy to Juno emulator
+ic-siwa test          # Run tests
+ic-siwa logs          # Tail canister logs in real-time
+ic-siwa loop          # Full dev loop: fmt, lint, build, test, deploy
+ic-siwa agent-docs    # Download LLM documentation
+ic-siwa version --bump  # Bump version based on conventional commits
+```
+
 ### Environment Setup
 
 ```bash
@@ -68,43 +115,40 @@ devenv shell
 
 # Or use direnv for automatic loading
 direnv allow
-
-# To run one command inside the shell
-devenv shell --quiet -- <command>
 ```
 
 ### Building
 
 ```bash
-# Build all Rust canisters
-cargo build --release --target wasm32-unknown-unknown
+# Using ic-siwa script (recommended)
+ic-siwa build
 
-# Build specific canister
+# Or manually
+cargo build --release --target wasm32-unknown-unknown
 dfx build ic_siwa_provider
 ```
 
 ### Testing
 
 ```bash
-# Run Rust tests
-cargo test
+# Run all tests
+ic-siwa test
 
-# Run pre-commit hooks
-op signin && devenv shell --quiet -- prek run
+# Run Rust tests only
+cargo test
 ```
 
 ### Deployment
 
 ```bash
 # Local development (dfx replica)
-dfx start --background
-dfx deploy
+ic-siwa deploy
 
 # Local development (juno emulator)
-dfx deploy --network juno
+ic-siwa deploy --network juno
 
-# IC Mainnet
-dfx deploy --network ic
+# IC Mainnet (via GitHub Actions)
+# Triggered by manual workflow dispatch
 ```
 
 ## Configuration

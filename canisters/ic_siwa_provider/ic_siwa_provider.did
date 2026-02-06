@@ -29,7 +29,11 @@ type InitArgs = record {
   debug : opt bool;
   session_expiration_time : nat64;
 };
-type LoginResponse = record { user_principal : principal; expiration : nat64 };
+type LoginResponse = record {
+  user_principal : principal;
+  user_canister_pubkey : blob;
+  expiration : nat64;
+};
 type PrepareLoginRequest = record {
   uri : opt text;
   domain : opt text;
@@ -50,7 +54,8 @@ type Result_1 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : principal; Err : text };
 type Result_3 = variant { Ok : SignedDelegation; Err : text };
 type Result_4 = variant { Ok : LoginResponse; Err : text };
-type Result_5 = variant { Ok : PrepareLoginResponse; Err : text };
+type Result_5 = variant { Ok; Err : text };
+type Result_6 = variant { Ok : PrepareLoginResponse; Err : text };
 type SignedDelegation = record { signature : blob; delegation : Delegation };
 service : (InitArgs) -> {
   // Get debug diagnostics (only available when debug=true in init args)
@@ -66,14 +71,18 @@ service : (InitArgs) -> {
   get_principal : (text) -> (Result_2) query;
   // Get delegation for authenticated principal
   // 
+  // This is a **query** call that retrieves the certified delegation.
+  // You **must** call `siwa_prepare_delegation` first (an update call) and wait
+  // for it to complete before calling this query.
+  // 
   // # Arguments
   // * `address` - The Avalanche address
   // * `session_key` - The session public key from login
-  // * `expiration` - Requested expiration timestamp (may be capped)
+  // * `expiration` - Requested expiration timestamp (used for validation)
   // 
   // # Returns
   // * `Ok(SignedDelegation)` - The signed delegation for the session
-  // * `Err(String)` - Error if not authenticated or expired
+  // * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
   siwa_get_delegation : (text, blob, nat64) -> (Result_3) query;
   // Complete SIWA login with signed message
   // 
@@ -86,6 +95,20 @@ service : (InitArgs) -> {
   // * `Ok(LoginResponse)` - The derived principal and session expiration
   // * `Err(String)` - Error if signature is invalid or session expired
   siwa_login : (text, text, blob) -> (Result_4);
+  // Prepare a delegation for an authenticated session
+  // 
+  // This must be called before `siwa_get_delegation` to store the delegation
+  // in the signature map for certified responses.
+  // 
+  // # Arguments
+  // * `address` - The Avalanche address
+  // * `session_key` - The session public key from login
+  // * `expiration` - Requested expiration timestamp (may be capped)
+  // 
+  // # Returns
+  // * `Ok(())` - Delegation prepared successfully
+  // * `Err(String)` - Error if not authenticated or expired
+  siwa_prepare_delegation : (text, blob, nat64) -> (Result_5);
   // Prepare a SIWA login message for signing (simple version)
   // 
   // Uses the canister's default domain/uri from init args.
@@ -97,7 +120,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error description if address is invalid
-  siwa_prepare_login : (text) -> (Result_5);
+  siwa_prepare_login : (text) -> (Result_6);
   // Prepare a SIWA login message with custom domain/uri (multi-tenant version)
   // 
   // This is the "SIWA as a Service" endpoint where each calling application
@@ -114,5 +137,5 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error if address invalid or domain not whitelisted
-  siwa_prepare_login_with_options : (PrepareLoginRequest) -> (Result_5);
+  siwa_prepare_login_with_options : (PrepareLoginRequest) -> (Result_6);
 }

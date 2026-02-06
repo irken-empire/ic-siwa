@@ -1,21 +1,22 @@
 ---
 /**
- * IC-SIWA Test Canister - Enhanced Login Page
+ * IC-SIWA Test Canister - Login Page
  *
  * Features:
- * - EIP-6963 multi-wallet detection (MetaMask, Core, Rabby, Brave, Frame, etc.)
- * - Dedicated WalletConnect button
- * - Network switching to Avalanche Fuji
- * - Comprehensive logging and diagnostics
+ * - Reown AppKit for WalletConnect and wallet management
+ * - EIP-6963 multi-wallet detection (via AppKit)
+ * - Avalanche Fuji network support
+ * - SIWA authentication flow
  */
 import "../styles/global.css";
 
-// Configuration
+// Configuration from environment
 const SIWA_PROVIDER_CANISTER_ID = import.meta.env.PUBLIC_SIWA_PROVIDER_CANISTER_ID || "be2us-64aaa-aaaaa-qaabq-cai";
 const IC_HOST = import.meta.env.PUBLIC_IC_HOST || "http://127.0.0.1:5987";
+const WALLETCONNECT_PROJECT_ID = import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
-// Expected chain configuration
-const EXPECTED_CHAIN_ID = 43113; // Avalanche Fuji
+// Avalanche Fuji configuration
+const EXPECTED_CHAIN_ID = 43113;
 const CHAIN_NAME = "Avalanche Fuji";
 const RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc";
 const BLOCK_EXPLORER = "https://testnet.snowtrace.io";
@@ -55,32 +56,22 @@ const title = "IC-SIWA Test";
               Test the IC-SIWA authentication flow
             </p>
 
-            <!-- Wallet Selection -->
+            <!-- Wallet Connection -->
             <div id="wallet-selection" class="w-full">
-              <!-- Injected Wallets Section -->
+              <!-- AppKit Connect Button -->
               <div class="mb-4">
-                <p class="text-sm text-base-content/60 mb-2 text-left">Browser Wallets:</p>
-                <div id="injected-wallet-list" class="flex flex-col gap-2">
-                  <div class="flex justify-center py-4">
-                    <span class="loading loading-dots loading-md"></span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Divider -->
-              <div class="divider text-xs text-base-content/40">OR</div>
-
-              <!-- WalletConnect Button -->
-              <div class="mb-2">
-                <button id="walletconnect-btn" class="btn btn-outline btn-block justify-start gap-3 border-[#3B99FC] hover:bg-[#3B99FC] hover:border-[#3B99FC]">
+                <button id="connect-btn" class="btn btn-primary btn-block gap-3">
                   <svg viewBox="0 0 40 40" class="w-6 h-6">
                     <rect width="40" height="40" rx="8" fill="#3B99FC"/>
                     <path d="M12.3 16c4.3-4.2 11.1-4.2 15.4 0l.5.5-2 2-.3-.3c-3-2.9-7.8-2.9-10.8 0l-.3.3-2-2 .5-.5zm19 3.5l1.8 1.8-8.2 8-5.8-5.7 2-2 3.8 3.7 6.4-5.8zm-22.6 0l6.4 5.8 3.8-3.7 2 2-5.8 5.7-8.2-8 1.8-1.8z" fill="#fff"/>
                   </svg>
-                  <span>WalletConnect</span>
-                  <span class="badge badge-xs badge-ghost ml-auto">QR Code</span>
+                  <span>Connect Wallet</span>
                 </button>
               </div>
+
+              <p class="text-xs text-base-content/50 text-center">
+                  Supports multiple wallet types include Browser Injected and Wallet Connect.
+              </p>
             </div>
 
             <!-- Loading State -->
@@ -91,7 +82,7 @@ const title = "IC-SIWA Test";
               </div>
             </div>
 
-            <!-- Network Switch Required -->
+            <!-- Network Switch -->
             <div id="network-switch-state" class="hidden w-full">
               <div class="alert alert-warning mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,6 +99,22 @@ const title = "IC-SIWA Test";
               </button>
             </div>
 
+            <!-- SIWA Login State -->
+            <div id="siwa-login-state" class="hidden w-full">
+              <div class="alert alert-info mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 class="font-bold">Wallet Connected</h3>
+                  <div class="text-xs break-all" id="connected-address"></div>
+                </div>
+              </div>
+              <button id="siwa-login-btn" class="btn btn-primary btn-wide">
+                Sign in with Avalanche
+              </button>
+            </div>
+
             <!-- Authenticated State -->
             <div id="authenticated-state" class="hidden w-full">
               <div class="alert alert-success mb-4">
@@ -115,21 +122,17 @@ const title = "IC-SIWA Test";
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <h3 class="font-bold">Connected!</h3>
+                  <h3 class="font-bold">Authenticated!</h3>
                   <div class="text-xs break-all" id="principal-display"></div>
                 </div>
               </div>
-
               <div class="stats shadow w-full mb-4">
                 <div class="stat">
                   <div class="stat-title">Avalanche Address</div>
                   <div class="stat-value text-sm font-mono break-all" id="address-display"></div>
                 </div>
               </div>
-
-              <button id="logout-btn" class="btn btn-outline btn-wide">
-                Disconnect
-              </button>
+              <button id="logout-btn" class="btn btn-outline btn-wide">Disconnect</button>
             </div>
 
             <!-- Error State -->
@@ -138,20 +141,23 @@ const title = "IC-SIWA Test";
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <div>
+                <div class="flex-1">
                   <span id="error-message"></span>
-                  <button id="retry-btn" class="btn btn-xs btn-ghost ml-2">Retry</button>
+                </div>
+                <div class="flex gap-1">
+                  <button id="retry-btn" class="btn btn-xs btn-ghost">Retry</button>
+                  <button id="dismiss-error-btn" class="btn btn-xs btn-ghost">Dismiss</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Configuration/Diagnostics Card -->
+        <!-- Diagnostics Card -->
         <div class="card w-full max-w-md bg-base-100 shadow-xl mt-4">
           <div class="card-body">
             <h2 class="card-title text-lg">
-              Configuration & Diagnostics
+              Diagnostics
               <button id="refresh-diagnostics" class="btn btn-xs btn-ghost">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -160,9 +166,6 @@ const title = "IC-SIWA Test";
             </h2>
             <div class="overflow-x-auto">
               <table class="table table-xs">
-                <thead>
-                  <tr><th colspan="2" class="text-primary">IC Configuration</th></tr>
-                </thead>
                 <tbody>
                   <tr>
                     <td class="font-semibold">Provider Canister</td>
@@ -172,60 +175,28 @@ const title = "IC-SIWA Test";
                     <td class="font-semibold">IC Host</td>
                     <td class="font-mono text-xs">{IC_HOST}</td>
                   </tr>
-                </tbody>
-                <thead>
-                  <tr><th colspan="2" class="text-primary pt-4">Avalanche Configuration</th></tr>
-                </thead>
-                <tbody>
                   <tr>
-                    <td class="font-semibold">Expected Chain ID</td>
+                    <td class="font-semibold">Expected Chain</td>
                     <td class="font-mono text-xs">{EXPECTED_CHAIN_ID} ({CHAIN_NAME})</td>
                   </tr>
                   <tr>
-                    <td class="font-semibold">RPC URL</td>
-                    <td class="font-mono text-xs break-all">{RPC_URL}</td>
-                  </tr>
-                </tbody>
-                <thead>
-                  <tr><th colspan="2" class="text-primary pt-4">Wallet Status</th></tr>
-                </thead>
-                <tbody id="wallet-diagnostics">
-                  <tr>
-                    <td class="font-semibold">Detected Wallets</td>
-                    <td id="diag-wallets" class="font-mono text-xs">Scanning...</td>
+                    <td class="font-semibold">AppKit Status</td>
+                    <td id="diag-appkit" class="font-mono text-xs">Initializing...</td>
                   </tr>
                   <tr>
-                    <td class="font-semibold">EIP-6963 Support</td>
-                    <td id="diag-eip6963" class="font-mono text-xs">-</td>
-                  </tr>
-                  <tr>
-                    <td class="font-semibold">Current Chain ID</td>
-                    <td id="diag-chain-id" class="font-mono text-xs">-</td>
+                    <td class="font-semibold">Current Chain</td>
+                    <td id="diag-chain" class="font-mono text-xs">-</td>
                   </tr>
                   <tr>
                     <td class="font-semibold">Connected Address</td>
                     <td id="diag-address" class="font-mono text-xs break-all">-</td>
                   </tr>
-                  <tr>
-                    <td class="font-semibold">Wallet Unlocked</td>
-                    <td id="diag-unlocked" class="font-mono text-xs">-</td>
-                  </tr>
-                  <tr>
-                    <td class="font-semibold">Network Match</td>
-                    <td id="diag-network-match" class="font-mono text-xs">-</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
-
-            <!-- Log Export Button -->
             <div class="mt-4 flex gap-2">
-              <button id="export-logs-btn" class="btn btn-xs btn-outline flex-1">
-                Export Logs
-              </button>
-              <button id="clear-logs-btn" class="btn btn-xs btn-ghost">
-                Clear
-              </button>
+              <button id="export-logs-btn" class="btn btn-xs btn-outline flex-1">Export Logs</button>
+              <button id="clear-logs-btn" class="btn btn-xs btn-ghost">Clear</button>
             </div>
           </div>
         </div>
@@ -234,18 +205,14 @@ const title = "IC-SIWA Test";
         <div class="card w-full max-w-md bg-base-100 shadow-xl mt-4">
           <div class="collapse collapse-arrow">
             <input type="checkbox" />
-            <div class="collapse-title font-medium">
-              Troubleshooting
-            </div>
+            <div class="collapse-title font-medium">Troubleshooting</div>
             <div class="collapse-content text-sm">
               <ul class="list-disc pl-4 space-y-2">
-                <li><strong>No wallets detected:</strong> Install MetaMask, Core Wallet, Rabby, Brave Wallet, or Frame</li>
-                <li><strong>Wallet not showing:</strong> Make sure the extension is enabled and refresh the page</li>
-                <li><strong>Wrong network:</strong> Click "Switch Network" or manually add Avalanche Fuji</li>
-                <li><strong>Wallet locked:</strong> Unlock your wallet and refresh</li>
-                <li><strong>Using Anvil fork:</strong> Ensure Anvil is forked from Fuji (chain ID 43113)</li>
-                <li><strong>Connection refused:</strong> Check IC replica is running on {IC_HOST}</li>
-                <li><strong>Debug issues:</strong> Open browser console (F12) to see detailed logs</li>
+                <li><strong>No wallets:</strong> Install MetaMask, Core, Rabby, or Brave Wallet</li>
+                <li><strong>Wrong network:</strong> Click "Switch Network" to add Avalanche Fuji</li>
+                <li><strong>WalletConnect:</strong> Scan QR with mobile wallet (Trust, Rainbow, etc.)</li>
+                <li><strong>Debug:</strong> Open browser console (F12) to see detailed logs</li>
+                <li><strong>URL format:</strong> Use subdomain URLs (e.g., canister-id.localhost:5987) for AppKit</li>
               </ul>
             </div>
           </div>
@@ -255,595 +222,502 @@ const title = "IC-SIWA Test";
 
     <!-- Footer -->
     <footer class="footer footer-center p-4 bg-base-300 text-base-content mt-8">
-      <div>
-        <p>IC-SIWA Test Canister - For development use only</p>
-      </div>
+      <p>IC-SIWA Test Canister - Development Only</p>
     </footer>
 
-    <!-- Hidden config for JS -->
+    <!-- Config data -->
     <div id="config"
       data-canister-id={SIWA_PROVIDER_CANISTER_ID}
       data-host={IC_HOST}
-      data-expected-chain-id={EXPECTED_CHAIN_ID}
+      data-chain-id={EXPECTED_CHAIN_ID}
       data-chain-name={CHAIN_NAME}
       data-rpc-url={RPC_URL}
       data-block-explorer={BLOCK_EXPLORER}
+      data-walletconnect-project-id={WALLETCONNECT_PROJECT_ID}
       class="hidden"
     ></div>
 
     <script>
+      // Reown AppKit with Wagmi Adapter
+      import { createAppKit, type AppKit } from "@reown/appkit";
+      import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
+      import { defineChain } from "@reown/appkit/networks";
+
+      // Wagmi Core (headless, no React)
+      import { signMessage, getAccount, getChainId, switchChain, watchAccount, watchChainId, type Config } from "@wagmi/core";
+
+      // IC-SIWA client
       import { SiwaClient } from "ic-siwa";
-      import type { EIP1193Provider } from "viem";
-      import { createLogger, siwaLog, uiLog, wcLog, walletLog, networkLog, eip6963Log, exportAllLogs } from "../lib/logger";
-      import type { DetectedWallet, WalletState, AppConfig, ChainConfig } from "../lib/types";
-      import { getWalletIcon, RPC_ERRORS, isRpcError } from "../lib/types";
-      import {
-        initWalletDetection,
-        onWalletsChanged,
-        getDetectedWallets,
-        requestAccounts,
-        getChainId,
-        switchChain,
-        signMessage,
-        setupProviderListeners,
-      } from "../lib/wallet-detection";
 
-      // Initialize main logger
-      const log = createLogger("MAIN");
+      // Local modules
+      import { createLogger, exportAllLogs } from "../lib/logger";
 
-      log.info("IC-SIWA Test Canister initializing");
+      // Logger
+      const log = createLogger("APP");
 
-      // Get configuration from data attributes
+      // ============================================================
+      // Configuration
+      // ============================================================
+
       const configEl = document.getElementById("config");
-      const config: AppConfig = {
+      const config = {
         canisterId: configEl?.dataset.canisterId || "",
         host: configEl?.dataset.host || "https://ic0.app",
-        expectedChainId: parseInt(configEl?.dataset.expectedChainId || "43113"),
+        chainId: parseInt(configEl?.dataset.chainId || "43113"),
         chainName: configEl?.dataset.chainName || "Avalanche Fuji",
         rpcUrl: configEl?.dataset.rpcUrl || "",
         blockExplorer: configEl?.dataset.blockExplorer || "",
+        walletConnectProjectId: configEl?.dataset.walletconnectProjectId || "",
       };
 
-      log.info("Configuration loaded", config);
+      log.info("Config loaded", config);
 
-      // Avalanche chain config for adding network
-      const avalancheFujiChain: ChainConfig = {
-        chainId: config.expectedChainId,
-        chainName: config.chainName,
+      // ============================================================
+      // Define Avalanche Fuji network for AppKit
+      // ============================================================
+
+      const avalancheFujiNetwork = defineChain({
+        id: 43113,
+        caipNetworkId: "eip155:43113",
+        chainNamespace: "eip155",
+        name: "Avalanche Fuji",
         nativeCurrency: {
+          decimals: 18,
           name: "AVAX",
           symbol: "AVAX",
-          decimals: 18,
         },
-        rpcUrls: [config.rpcUrl],
-        blockExplorerUrls: [config.blockExplorer],
-      };
+        rpcUrls: {
+          default: {
+            http: ["https://api.avax-test.network/ext/bc/C/rpc"],
+          },
+        },
+        blockExplorers: {
+          default: { name: "Snowtrace", url: "https://testnet.snowtrace.io" },
+        },
+      });
 
+      // ============================================================
       // State
-      const state: WalletState = {
-        selectedWallet: null,
+      // ============================================================
+
+      interface AppState {
+        appKit: AppKit | null;
+        wagmiConfig: Config | null;
+        address: string | null;
+        chainId: number | null;
+        isConnected: boolean;
+        isAuthenticated: boolean;
+        principal: string | null;
+      }
+
+      const state: AppState = {
+        appKit: null,
+        wagmiConfig: null,
         address: null,
         chainId: null,
-        isUnlocked: false,
+        isConnected: false,
         isAuthenticated: false,
         principal: null,
       };
 
-      // Provider cleanup function
-      let cleanupProviderListeners: (() => void) | null = null;
+      // SIWA client
+      const siwaClient = new SiwaClient({
+        canisterId: config.canisterId,
+        host: config.host,
+      });
 
+      // ============================================================
       // UI Elements
-      const walletSelection = document.getElementById("wallet-selection");
-      const injectedWalletList = document.getElementById("injected-wallet-list");
-      const walletConnectBtn = document.getElementById("walletconnect-btn");
-      const loadingState = document.getElementById("loading-state");
-      const loadingMessage = document.getElementById("loading-message");
-      const networkSwitchState = document.getElementById("network-switch-state");
-      const authenticatedState = document.getElementById("authenticated-state");
-      const errorState = document.getElementById("error-state");
-      const principalDisplay = document.getElementById("principal-display");
-      const addressDisplay = document.getElementById("address-display");
-      const errorMessage = document.getElementById("error-message");
-      const logoutBtn = document.getElementById("logout-btn");
-      const switchNetworkBtn = document.getElementById("switch-network-btn");
-      const retryBtn = document.getElementById("retry-btn");
-      const networkBadge = document.getElementById("network-badge");
-      const currentChainName = document.getElementById("current-chain-name");
-      const refreshDiagnostics = document.getElementById("refresh-diagnostics");
-      const exportLogsBtn = document.getElementById("export-logs-btn");
-      const clearLogsBtn = document.getElementById("clear-logs-btn");
+      // ============================================================
 
-      // Diagnostics elements
-      const diagWallets = document.getElementById("diag-wallets");
-      const diagEip6963 = document.getElementById("diag-eip6963");
-      const diagChainId = document.getElementById("diag-chain-id");
-      const diagAddress = document.getElementById("diag-address");
-      const diagUnlocked = document.getElementById("diag-unlocked");
-      const diagNetworkMatch = document.getElementById("diag-network-match");
+      const ui = {
+        walletSelection: document.getElementById("wallet-selection"),
+        connectBtn: document.getElementById("connect-btn"),
+        loadingState: document.getElementById("loading-state"),
+        loadingMessage: document.getElementById("loading-message"),
+        networkSwitchState: document.getElementById("network-switch-state"),
+        switchNetworkBtn: document.getElementById("switch-network-btn"),
+        currentChainName: document.getElementById("current-chain-name"),
+        siwaLoginState: document.getElementById("siwa-login-state"),
+        siwaLoginBtn: document.getElementById("siwa-login-btn"),
+        connectedAddress: document.getElementById("connected-address"),
+        authenticatedState: document.getElementById("authenticated-state"),
+        principalDisplay: document.getElementById("principal-display"),
+        addressDisplay: document.getElementById("address-display"),
+        logoutBtn: document.getElementById("logout-btn"),
+        errorState: document.getElementById("error-state"),
+        errorMessage: document.getElementById("error-message"),
+        retryBtn: document.getElementById("retry-btn"),
+        dismissErrorBtn: document.getElementById("dismiss-error-btn"),
+        networkBadge: document.getElementById("network-badge"),
+        diagAppKit: document.getElementById("diag-appkit"),
+        diagChain: document.getElementById("diag-chain"),
+        diagAddress: document.getElementById("diag-address"),
+        refreshDiagnostics: document.getElementById("refresh-diagnostics"),
+        exportLogsBtn: document.getElementById("export-logs-btn"),
+        clearLogsBtn: document.getElementById("clear-logs-btn"),
+      };
 
-      // Create SIWA client
-      siwaLog.info("Creating SIWA client", { canisterId: config.canisterId, host: config.host });
-      const client = new SiwaClient({ canisterId: config.canisterId, host: config.host });
+      // ============================================================
+      // UI State Management
+      // ============================================================
 
-      // Update UI state
-      function showState(stateName: "wallets" | "loading" | "network-switch" | "authenticated" | "error", message?: string) {
-        uiLog.debug(`Showing state: ${stateName}`, { message });
+      type UIState = "wallets" | "loading" | "network-switch" | "siwa-login" | "authenticated" | "error";
 
-        walletSelection?.classList.toggle("hidden", stateName !== "wallets");
-        loadingState?.classList.toggle("hidden", stateName !== "loading");
-        networkSwitchState?.classList.toggle("hidden", stateName !== "network-switch");
-        authenticatedState?.classList.toggle("hidden", stateName !== "authenticated");
-        errorState?.classList.toggle("hidden", stateName !== "error");
+      function showUIState(stateName: UIState, message?: string): void {
+        log.debug(`UI state: ${stateName}`, { message });
 
-        if (stateName === "loading" && loadingMessage && message) {
-          loadingMessage.textContent = message;
+        ui.walletSelection?.classList.toggle("hidden", stateName !== "wallets");
+        ui.loadingState?.classList.toggle("hidden", stateName !== "loading");
+        ui.networkSwitchState?.classList.toggle("hidden", stateName !== "network-switch");
+        ui.siwaLoginState?.classList.toggle("hidden", stateName !== "siwa-login");
+        ui.authenticatedState?.classList.toggle("hidden", stateName !== "authenticated");
+        ui.errorState?.classList.toggle("hidden", stateName !== "error");
+
+        if (stateName === "loading" && ui.loadingMessage && message) {
+          ui.loadingMessage.textContent = message;
         }
-        if (stateName === "error" && errorMessage && message) {
-          errorMessage.textContent = message;
+        if (stateName === "error" && ui.errorMessage && message) {
+          ui.errorMessage.textContent = message;
         }
       }
 
-      // Update network badge
-      function updateNetworkBadge(chainId: number | null) {
-        if (!networkBadge) return;
+      function updateNetworkBadge(): void {
+        if (!ui.networkBadge) return;
 
-        if (chainId === null) {
-          networkBadge.className = "badge badge-warning";
-          networkBadge.textContent = "No Wallet";
-        } else if (chainId === config.expectedChainId) {
-          networkBadge.className = "badge badge-success";
-          networkBadge.textContent = config.chainName;
+        if (state.chainId === null) {
+          ui.networkBadge.className = "badge badge-warning";
+          ui.networkBadge.textContent = "No Wallet";
+        } else if (state.chainId === config.chainId) {
+          ui.networkBadge.className = "badge badge-success";
+          ui.networkBadge.textContent = config.chainName;
         } else {
-          networkBadge.className = "badge badge-error";
-          networkBadge.textContent = `Chain ${chainId}`;
+          ui.networkBadge.className = "badge badge-error";
+          ui.networkBadge.textContent = `Chain ${state.chainId}`;
         }
       }
 
-      // Update diagnostics display
-      function updateDiagnostics() {
-        const wallets = getDetectedWallets();
-
-        // Wallet count
-        if (diagWallets) {
-          const names = wallets.map(w => w.name);
-          diagWallets.textContent = names.length > 0 ? names.join(", ") : "None detected";
+      function updateDiagnostics(): void {
+        if (ui.diagAppKit) {
+          ui.diagAppKit.textContent = state.appKit ? (state.isConnected ? "Connected" : "Ready") : "Initializing...";
+        }
+        if (ui.diagChain) {
+          ui.diagChain.textContent = state.chainId
+            ? `${state.chainId} (0x${state.chainId.toString(16)})`
+            : "-";
+        }
+        if (ui.diagAddress) {
+          ui.diagAddress.textContent = state.address || "-";
         }
 
-        // EIP-6963 support
-        if (diagEip6963) {
-          const eip6963Count = wallets.filter(w => w.source === "eip6963").length;
-          const legacyCount = wallets.filter(w => w.source === "legacy").length;
-          diagEip6963.textContent = `${eip6963Count} modern, ${legacyCount} legacy`;
-        }
-
-        // Chain ID
-        if (diagChainId) {
-          if (state.chainId !== null) {
-            diagChainId.textContent = `${state.chainId} (0x${state.chainId.toString(16)})`;
-          } else {
-            diagChainId.textContent = "-";
-          }
-        }
-
-        // Address
-        if (diagAddress) {
-          diagAddress.textContent = state.address || "-";
-        }
-
-        // Unlocked
-        if (diagUnlocked) {
-          if (state.selectedWallet) {
-            diagUnlocked.textContent = state.isUnlocked ? "Yes" : "No (locked)";
-            diagUnlocked.className = `font-mono text-xs ${state.isUnlocked ? "text-success" : "text-warning"}`;
-          } else {
-            diagUnlocked.textContent = "-";
-            diagUnlocked.className = "font-mono text-xs";
-          }
-        }
-
-        // Network match
-        if (diagNetworkMatch) {
-          if (state.chainId !== null) {
-            const match = state.chainId === config.expectedChainId;
-            diagNetworkMatch.textContent = match ? "Yes" : "No";
-            diagNetworkMatch.className = `font-mono text-xs ${match ? "text-success" : "text-error"}`;
-          } else {
-            diagNetworkMatch.textContent = "-";
-            diagNetworkMatch.className = "font-mono text-xs";
-          }
-        }
-
-        updateNetworkBadge(state.chainId);
+        updateNetworkBadge();
       }
 
-      // Render wallet buttons
-      function renderWalletButtons(wallets: DetectedWallet[]) {
-        if (!injectedWalletList) return;
+      // ============================================================
+      // AppKit Initialization with WagmiAdapter
+      // ============================================================
 
-        uiLog.debug("Rendering wallet buttons", { count: wallets.length });
+      async function initAppKit(): Promise<void> {
+        log.info("Initializing AppKit with WagmiAdapter");
 
-        // Filter out walletconnect (handled separately)
-        const injectedWallets = wallets.filter(w => w.source !== "walletconnect");
-
-        if (injectedWallets.length === 0) {
-          injectedWalletList.innerHTML = `
-            <div class="alert alert-info text-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>No browser wallets detected. Install MetaMask, Core, Rabby, or another EVM wallet.</span>
-            </div>
-          `;
+        if (!config.walletConnectProjectId) {
+          log.error("WalletConnect Project ID not configured");
+          if (ui.diagAppKit) ui.diagAppKit.textContent = "Error: No Project ID";
+          showUIState("error", "WalletConnect is not configured. Please set PUBLIC_WALLETCONNECT_PROJECT_ID.");
           return;
         }
 
-        injectedWalletList.innerHTML = injectedWallets.map(wallet => {
-          // Determine how to render the icon
-          // EIP-6963 icons are data URIs (data:image/...), our fallbacks are inline SVG
-          const isDataUri = wallet.icon.startsWith("data:");
-          const iconHtml = isDataUri
-            ? `<img src="${wallet.icon}" alt="${wallet.name}" class="w-6 h-6 rounded" />`
-            : `<span class="wallet-icon">${wallet.icon}</span>`;
+        try {
+          // Create Wagmi adapter (provides wagmiConfig for @wagmi/core actions)
+          const wagmiAdapter = new WagmiAdapter({
+            projectId: config.walletConnectProjectId,
+            networks: [avalancheFujiNetwork],
+          });
 
-          return `
-            <button class="btn btn-outline btn-block justify-start gap-3 wallet-btn" data-wallet-id="${wallet.id}">
-              ${iconHtml}
-              <span class="flex-1 text-left">${wallet.name}</span>
-              <span class="badge badge-xs badge-ghost">${wallet.source === "eip6963" ? "EIP-6963" : "Legacy"}</span>
-            </button>
-          `;
-        }).join("");
+          // Store wagmiConfig for use with @wagmi/core actions
+          state.wagmiConfig = wagmiAdapter.wagmiConfig;
 
-        // Add click handlers
-        document.querySelectorAll(".wallet-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const walletId = btn.getAttribute("data-wallet-id");
-            const wallet = wallets.find(w => w.id === walletId);
-            if (wallet) {
-              handleWalletSelect(wallet);
+          // Create AppKit instance with WagmiAdapter
+          const appKit = createAppKit({
+            adapters: [wagmiAdapter],
+            projectId: config.walletConnectProjectId,
+            networks: [avalancheFujiNetwork],
+            metadata: {
+              name: "IC-SIWA Test",
+              description: "Sign in with Avalanche for Internet Computer",
+              url: window.location.origin,
+              icons: [`${window.location.origin}/favicon.svg`],
+            },
+            themeMode: "dark",
+            // Provide network images to prevent SVG rendering errors
+            chainImages: {
+              43113: "https://raw.githubusercontent.com/ava-labs/avalanche-docs/main/static/img/Avalanche_Horizontal_Red.svg",
+            },
+          });
+
+          state.appKit = appKit;
+          log.info("AppKit initialized with WagmiAdapter");
+
+          // Use wagmi core's watchAccount to track connection state
+          watchAccount(state.wagmiConfig, {
+            onChange: (account) => {
+              log.debug("Account state changed", {
+                address: account.address,
+                chainId: account.chainId,
+                isConnected: account.isConnected
+              });
+
+              state.address = account.address || null;
+              state.chainId = account.chainId || null;
+              state.isConnected = account.isConnected;
+
+              updateDiagnostics();
+              handleConnectionState();
             }
           });
-        });
 
-        updateDiagnostics();
-      }
-
-      // Handle wallet selection
-      async function handleWalletSelect(wallet: DetectedWallet) {
-        log.info(`Wallet selected: ${wallet.name}`, { id: wallet.id, source: wallet.source });
-
-        state.selectedWallet = wallet;
-        showState("loading", `Connecting to ${wallet.name}...`);
-
-        try {
-          // Setup provider listeners
-          if (cleanupProviderListeners) {
-            cleanupProviderListeners();
-          }
-          cleanupProviderListeners = setupProviderListeners(wallet.provider, {
-            onAccountsChanged: (accounts) => {
-              state.address = accounts[0] || null;
-              state.isUnlocked = accounts.length > 0;
-              updateDiagnostics();
-              if (!state.isUnlocked && !state.isAuthenticated) {
-                showState("wallets");
-              }
-            },
-            onChainChanged: (chainId) => {
+          // Also watch for chain changes
+          watchChainId(state.wagmiConfig, {
+            onChange: (chainId) => {
+              log.debug("Chain changed", { chainId });
               state.chainId = chainId;
               updateDiagnostics();
-              if (chainId !== config.expectedChainId && !state.isAuthenticated) {
-                if (currentChainName) currentChainName.textContent = `Chain ${chainId}`;
-                showState("network-switch");
-              }
-            },
+              handleConnectionState();
+            }
           });
 
-          // Request accounts
-          showState("loading", "Requesting account access...");
-          const accounts = await requestAccounts(wallet.provider);
-
-          if (!accounts || accounts.length === 0) {
-            throw new Error("No accounts available. Please unlock your wallet.");
-          }
-
-          state.address = accounts[0];
-          state.isUnlocked = true;
-
-          // Check chain ID
-          showState("loading", "Checking network...");
-          state.chainId = await getChainId(wallet.provider);
+          // Get initial state
+          const initialAccount = getAccount(state.wagmiConfig);
+          state.address = initialAccount.address || null;
+          state.chainId = initialAccount.chainId || null;
+          state.isConnected = initialAccount.isConnected;
 
           updateDiagnostics();
 
-          // If wrong network, show switch prompt
-          if (state.chainId !== config.expectedChainId) {
-            log.warn(`Wrong network: ${state.chainId}, expected ${config.expectedChainId}`);
-            if (currentChainName) currentChainName.textContent = `Chain ${state.chainId}`;
-            showState("network-switch");
-            return;
-          }
-
-          // Proceed with SIWA login
-          await performSiwaLogin(wallet.provider);
-
         } catch (error) {
-          handleWalletError(error);
+          log.error("AppKit initialization failed", error);
+          if (ui.diagAppKit) ui.diagAppKit.textContent = "Error: Init failed";
+          showUIState("error", error instanceof Error ? error.message : "Failed to initialize wallet connection");
         }
       }
 
-      // Handle WalletConnect
-      async function handleWalletConnect() {
-        wcLog.info("Initializing WalletConnect");
-        showState("loading", "Initializing WalletConnect...");
+      // ============================================================
+      // Connection State Handler
+      // ============================================================
 
-        try {
-          const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
-
-          wcLog.debug("Creating EthereumProvider");
-          const provider = await EthereumProvider.init({
-            projectId: "demo-project-id", // Replace with real project ID for production
-            chains: [config.expectedChainId],
-            showQrModal: true,
-            qrModalOptions: {
-              themeMode: "dark" as const,
-            },
-          });
-
-          wcLog.info("Connecting via QR modal");
-          showState("loading", "Scan QR code with your mobile wallet...");
-          await provider.connect();
-
-          wcLog.info("WalletConnect connected");
-
-          // Create wallet object
-          const wallet: DetectedWallet = {
-            id: "walletconnect",
-            name: "WalletConnect",
-            icon: getWalletIcon("walletconnect"),
-            provider: provider as unknown as EIP1193Provider,
-            source: "walletconnect",
-          };
-
-          state.selectedWallet = wallet;
-
-          // Get accounts
-          const accounts = await provider.request({ method: "eth_accounts" }) as string[];
-          if (!accounts || accounts.length === 0) {
-            throw new Error("No accounts available from WalletConnect");
-          }
-
-          state.address = accounts[0];
-          state.isUnlocked = true;
-
-          // Get chain ID
-          const chainIdHex = await provider.request({ method: "eth_chainId" }) as string;
-          state.chainId = parseInt(chainIdHex, 16);
-
-          updateDiagnostics();
-
-          // Check network
-          if (state.chainId !== config.expectedChainId) {
-            wcLog.warn(`Wrong network: ${state.chainId}`);
-            if (currentChainName) currentChainName.textContent = `Chain ${state.chainId}`;
-            showState("network-switch");
-            return;
-          }
-
-          // Proceed with SIWA login
-          await performSiwaLogin(provider as unknown as EIP1193Provider);
-
-        } catch (error) {
-          wcLog.error("WalletConnect error", error);
-          handleWalletError(error);
-        }
-      }
-
-      // Handle wallet errors
-      function handleWalletError(error: unknown) {
-        log.error("Wallet error", error);
-
-        let message = "An error occurred";
-
-        if (isRpcError(error)) {
-          switch (error.code) {
-            case RPC_ERRORS.USER_REJECTED:
-              message = "Connection rejected by user";
-              break;
-            case RPC_ERRORS.PENDING_REQUEST:
-              message = "Please check your wallet - a request is pending";
-              break;
-            case RPC_ERRORS.UNAUTHORIZED:
-              message = "Wallet is locked. Please unlock and try again.";
-              break;
-            default:
-              message = error.message || "Wallet error";
-          }
-        } else if (error instanceof Error) {
-          message = error.message;
-        }
-
-        showState("error", message);
-        updateDiagnostics();
-      }
-
-      // Switch network
-      async function handleNetworkSwitch() {
-        if (!state.selectedWallet?.provider) {
-          showState("error", "No wallet connected");
+      function handleConnectionState(): void {
+        if (!state.isConnected || !state.address) {
+          // Not connected - show wallet selection
+          showUIState("wallets");
           return;
         }
 
-        log.info("Switching network");
-        showState("loading", "Switching network...");
+        // Connected - check chain
+        if (state.chainId !== config.chainId) {
+          log.warn(`Wrong network: ${state.chainId}, expected ${config.chainId}`);
+          if (ui.currentChainName) ui.currentChainName.textContent = `Chain ${state.chainId}`;
+          showUIState("network-switch");
+          return;
+        }
+
+        // Correct chain - check if already authenticated
+        if (state.isAuthenticated && state.principal) {
+          if (ui.principalDisplay) ui.principalDisplay.textContent = state.principal;
+          if (ui.addressDisplay) ui.addressDisplay.textContent = state.address;
+          showUIState("authenticated");
+          return;
+        }
+
+        // Ready for SIWA login
+        if (ui.connectedAddress) ui.connectedAddress.textContent = state.address;
+        showUIState("siwa-login");
+      }
+
+      // ============================================================
+      // Wallet Connection
+      // ============================================================
+
+      async function handleConnect(): Promise<void> {
+        if (!state.appKit) {
+          showUIState("error", "Wallet connection not initialized");
+          return;
+        }
+
+        log.info("Opening wallet modal");
+        state.appKit.open();
+      }
+
+      // ============================================================
+      // Network Switching
+      // ============================================================
+
+      async function handleNetworkSwitch(): Promise<void> {
+        if (!state.wagmiConfig) {
+          showUIState("error", "Wallet connection not initialized");
+          return;
+        }
+
+        log.info("Switching network via wagmi core");
+        showUIState("loading", "Switching network...");
 
         try {
-          await switchChain(state.selectedWallet.provider, config.expectedChainId, {
-            chainName: avalancheFujiChain.chainName,
-            rpcUrls: avalancheFujiChain.rpcUrls,
-            nativeCurrency: avalancheFujiChain.nativeCurrency,
-            blockExplorerUrls: avalancheFujiChain.blockExplorerUrls,
-          });
+          // Use @wagmi/core switchChain action
+          await switchChain(state.wagmiConfig, { chainId: config.chainId });
+          log.info("Network switch requested");
 
-          // Verify the switch
-          state.chainId = await getChainId(state.selectedWallet.provider);
-
-          if (state.chainId !== config.expectedChainId) {
-            throw new Error("Network switch failed - please try manually");
-          }
-
-          updateDiagnostics();
-
-          // Proceed with login
-          await performSiwaLogin(state.selectedWallet.provider);
+          // The subscribeProvider callback will handle the state update
 
         } catch (error) {
-          handleWalletError(error);
+          log.error("Network switch error", error);
+          showUIState("error", error instanceof Error ? error.message : "Network switch failed");
         }
       }
 
-      // Perform SIWA login
-      async function performSiwaLogin(provider: EIP1193Provider) {
-        if (!state.address) {
-          throw new Error("No address available");
+      // ============================================================
+      // SIWA Login
+      // ============================================================
+
+      async function performSiwaLogin(): Promise<void> {
+        if (!state.wagmiConfig || !state.address) {
+          throw new Error("No wallet connected");
         }
 
-        siwaLog.info("Starting SIWA login", { address: state.address });
-        showState("loading", "Preparing login message...");
+        log.info("Starting SIWA login", { address: state.address });
+        showUIState("loading", "Preparing login...");
 
         try {
-          // Prepare login
-          siwaLog.debug("Calling prepareLogin");
-          const prepared = await client.prepareLogin(state.address);
-          siwaLog.debug("prepareLogin response", prepared);
+          // Prepare login message
+          const prepared = await siwaClient.prepareLogin(state.address);
+          log.debug("Login prepared", { message: prepared.message.substring(0, 50) + "..." });
 
-          showState("loading", "Please sign the message in your wallet...");
+          showUIState("loading", "Please sign the message...");
 
-          // Sign message
-          siwaLog.debug("Requesting signature");
-          const signature = await signMessage(provider, prepared.message, state.address);
-          siwaLog.debug("Signature received", { signatureLength: signature.length });
+          // Sign using @wagmi/core signMessage action
+          const signature = await signMessage(state.wagmiConfig, {
+            message: prepared.message,
+          });
 
-          showState("loading", "Completing authentication...");
+          log.debug("Signature received");
+          showUIState("loading", "Completing authentication...");
 
           // Complete login
-          siwaLog.debug("Calling login");
-          const result = await client.login(signature, state.address);
-          siwaLog.info("Login successful", { principal: result.principal.toText() });
+          const result = await siwaClient.login(signature, state.address);
+          log.info("Login successful", { principal: result.principal.toText() });
 
-          // Update state
           state.isAuthenticated = true;
           state.principal = result.principal.toText();
 
           // Update UI
-          if (principalDisplay) principalDisplay.textContent = result.principal.toText();
-          if (addressDisplay) addressDisplay.textContent = result.address;
+          if (ui.principalDisplay) ui.principalDisplay.textContent = state.principal;
+          if (ui.addressDisplay) ui.addressDisplay.textContent = state.address;
 
-          showState("authenticated");
+          showUIState("authenticated");
           updateDiagnostics();
 
         } catch (error) {
-          siwaLog.error("SIWA login error", error);
-
-          if (isRpcError(error) && error.code === RPC_ERRORS.USER_REJECTED) {
-            showState("error", "Signature rejected by user");
-          } else if (error instanceof Error) {
-            showState("error", error.message);
-          } else {
-            showState("error", "Login failed");
-          }
+          log.error("SIWA login error", error);
+          showUIState("error", error instanceof Error ? error.message : "Login failed");
         }
       }
 
-      // Logout handler
-      async function handleLogout() {
+      // ============================================================
+      // Logout
+      // ============================================================
+
+      async function handleLogout(): Promise<void> {
         log.info("Logging out");
+
         try {
-          await client.logout();
-          state.address = null;
-          state.selectedWallet = null;
-          state.isAuthenticated = false;
-          state.principal = null;
-          state.chainId = null;
-
-          if (cleanupProviderListeners) {
-            cleanupProviderListeners();
-            cleanupProviderListeners = null;
-          }
-
-          showState("wallets");
-          updateDiagnostics();
-        } catch (error) {
-          log.error("Logout failed", error);
+          await siwaClient.logout();
+        } catch (e) {
+          log.warn("Logout error (ignored)", e);
         }
+
+        // Disconnect AppKit
+        if (state.appKit) {
+          try {
+            await state.appKit.disconnect();
+          } catch (e) {
+            log.warn("AppKit disconnect error (ignored)", e);
+          }
+        }
+
+        // Reset state (keep wagmiConfig as it's tied to the adapter)
+        state.address = null;
+        state.chainId = null;
+        state.isConnected = false;
+        state.isAuthenticated = false;
+        state.principal = null;
+
+        showUIState("wallets");
+        updateDiagnostics();
       }
 
-      // Check if already authenticated
-      async function checkAuth() {
-        siwaLog.debug("Checking existing authentication");
+      // ============================================================
+      // Check Existing Auth
+      // ============================================================
+
+      async function checkExistingAuth(): Promise<void> {
         try {
-          if (await client.isAuthenticated()) {
-            siwaLog.info("User is already authenticated");
-            const principal = await client.getPrincipal();
-            const address = await client.getAddress();
+          if (await siwaClient.isAuthenticated()) {
+            log.info("User already authenticated");
+            const principal = await siwaClient.getPrincipal();
+            const address = await siwaClient.getAddress();
 
             state.isAuthenticated = true;
             state.principal = principal?.toText() || null;
-            state.address = address || null;
+            // Note: address from siwaClient may differ from current wallet
 
-            if (principalDisplay) principalDisplay.textContent = principal?.toText() || "";
-            if (addressDisplay) addressDisplay.textContent = address || "";
-
-            showState("authenticated");
+            if (state.isConnected && state.address) {
+              if (ui.principalDisplay) ui.principalDisplay.textContent = state.principal || "";
+              if (ui.addressDisplay) ui.addressDisplay.textContent = state.address;
+              showUIState("authenticated");
+            }
           }
-        } catch (error) {
-          siwaLog.error("Auth check failed", error);
+        } catch (e) {
+          log.debug("Not authenticated", e);
         }
       }
 
-      // Export logs
-      function handleExportLogs() {
+      // ============================================================
+      // Event Listeners
+      // ============================================================
+
+      ui.connectBtn?.addEventListener("click", handleConnect);
+      ui.switchNetworkBtn?.addEventListener("click", handleNetworkSwitch);
+      ui.siwaLoginBtn?.addEventListener("click", performSiwaLogin);
+      ui.logoutBtn?.addEventListener("click", handleLogout);
+      ui.retryBtn?.addEventListener("click", () => showUIState("wallets"));
+      ui.dismissErrorBtn?.addEventListener("click", () => showUIState("wallets"));
+      ui.refreshDiagnostics?.addEventListener("click", updateDiagnostics);
+
+      ui.exportLogsBtn?.addEventListener("click", () => {
         const logs = exportAllLogs();
         const blob = new Blob([logs], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `ic-siwa-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
+        a.download = `ic-siwa-logs-${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        log.info("Logs exported");
-      }
-
-      // Event listeners
-      walletConnectBtn?.addEventListener("click", handleWalletConnect);
-      switchNetworkBtn?.addEventListener("click", handleNetworkSwitch);
-      logoutBtn?.addEventListener("click", handleLogout);
-      retryBtn?.addEventListener("click", () => {
-        showState("wallets");
-        updateDiagnostics();
       });
-      refreshDiagnostics?.addEventListener("click", updateDiagnostics);
-      exportLogsBtn?.addEventListener("click", handleExportLogs);
-      clearLogsBtn?.addEventListener("click", () => {
-        [walletLog, siwaLog, networkLog, uiLog, eip6963Log, wcLog].forEach(l => l.clear());
+
+      ui.clearLogsBtn?.addEventListener("click", () => {
         log.info("Logs cleared");
       });
 
+      // ============================================================
       // Initialize
-      async function init() {
-        log.info("Initializing application");
+      // ============================================================
 
-        // Subscribe to wallet changes
-        onWalletsChanged((wallets) => {
-          log.debug("Wallets changed", { count: wallets.length });
-          renderWalletButtons(wallets);
-        });
+      async function init(): Promise<void> {
+        log.info("Initializing app");
 
-        // Start wallet detection
-        initWalletDetection();
+        // Initialize AppKit
+        await initAppKit();
 
         // Check existing auth
-        await checkAuth();
+        await checkExistingAuth();
 
         log.info("Initialization complete");
       }

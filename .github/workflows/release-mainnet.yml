@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get version
         id: version
@@ -91,7 +91,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -119,7 +119,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -162,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -180,7 +180,7 @@ jobs:
           optimize: "true"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.canister }}-mainnet
           path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
@@ -200,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -214,7 +214,7 @@ jobs:
         uses: ./.github/actions/build-npm
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ic-siwa-npm-mainnet
           path: |
@@ -237,7 +237,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -252,7 +252,7 @@ jobs:
           environment: mainnet
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ic_siwa_provider-mainnet
           path: target/wasm32-unknown-unknown/release/
@@ -293,7 +293,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -327,7 +327,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup devenv
         uses: ./.github/actions/setup-devenv
@@ -342,13 +342,13 @@ jobs:
           environment: mainnet
 
       - name: Download test_canister_rs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: test_canister_rs-mainnet
           path: target/wasm32-unknown-unknown/release/
 
       - name: Download test_canister_ts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: test_canister_ts-mainnet
           path: canisters/test_canister_ts/dist/
@@ -368,6 +368,27 @@ jobs:
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
   ##################################################
+  # Register Custom Domain (when debug=true)
+  ##################################################
+  register-domain:
+    name: Register Custom Domain
+    needs: [setup, deploy-test-canisters]
+    if: needs.setup.outputs.debug == 'true' && needs.setup.outputs.domain != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Mainnet
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Register domain
+        uses: ./.github/actions/register-domain
+        with:
+          domain: ${{ needs.setup.outputs.domain }}
+          canister_id: ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}
+
+  ##################################################
   # Publish npm (real publish)
   ##################################################
   publish-npm:
@@ -381,10 +402,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ic-siwa-npm-mainnet
           path: libs/ic_siwa_ts/
@@ -406,6 +427,7 @@ jobs:
         deploy-provider,
         verify-deployment,
         deploy-test-canisters,
+        register-domain,
         publish-npm,
       ]
     if: always() && needs.verify-deployment.result == 'success' && needs.publish-npm.result == 'success'
@@ -415,7 +437,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -467,6 +489,7 @@ jobs:
         deploy-provider,
         verify-deployment,
         deploy-test-canisters,
+        register-domain,
         publish-npm,
         create-release,
       ]
@@ -491,6 +514,7 @@ jobs:
             echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
             echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
             echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
+            echo "| Register Domain | ${{ needs.register-domain.result }} |"
             echo "| Publish npm | ${{ needs.publish-npm.result }} |"
             echo "| Create Release | ${{ needs.create-release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"

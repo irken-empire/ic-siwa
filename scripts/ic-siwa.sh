@@ -3,6 +3,7 @@
 # IC-SIWA Developer Entrypoint Script
 # Single point of entry for all ic-siwa development tasks
 
+clear
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,6 +58,20 @@ NPM_PACKAGES=(
 	"libs/ic_siwa_ts/package.json"
 	"canisters/test_canister_ts/package.json"
 )
+
+# Agent documentation sources for LLM context
+# Format: "name|url"
+AGENT_DOC_SOURCES=(
+	"astro|https://docs.astro.build/llms-full.txt"
+	"daisyui|https://daisyui.com/llms.txt"
+	"foundry|https://getfoundry.sh/llms-full.txt"
+	"juno|https://juno.build/llms-full.txt"
+	"oisy|https://docs.oisy.com/llms-full.txt"
+	"reown|https://docs.reown.com/llms-full.txt"
+	"viem|https://viem.sh/llms-full.txt"
+	"xai|https://docs.x.ai/llms.txt"
+)
+AGENT_DOCS_DIR="docs/agents"
 
 # ==========================================
 # Logging Functions
@@ -207,7 +222,9 @@ show_help() {
 		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
+		  logs               Tail ic_siwa_provider logs in real-time
 		  update             Update all dependencies (cargo, bun) and pin versions
+		  agent-docs         Download LLM documentation for AI agents
 		  check              Check if all required dependencies are installed
 		  version            Show current version (from Cargo.toml)
 		  version --bump     Bump version based on conventional commits
@@ -264,11 +281,13 @@ declare -A CMD_DEPS=(
 	["loop"]="dfx,cargo,bun,yq,candid-extractor,didc"
 	["start"]="dfx"
 	["stop"]="dfx"
-	["update"]="cargo,bun"
+	["logs"]="dfx"
+	["update"]="cargo,bun,cargo-upgrade"
 	["version"]="toml"
 	["cleanup"]="dfx"
 	["urls"]="dfx"
 	["cycles"]="dfx,jq"
+	["agent-docs"]="curl"
 )
 
 # Check if a command exists
@@ -318,6 +337,9 @@ check_deps() {
 			didc)
 				echo -e "  ${RED}✗${NC} didc - Install: cargo install didc"
 				;;
+			cargo-upgrade)
+				echo -e "  ${RED}✗${NC} cargo-upgrade - Install: cargo install cargo-edit"
+				;;
 			toml)
 				echo -e "  ${RED}✗${NC} toml - Install: cargo install toml-cli"
 				;;
@@ -329,6 +351,9 @@ check_deps() {
 				;;
 			nc)
 				echo -e "  ${RED}✗${NC} nc (netcat) - Install via package manager"
+				;;
+			curl)
+				echo -e "  ${RED}✗${NC} curl - Install via package manager"
 				;;
 			*)
 				echo -e "  ${RED}✗${NC} ${dep}"
@@ -509,8 +534,11 @@ cmd_version() {
 	log_info "Next steps:"
 	log_info "  1. Review changes: git diff"
 	log_info "  2. Commit: git commit -am 'chore(release): ${next_version}'"
-	log_info "  3. Tag: git tag v${next_version}"
-	log_info "  4. Push: git push && git push --tags"
+	log_info "  3. Push to trunk: git push"
+	log_info ""
+	log_info "GitHub Actions will automatically:"
+	log_info "  - Testnet: Create tag v${next_version}-testnet (prerelease) on push to trunk"
+	log_info "  - Mainnet: Create tag v${next_version} (release) via manual workflow dispatch"
 }
 
 # Force version bump (major/minor/patch)
@@ -631,10 +659,19 @@ cmd_update() {
 		"canisters/test_canister_ts"
 	)
 
-	# Update Cargo dependencies
-	log_info "Updating Cargo dependencies..."
-	cargo update
-	log_success "Cargo dependencies updated"
+	# Update Cargo dependencies with exact pinned versions
+	log_info "Updating Cargo dependencies (pinned exact versions)..."
+	if command -v cargo-upgrade &>/dev/null; then
+		# cargo-upgrade updates Cargo.toml to latest versions with exact pins
+		cargo upgrade --pinned
+		cargo update
+		log_success "Cargo dependencies upgraded and pinned"
+	else
+		log_warn "cargo-upgrade not found, falling back to cargo update (Cargo.lock only)"
+		log_info "Install cargo-edit for pinned Cargo.toml updates: cargo install cargo-edit"
+		cargo update
+		log_success "Cargo.lock updated (Cargo.toml unchanged)"
+	fi
 
 	# Update bun packages to latest versions with exact versions (no ^ or ~ prefixes)
 	for npm_dir in "${npm_dirs[@]}"; do
@@ -659,6 +696,56 @@ cmd_update() {
 	log_info "  3. Commit: git commit -am 'chore(deps): update dependencies'"
 }
 
+# Download LLM documentation for AI agents
+cmd_agent_docs() {
+	log_info "Downloading AI agent documentation..."
+
+	mkdir -p "${PROJECT_ROOT}/${AGENT_DOCS_DIR}"
+
+	local failed=0
+	local success=0
+	local total=${#AGENT_DOC_SOURCES[@]}
+	local current=0
+
+	for entry in "${AGENT_DOC_SOURCES[@]}"; do
+		current=$((current + 1))
+
+		# Split entry by pipe
+		local name="${entry%%|*}"
+		local url="${entry##*|}"
+		local filename="${name,,}.txt" # lowercase
+		local filepath="${PROJECT_ROOT}/${AGENT_DOCS_DIR}/${filename}"
+
+		log_info "[${current}/${total}] Downloading ${name} docs from ${url}..."
+
+		if curl -s --connect-timeout 10 --max-time 60 -o "${filepath}" "${url}"; then
+			# Check if file has content
+			if [[ -s ${filepath} ]]; then
+				local size
+				size=$(wc -c <"${filepath}" | tr -d ' ')
+				log_success "${name} docs saved (${size} bytes)"
+				success=$((success + 1))
+			else
+				log_warn "${name} docs downloaded but file is empty"
+				rm -f "${filepath}"
+				failed=$((failed + 1))
+			fi
+		else
+			log_error "Failed to download ${name} docs"
+			failed=$((failed + 1))
+		fi
+	done
+
+	log_info ""
+	log_info "Download complete: ${success} succeeded, ${failed} failed"
+
+	if [[ ${success} -gt 0 ]]; then
+		log_info ""
+		log_info "Documentation files saved to: ${AGENT_DOCS_DIR}/"
+		log_info "Run this command periodically to fetch updated documentation."
+	fi
+}
+
 # Build the project
 cmd_build() {
 	log_info "Building ic-siwa project..."
@@ -667,6 +754,16 @@ cmd_build() {
 	run_cmd "Building Rust crates..." cargo build --release || return 1
 
 	run_cmd "Building WASM canisters..." cargo build --release --target wasm32-unknown-unknown -p ic_siwa_provider || return 1
+
+	# Build TypeScript library (required before test_canister_ts can use it)
+	if [[ -f "${PROJECT_ROOT}/libs/ic_siwa_ts/package.json" ]]; then
+		cd "${PROJECT_ROOT}/libs/ic_siwa_ts"
+		if [[ ! -d "node_modules" ]]; then
+			run_cmd "Installing ic_siwa_ts dependencies..." bun install || return 1
+		fi
+		run_cmd "Building ic_siwa_ts library..." bun run build || return 1
+		cd "${PROJECT_ROOT}"
+	fi
 
 	log_success "Build complete!"
 }
@@ -1160,6 +1257,30 @@ cmd_stop() {
 	esac
 }
 
+# Tail canister logs in real-time
+cmd_logs() {
+	local network="${1:-dfx}"
+	cd "${PROJECT_ROOT}"
+
+	log_info "Tailing ic_siwa_provider canister logs on network '${network}' (Ctrl+C to stop)..."
+
+	case "${network}" in
+	dfx)
+		dfx canister logs ic_siwa_provider --follow
+		;;
+	juno)
+		dfx canister logs ic_siwa_provider --follow --network juno
+		;;
+	ic)
+		dfx canister logs ic_siwa_provider --follow --network ic
+		;;
+	*)
+		log_error "Unknown network: ${network}"
+		return 1
+		;;
+	esac
+}
+
 # Build init argument for canister
 build_init_arg() {
 	local network="${1:-dfx}"
@@ -1284,7 +1405,7 @@ cmd_deploy() {
 	log_debug "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
 	log_debug "  Chain ID: $([[ ${network} == "ic" ]] && echo "43114" || echo "43113")"
 
-	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" || {
+	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" --yes || {
 		log_error "Failed to deploy ic_siwa_provider"
 		return 1
 	}
@@ -1294,7 +1415,7 @@ cmd_deploy() {
 	log_success "ic_siwa_provider deployed: ${provider_id}"
 
 	# Deploy Rust test canister
-	run_cmd "Deploying test_canister_rs..." dfx deploy test_canister_rs --network "${network}" || {
+	run_cmd "Deploying test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --yes || {
 		log_error "Failed to deploy test_canister_rs"
 		return 1
 	}
@@ -1304,7 +1425,7 @@ cmd_deploy() {
 	ic_host=$(get_ic_host "${network}")
 	build_ts_canister "${provider_id}" "${ic_host}" || return 1
 
-	run_cmd "Deploying test_canister_ts..." dfx deploy test_canister_ts --network "${network}" || {
+	run_cmd "Deploying test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --yes || {
 		log_error "Failed to deploy test_canister_ts"
 		return 1
 	}
@@ -1349,6 +1470,9 @@ show_canister_urls() {
 	if [[ -n ${provider_id} ]]; then
 		if [[ ${network} == "ic" ]]; then
 			log_info "  ic_siwa_provider (Candid): https://${candid_id}.raw.ic0.app/?id=${provider_id}"
+		elif [[ ${network} == "juno" ]]; then
+			# Juno uses subdomain-style URLs which properly route dynamic imports
+			log_info "  ic_siwa_provider (Candid): http://${candid_id}.localhost:${port}/?id=${provider_id}"
 		else
 			log_info "  ic_siwa_provider (Candid): http://127.0.0.1:${port}/?canisterId=${candid_id}&id=${provider_id}"
 		fi
@@ -1357,6 +1481,8 @@ show_canister_urls() {
 	if [[ -n ${rs_id} ]]; then
 		if [[ ${network} == "ic" ]]; then
 			log_info "  test_canister_rs (Candid): https://${candid_id}.raw.ic0.app/?id=${rs_id}"
+		elif [[ ${network} == "juno" ]]; then
+			log_info "  test_canister_rs (Candid): http://${candid_id}.localhost:${port}/?id=${rs_id}"
 		else
 			log_info "  test_canister_rs (Candid): http://127.0.0.1:${port}/?canisterId=${candid_id}&id=${rs_id}"
 		fi
@@ -1365,6 +1491,9 @@ show_canister_urls() {
 	if [[ -n ${ts_id} ]]; then
 		if [[ ${network} == "ic" ]]; then
 			log_info "  test_canister_ts (Frontend): https://${ts_id}.ic0.app"
+		elif [[ ${network} == "juno" ]]; then
+			# Juno subdomain URLs work with dynamic imports (no chunking issues)
+			log_info "  test_canister_ts (Frontend): http://${ts_id}.localhost:${port}/"
 		else
 			log_info "  test_canister_ts (Frontend): http://127.0.0.1:${port}/?canisterId=${ts_id}"
 		fi
@@ -1401,17 +1530,17 @@ cmd_upgrade() {
 	# Upgrade ic_siwa_provider
 	# Use --upgrade-unchanged to force upgrade even if WASM hash is the same
 	# This ensures new init_args (config) are applied
-	run_cmd "Upgrading ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --upgrade-unchanged --argument "${init_arg}" || return 1
+	run_cmd "Upgrading ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --mode upgrade --upgrade-unchanged --argument "${init_arg}" --yes || return 1
 
 	# Upgrade test_canister_rs
-	run_cmd "Upgrading test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --mode upgrade || return 1
+	run_cmd "Upgrading test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --mode upgrade --yes || return 1
 
 	# Rebuild and upgrade test_canister_ts
 	local ic_host
 	ic_host=$(get_ic_host "${network}")
 	build_ts_canister "${canister_id}" "${ic_host}" || return 1
 
-	run_cmd "Upgrading test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --mode upgrade || return 1
+	run_cmd "Upgrading test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --mode upgrade --yes || return 1
 
 	log_success "All canisters upgraded!"
 
@@ -1784,6 +1913,7 @@ parse_args() {
 		cmd_cycles
 		;;
 	loop)
+		clear
 		cmd_loop "${NETWORK}"
 		;;
 	start)
@@ -1792,8 +1922,14 @@ parse_args() {
 	stop)
 		cmd_stop "${NETWORK}"
 		;;
+	logs)
+		cmd_logs "${NETWORK}"
+		;;
 	update)
 		cmd_update
+		;;
+	agent-docs)
+		cmd_agent_docs
 		;;
 	check)
 		cmd_check_deps

@@ -46,13 +46,13 @@ fn health() -> String {
 /// Get caller principal - useful for testing authentication
 #[query]
 fn whoami() -> Principal {
-    ic_cdk::caller()
+    ic_cdk::api::msg_caller()
 }
 
 /// Test protected endpoint - only accessible by authenticated users
 #[query]
 fn protected_data() -> Result<String, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if caller == Principal::anonymous() {
         Err("Unauthorized: anonymous caller".to_string())
     } else {
@@ -64,13 +64,21 @@ fn protected_data() -> Result<String, String> {
 /// Calls ic_siwa_provider.siwa_prepare_login
 #[update]
 async fn test_prepare_login(provider_id: Principal, address: String) -> Result<String, String> {
-    let result: Result<(PrepareLoginResponse,), _> =
-        ic_cdk::call(provider_id, "siwa_prepare_login", (address,)).await;
+    let result = ic_cdk::call::Call::unbounded_wait(provider_id, "siwa_prepare_login")
+        .with_arg(address)
+        .await;
 
     match result {
-        Ok((PrepareLoginResponse::Ok(message),)) => Ok(message),
-        Ok((PrepareLoginResponse::Err(e),)) => Err(format!("Provider error: {}", e)),
-        Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
+        Ok(response) => {
+            let (resp,): (PrepareLoginResponse,) = response
+                .candid()
+                .map_err(|e| format!("Decode error: {:?}", e))?;
+            match resp {
+                PrepareLoginResponse::Ok(message) => Ok(message),
+                PrepareLoginResponse::Err(e) => Err(format!("Provider error: {}", e)),
+            }
+        }
+        Err(e) => Err(format!("Call failed: {:?}", e)),
     }
 }
 
@@ -83,13 +91,21 @@ async fn test_login(
     address: String,
     session_key: Vec<u8>,
 ) -> Result<Principal, String> {
-    let result: Result<(LoginResponse,), _> =
-        ic_cdk::call(provider_id, "siwa_login", (signature, address, session_key)).await;
+    let result = ic_cdk::call::Call::unbounded_wait(provider_id, "siwa_login")
+        .with_arg((signature, address, session_key))
+        .await;
 
     match result {
-        Ok((LoginResponse::Ok(principal),)) => Ok(principal),
-        Ok((LoginResponse::Err(e),)) => Err(format!("Provider error: {}", e)),
-        Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
+        Ok(response) => {
+            let (resp,): (LoginResponse,) = response
+                .candid()
+                .map_err(|e| format!("Decode error: {:?}", e))?;
+            match resp {
+                LoginResponse::Ok(principal) => Ok(principal),
+                LoginResponse::Err(e) => Err(format!("Provider error: {}", e)),
+            }
+        }
+        Err(e) => Err(format!("Call failed: {:?}", e)),
     }
 }
 
@@ -102,17 +118,21 @@ async fn test_get_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<SignedDelegation, String> {
-    let result: Result<(GetDelegationResponse,), _> = ic_cdk::call(
-        provider_id,
-        "siwa_get_delegation",
-        (address, session_key, expiration),
-    )
-    .await;
+    let result = ic_cdk::call::Call::unbounded_wait(provider_id, "siwa_get_delegation")
+        .with_arg((address, session_key, expiration))
+        .await;
 
     match result {
-        Ok((GetDelegationResponse::Ok(delegation),)) => Ok(delegation),
-        Ok((GetDelegationResponse::Err(e),)) => Err(format!("Provider error: {}", e)),
-        Err((code, msg)) => Err(format!("Call failed: {:?} - {}", code, msg)),
+        Ok(response) => {
+            let (resp,): (GetDelegationResponse,) = response
+                .candid()
+                .map_err(|e| format!("Decode error: {:?}", e))?;
+            match resp {
+                GetDelegationResponse::Ok(delegation) => Ok(delegation),
+                GetDelegationResponse::Err(e) => Err(format!("Provider error: {}", e)),
+            }
+        }
+        Err(e) => Err(format!("Call failed: {:?}", e)),
     }
 }
 

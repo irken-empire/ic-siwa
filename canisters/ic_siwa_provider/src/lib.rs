@@ -126,7 +126,10 @@ fn siwa_login(
     service::siwa_login::login(signature, address, session_key)
 }
 
-/// Get delegation for authenticated principal
+/// Prepare a delegation for an authenticated session
+///
+/// This must be called before `siwa_get_delegation` to store the delegation
+/// in the signature map for certified responses.
 ///
 /// # Arguments
 /// * `address` - The Avalanche address
@@ -134,8 +137,31 @@ fn siwa_login(
 /// * `expiration` - Requested expiration timestamp (may be capped)
 ///
 /// # Returns
-/// * `Ok(SignedDelegation)` - The signed delegation for the session
+/// * `Ok(())` - Delegation prepared successfully
 /// * `Err(String)` - Error if not authenticated or expired
+#[update]
+fn siwa_prepare_delegation(
+    address: String,
+    session_key: Vec<u8>,
+    expiration: u64,
+) -> Result<(), String> {
+    service::siwa_prepare_delegation::prepare_delegation(address, session_key, expiration)
+}
+
+/// Get delegation for authenticated principal
+///
+/// This is a **query** call that retrieves the certified delegation.
+/// You **must** call `siwa_prepare_delegation` first (an update call) and wait
+/// for it to complete before calling this query.
+///
+/// # Arguments
+/// * `address` - The Avalanche address
+/// * `session_key` - The session public key from login
+/// * `expiration` - Requested expiration timestamp (used for validation)
+///
+/// # Returns
+/// * `Ok(SignedDelegation)` - The signed delegation for the session
+/// * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
 #[query]
 fn siwa_get_delegation(
     address: String,
@@ -162,7 +188,7 @@ fn get_address(principal: Principal) -> Result<String, String> {
 /// Get Avalanche address for caller
 #[query]
 fn get_caller_address() -> Result<String, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     state::get_address_for_principal(&caller)
         .ok_or_else(|| "No address found for caller".to_string())
 }

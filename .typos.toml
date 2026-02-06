@@ -47,6 +47,10 @@ customizations = "customizations"
 customize = "customize"
 customized = "customized"
 customizing = "customizing"
+
+# ic-certified-map API uses American spelling
+labeled = "labeled"
+labeled_hash = "labeled_hash"
 dialogs = "dialogs"
 disorganize = "disorganize"
 disorganized = "disorganized"

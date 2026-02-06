@@ -2,9 +2,11 @@
 //!
 //! Returns a signed delegation for authenticated principals.
 
-use crate::state::{get_auth_session, get_settings};
+use crate::service::delegation_utils::{
+    compute_seed_hash, get_prepared_delegation, validate_session,
+};
+use crate::state::create_certified_delegation_signature;
 use candid::{CandidType, Principal};
-use ic_siwa::hash::sha256;
 use ic_siwa::siwa::hash_session_key;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -43,7 +45,7 @@ pub struct DelegationChain {
 /// # Arguments
 /// * `address` - The Avalanche address to get delegation for
 /// * `session_key` - The session public key
-/// * `expiration` - Requested expiration timestamp (may be capped)
+/// * `expiration` - Requested expiration timestamp (used for validation, not lookup)
 ///
 /// # Returns
 /// * `Ok(SignedDelegation)` - The signed delegation
@@ -51,107 +53,68 @@ pub struct DelegationChain {
 pub fn get_delegation(
     address: String,
     session_key: Vec<u8>,
-    expiration: u64,
+    _expiration: u64,
 ) -> Result<SignedDelegation, String> {
-    // Get settings
-    let settings = get_settings();
+    // Validate the session (this also checks expiration)
+    let (_key_hash, _session_expires_at) = validate_session(&address, &session_key)?;
 
-    // Look up the auth session
-    let key_hash = hash_session_key(&session_key);
-    let auth_session = get_auth_session(&key_hash)
-        .ok_or_else(|| format!("No authenticated session found for address {}", address))?;
+    // Compute the seed hash for this address
+    let seed_hash = compute_seed_hash(&address);
 
-    // Verify the address matches
-    if auth_session.address.to_lowercase() != address.to_lowercase() {
-        return Err("Address mismatch".to_string());
-    }
+    // Get the session key hash for looking up the prepared delegation
+    let session_key_hash = hash_session_key(&session_key);
 
-    // Verify the session key matches
-    if auth_session.session_key != session_key {
-        return Err("Session key mismatch".to_string());
-    }
+    ic_cdk::println!(
+        "[GET_DELEGATION] address: {}, seed_hash: {}, session_key_hash: {}, session_key_len: {}",
+        address,
+        hex::encode(seed_hash),
+        session_key_hash,
+        session_key.len()
+    );
 
-    // Check if the auth session has expired
-    let now = ic_cdk::api::time();
-    if now > auth_session.expires_at {
-        return Err("Session has expired".to_string());
-    }
+    // Look up the prepared delegation to get the exact expiration and hash that was stored
+    let prepared = get_prepared_delegation(&seed_hash, &session_key_hash).ok_or_else(|| {
+        format!(
+            "Delegation not found in signature map - please call siwa_prepare_delegation first. \
+             address: {}, seed_hash: {}, session_key_hash: {}",
+            address,
+            hex::encode(seed_hash),
+            session_key_hash
+        )
+    })?;
 
-    // Cap the requested expiration to the session expiration
-    let capped_expiration = expiration.min(auth_session.expires_at);
+    // Use the exact values from the prepared delegation
+    let final_expiration = prepared.final_expiration;
+    let delegation_hash = prepared.delegation_hash;
+    let targets = prepared.targets;
 
-    // Also cap to the configured session expiration time from now
-    let max_expiration = now + settings.session_expiration_time;
-    let final_expiration = capped_expiration.min(max_expiration);
+    ic_cdk::println!(
+        "[GET_DELEGATION] Found prepared delegation. delegation_hash: {}, final_expiration: {}",
+        hex::encode(delegation_hash),
+        final_expiration
+    );
 
-    // Create the delegation with optional targets from settings
-    // If delegation_targets is configured, the delegation will only work for those canisters
-    // This prevents the delegation from being used to call arbitrary canisters
-    let targets = if settings.delegation_targets.is_empty() {
-        None
-    } else {
-        Some(settings.delegation_targets.clone())
-    };
+    // Create the certified signature (includes certificate + witness tree, CBOR-encoded)
+    let signature =
+        create_certified_delegation_signature(seed_hash, delegation_hash).ok_or_else(|| {
+            format!(
+                "Failed to create certified signature - delegation may have expired or been pruned. \
+                 seed_hash: {}, delegation_hash: {}, expiration: {}",
+                hex::encode(seed_hash),
+                hex::encode(delegation_hash),
+                final_expiration
+            )
+        })?;
 
+    // Create the delegation with the exact values used during prepare
     let delegation = Delegation {
-        pubkey: ByteBuf::from(session_key.clone()),
+        pubkey: ByteBuf::from(session_key),
         expiration: final_expiration,
         targets,
     };
-
-    // Create a hash of the delegation for signing
-    // The hash format follows the IC delegation hash standard
-    let delegation_hash = create_delegation_hash(&delegation)?;
-
-    // Sign the delegation
-    // Note: In production, this would use ic_cdk::api::management_canister::main::sign_with_ecdsa
-    // For now, we create a placeholder signature that will be replaced with threshold signing
-    let signature = sign_delegation(&delegation_hash, &settings.salt)?;
 
     Ok(SignedDelegation {
         delegation,
         signature: ByteBuf::from(signature),
     })
-}
-
-/// Create a hash of a delegation following IC conventions
-fn create_delegation_hash(delegation: &Delegation) -> Result<[u8; 32], String> {
-    // Serialize the delegation in a canonical format for hashing
-    // IC uses a specific domain separator for delegations
-    let domain_separator = b"\x1Aic-request-auth-delegation";
-
-    let mut data = domain_separator.to_vec();
-
-    // Add pubkey
-    data.extend_from_slice(&delegation.pubkey);
-
-    // Add expiration as big-endian u64
-    data.extend_from_slice(&delegation.expiration.to_be_bytes());
-
-    // Add targets if present
-    if let Some(ref targets) = delegation.targets {
-        for target in targets {
-            data.extend_from_slice(target.as_slice());
-        }
-    }
-
-    Ok(sha256(&data))
-}
-
-/// Sign a delegation hash
-/// Note: This is a placeholder. Production implementation would use
-/// ic_cdk::api::management_canister::main::sign_with_ecdsa
-fn sign_delegation(delegation_hash: &[u8; 32], salt: &str) -> Result<Vec<u8>, String> {
-    // For now, create a deterministic signature based on the hash and salt
-    // This will be replaced with proper threshold ECDSA signing
-    let mut sign_data = delegation_hash.to_vec();
-    sign_data.extend_from_slice(salt.as_bytes());
-    let signature_hash = sha256(&sign_data);
-
-    // Return a placeholder signature (64 bytes for ECDSA)
-    // The actual implementation will call the management canister's sign_with_ecdsa
-    let mut signature = signature_hash.to_vec();
-    signature.extend_from_slice(&signature_hash);
-
-    Ok(signature)
 }

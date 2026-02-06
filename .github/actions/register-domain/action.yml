@@ -1,0 +1,114 @@
+name: "Register Custom Domain"
+description: "Register a custom domain with the IC boundary nodes"
+
+inputs:
+  domain:
+    description: "Custom domain to register (e.g., myapp.mydomain.com)"
+    required: true
+  canister_id:
+    description: "Canister ID that the domain should point to"
+    required: true
+
+outputs:
+  status:
+    description: "Registration status"
+    value: ${{ steps.register.outputs.status }}
+  message:
+    description: "Status message"
+    value: ${{ steps.register.outputs.message }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Register domain with IC boundary nodes
+      id: register
+      shell: bash
+      run: |
+        DOMAIN="${{ inputs.domain }}"
+        CANISTER_ID="${{ inputs.canister_id }}"
+
+        echo "Registering custom domain: ${DOMAIN}"
+        echo "Canister ID: ${CANISTER_ID}"
+
+        # Check if domain is already registered and get status
+        echo "Checking existing registration..."
+        EXISTING=$(curl -sL "https://icp0.io/registrations/${DOMAIN}" 2>/dev/null || echo '{"error":"not found"}')
+
+        if echo "${EXISTING}" | grep -q '"error"'; then
+          echo "Domain not yet registered, submitting registration..."
+
+          # Submit new registration
+          RESPONSE=$(curl -sL -X POST "https://icp0.io/registrations" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\": \"${DOMAIN}\"}" 2>&1)
+
+          echo "Registration response: ${RESPONSE}"
+
+          if echo "${RESPONSE}" | grep -qE '"id"|"status"'; then
+            echo "status=registered" >> $GITHUB_OUTPUT
+            echo "message=Domain registration submitted successfully" >> $GITHUB_OUTPUT
+            echo "Domain registration submitted for ${DOMAIN}"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=Registration failed: ${RESPONSE}" >> $GITHUB_OUTPUT
+            echo "::warning::Domain registration may have failed: ${RESPONSE}"
+          fi
+        else
+          # Domain already registered, check status
+          STATUS=$(echo "${EXISTING}" | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+          echo "Domain already registered with status: ${STATUS}"
+          echo "status=${STATUS}" >> $GITHUB_OUTPUT
+          echo "message=Domain already registered with status: ${STATUS}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Verify DNS configuration
+      shell: bash
+      run: |
+        DOMAIN="${{ inputs.domain }}"
+
+        echo "Verifying DNS configuration for ${DOMAIN}..."
+
+        # Check CNAME record
+        echo "Checking CNAME record..."
+        CNAME=$(dig +short CNAME "${DOMAIN}" 2>/dev/null || echo "")
+        if [ -n "${CNAME}" ]; then
+          echo "CNAME: ${CNAME}"
+          if echo "${CNAME}" | grep -q "icp1.io"; then
+            echo "CNAME correctly points to icp1.io"
+          else
+            echo "::warning::CNAME should point to icp1.io, got: ${CNAME}"
+          fi
+        else
+          echo "::warning::No CNAME record found for ${DOMAIN}. Please add: ${DOMAIN} CNAME icp1.io"
+        fi
+
+        # Check TXT record for canister ID
+        echo "Checking TXT record for canister ID..."
+        TXT=$(dig +short TXT "_canister-id.${DOMAIN}" 2>/dev/null || echo "")
+        if [ -n "${TXT}" ]; then
+          echo "TXT (_canister-id): ${TXT}"
+        else
+          echo "::warning::No TXT record found. Please add: _canister-id.${DOMAIN} TXT \"${{ inputs.canister_id }}\""
+        fi
+
+        # Check ACME challenge CNAME
+        echo "Checking ACME challenge CNAME..."
+        ACME_CNAME=$(dig +short CNAME "_acme-challenge.${DOMAIN}" 2>/dev/null || echo "")
+        if [ -n "${ACME_CNAME}" ]; then
+          echo "ACME CNAME: ${ACME_CNAME}"
+        else
+          echo "::warning::No ACME CNAME found. Please add: _acme-challenge.${DOMAIN} CNAME _acme-challenge.${DOMAIN}.icp2.io"
+        fi
+
+        echo ""
+        echo "DNS Configuration Summary:"
+        echo "=========================="
+        echo "Required DNS records for ${DOMAIN}:"
+        echo ""
+        echo "| Type  | Name                        | Value                                    |"
+        echo "|-------|-----------------------------|-----------------------------------------|"
+        echo "| CNAME | ${DOMAIN}                   | icp1.io                                 |"
+        echo "| TXT   | _canister-id.${DOMAIN}      | ${{ inputs.canister_id }}               |"
+        echo "| CNAME | _acme-challenge.${DOMAIN}   | _acme-challenge.${DOMAIN}.icp2.io       |"
+        echo ""
+        echo "Note: Cloudflare proxy must be OFF (DNS only) for all records."

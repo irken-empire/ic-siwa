@@ -185,7 +185,7 @@ class Logger {
             }
           : undefined,
       })),
-      null,
+      jsonReplacer,
       2
     );
   }
@@ -205,6 +205,22 @@ function addToGlobalStore(entry: LogEntry): void {
   if (globalLogStore.length > MAX_GLOBAL_ENTRIES) {
     globalLogStore.shift();
   }
+}
+
+/**
+ * JSON replacer function that handles BigInt and other non-serializable types
+ */
+function jsonReplacer(_key: string, value: unknown): unknown {
+  if (typeof value === "bigint") {
+    return value.toString() + "n"; // Append 'n' to indicate it was a BigInt
+  }
+  if (value instanceof Uint8Array) {
+    return Array.from(value); // Convert Uint8Array to regular array
+  }
+  if (ArrayBuffer.isView(value)) {
+    return Array.from(new Uint8Array(value.buffer)); // Handle other typed arrays
+  }
+  return value;
 }
 
 /** Create a logger instance for a specific context */
@@ -229,7 +245,7 @@ export function exportAllLogs(): string {
           }
         : undefined,
     })),
-    null,
+    jsonReplacer,
     2
   );
 }

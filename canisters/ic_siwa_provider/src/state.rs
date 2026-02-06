@@ -1,12 +1,17 @@
 //! Canister state management for IC-SIWA Provider
 //!
-//! Stores settings, active login sessions, address-principal mappings, and rate limiter.
+//! Stores settings, active login sessions, address-principal mappings, rate limiter,
+//! and the signature map for certified delegations.
 
 use candid::{CandidType, Principal};
-use ic_siwa::{RateLimiter, Settings};
+use ic_certified_map::{labeled_hash, Hash};
+use ic_siwa::{RateLimiter, Settings, SignatureMap};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+/// Label for the signature tree in certified data
+pub const LABEL_SIG: &[u8] = b"sig";
 
 /// Active login session (pending signature verification)
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -38,6 +43,20 @@ pub struct AuthSession {
     pub expires_at: u64,
 }
 
+/// Prepared delegation metadata stored for later retrieval
+#[derive(Clone, Debug)]
+pub struct PreparedDelegation {
+    /// The computed final expiration that was used when storing the delegation
+    pub final_expiration: u64,
+    /// The delegation hash that was stored in the signature map
+    pub delegation_hash: [u8; 32],
+    /// Optional delegation targets
+    pub targets: Option<Vec<Principal>>,
+}
+
+/// Key for looking up prepared delegations (seed_hash + session_key_hash)
+pub type PreparedDelegationKey = String;
+
 /// Global canister state
 #[derive(Default)]
 pub struct State {
@@ -53,6 +72,11 @@ pub struct State {
     pub principal_to_address: HashMap<Principal, String>,
     /// Rate limiter for login attempts
     pub rate_limiter: RateLimiter,
+    /// Signature map for certified delegations
+    pub signature_map: SignatureMap,
+    /// Prepared delegations for certified retrieval
+    /// Key: "{seed_hash_hex}:{session_key_hash}"
+    pub prepared_delegations: HashMap<PreparedDelegationKey, PreparedDelegation>,
 }
 
 thread_local! {
@@ -103,7 +127,27 @@ pub fn init_state(settings: Settings) {
         state.auth_sessions.clear();
         state.address_to_principal.clear();
         state.principal_to_address.clear();
+        // Reset signature map
+        state.signature_map = SignatureMap::default();
     });
+    // Update certified data with empty signature map
+    update_certified_data();
+}
+
+/// Update the canister's certified data with the current signature map root hash
+///
+/// This must be called after any modification to the signature map.
+pub fn update_certified_data() {
+    with_state(|state| {
+        let root_hash = compute_root_hash(&state.signature_map);
+        ic_cdk::api::certified_data_set(root_hash);
+    });
+}
+
+/// Compute the root hash for certified data
+fn compute_root_hash(signature_map: &SignatureMap) -> Hash {
+    // Create a labeled hash for the signature tree
+    labeled_hash(LABEL_SIG, &signature_map.root_hash())
 }
 
 /// Get current settings (panics if not initialized)
@@ -113,6 +157,125 @@ pub fn get_settings() -> Settings {
             .settings
             .clone()
             .expect("Canister not initialized - settings not set")
+    })
+}
+
+/// Store a delegation hash in the signature map
+///
+/// This adds the delegation to the certified data so it can be verified
+/// by the IC when used in queries.
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed (derived from address + salt)
+/// * `delegation_hash` - Hash of the delegation
+pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
+    let now = ic_cdk::api::time();
+    with_state_mut(|state| {
+        state.signature_map.put(seed_hash, delegation_hash, now);
+        ic_cdk::println!(
+            "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, now: {}, map_len: {}",
+            hex::encode(seed_hash),
+            hex::encode(delegation_hash),
+            now,
+            state.signature_map.len()
+        );
+    });
+    update_certified_data();
+    ic_cdk::println!("[STORE_DELEGATION] Certified data updated");
+}
+
+/// Create a certified signature for a delegation
+///
+/// This creates the full CBOR-encoded signature with certificate and witness tree,
+/// suitable for use as an IC canister signature.
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed
+/// * `delegation_hash` - Hash of the delegation
+///
+/// # Returns
+/// The CBOR-encoded certified signature bytes, or None if delegation not found
+pub fn create_certified_delegation_signature(
+    seed_hash: Hash,
+    delegation_hash: Hash,
+) -> Option<Vec<u8>> {
+    ic_cdk::println!(
+        "[CERTIFIED_SIG] Called with seed_hash: {}, delegation_hash: {}",
+        hex::encode(seed_hash),
+        hex::encode(delegation_hash)
+    );
+
+    // Get the data certificate from the IC (only available in query calls)
+    let certificate = ic_cdk::api::data_certificate();
+    if certificate.is_none() {
+        ic_cdk::println!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
+        return None;
+    }
+    let certificate = certificate.unwrap();
+    ic_cdk::println!(
+        "[CERTIFIED_SIG] Got data certificate, len: {}",
+        certificate.len()
+    );
+
+    with_state(|state| {
+        // Check if expired first
+        let now = ic_cdk::api::time();
+        let map_len = state.signature_map.len();
+        ic_cdk::println!(
+            "[CERTIFIED_SIG] Checking expiration. now: {}, signature_map_len: {}",
+            now,
+            map_len
+        );
+
+        if state
+            .signature_map
+            .is_expired(now, seed_hash, delegation_hash)
+        {
+            ic_cdk::println!(
+                "[CERTIFIED_SIG] Delegation expired or not found. seed_hash: {}, delegation_hash: {}, now: {}",
+                hex::encode(seed_hash),
+                hex::encode(delegation_hash),
+                now
+            );
+            return None;
+        }
+
+        ic_cdk::println!("[CERTIFIED_SIG] Delegation is valid, getting witness");
+
+        // Get the witness from the signature map
+        let witness = state.signature_map.witness(seed_hash, delegation_hash);
+        if witness.is_none() {
+            ic_cdk::println!(
+                "[CERTIFIED_SIG] Failed to get witness. seed_hash: {}, delegation_hash: {}",
+                hex::encode(seed_hash),
+                hex::encode(delegation_hash)
+            );
+            return None;
+        }
+        let witness = witness.unwrap();
+
+        ic_cdk::println!("[CERTIFIED_SIG] Got witness, creating labeled tree");
+
+        // Create the labeled tree with the signature label
+        let tree = ic_certified_map::labeled(LABEL_SIG, witness);
+
+        // Create the certified signature (CBOR-encoded with self-describing tag)
+        match ic_siwa::create_certified_signature(certificate.clone(), tree) {
+            Ok(sig) => {
+                ic_cdk::println!(
+                    "[CERTIFIED_SIG] Successfully created certified signature, len: {}",
+                    sig.len()
+                );
+                Some(sig)
+            }
+            Err(e) => {
+                ic_cdk::println!(
+                    "[CERTIFIED_SIG] Failed to create certified signature: {:?}",
+                    e
+                );
+                None
+            }
+        }
     })
 }
 
@@ -222,5 +385,48 @@ pub fn cleanup_rate_limits() {
     let now_ns = ic_cdk::api::time();
     with_state_mut(|state| {
         state.rate_limiter.cleanup_expired(now_ns);
+    });
+}
+
+/// Store a prepared delegation for later retrieval
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed (hex-encoded for the key)
+/// * `session_key_hash` - Hash of the session key
+/// * `delegation` - The prepared delegation metadata
+pub fn store_prepared_delegation(
+    seed_hash: &[u8; 32],
+    session_key_hash: &str,
+    delegation: PreparedDelegation,
+) {
+    let key = format!("{}:{}", hex::encode(seed_hash), session_key_hash);
+    with_state_mut(|state| {
+        state.prepared_delegations.insert(key, delegation);
+    });
+}
+
+/// Get a prepared delegation by seed hash and session key hash
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed
+/// * `session_key_hash` - Hash of the session key
+///
+/// # Returns
+/// The prepared delegation if found
+pub fn get_prepared_delegation(
+    seed_hash: &[u8; 32],
+    session_key_hash: &str,
+) -> Option<PreparedDelegation> {
+    let key = format!("{}:{}", hex::encode(seed_hash), session_key_hash);
+    with_state(|state| state.prepared_delegations.get(&key).cloned())
+}
+
+/// Cleanup expired prepared delegations
+pub fn cleanup_expired_prepared_delegations() {
+    let now = ic_cdk::api::time();
+    with_state_mut(|state| {
+        state
+            .prepared_delegations
+            .retain(|_, v| v.final_expiration > now);
     });
 }

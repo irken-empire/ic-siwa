@@ -102,17 +102,22 @@ pub mod hash;
 pub mod rate_limit;
 pub mod security;
 pub mod settings;
+pub mod signature_map;
 pub mod siwa;
 pub mod time;
 pub mod types;
 
 // Re-exports for convenience
 pub use config::Config;
-pub use delegation::Delegation;
+pub use delegation::{
+    cbor_serialize, create_certified_signature, create_delegation_hash,
+    create_user_canister_pubkey, generate_seed, Delegation, DelegationInfo,
+};
 pub use error::SiwaError;
 pub use rate_limit::RateLimiter;
 pub use security::{CanisterGuard, ControllerGuard, SecurityMode};
 pub use settings::{RateLimitSettings, Settings};
+pub use signature_map::SignatureMap;
 pub use siwa::SiwaMessage;
 pub use types::*;
 
