@@ -83,4 +83,19 @@
       "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   },
+
+  // ============================================
+  // .well-known: Include hidden directory for custom domains
+  // ============================================
+  {
+    match: ".well-known",
+    ignore: false,
+  },
+  {
+    match: ".well-known/**/*",
+    ignore: false,
+    headers: {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    },
+  },
 ]

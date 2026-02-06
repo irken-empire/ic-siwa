@@ -368,6 +368,27 @@ jobs:
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
   ##################################################
+  # Register Custom Domain (when debug=true)
+  ##################################################
+  register-domain:
+    name: Register Custom Domain
+    needs: [setup, deploy-test-canisters]
+    if: needs.setup.outputs.debug == 'true' && needs.setup.outputs.domain != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Testnet
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Register domain
+        uses: ./.github/actions/register-domain
+        with:
+          domain: ${{ needs.setup.outputs.domain }}
+          canister_id: ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}
+
+  ##################################################
   # Publish npm (dry run)
   ##################################################
   publish-npm:
@@ -406,6 +427,7 @@ jobs:
         deploy-provider,
         verify-deployment,
         deploy-test-canisters,
+        register-domain,
         publish-npm,
       ]
     if: always() && needs.verify-deployment.result == 'success'
@@ -443,6 +465,14 @@ jobs:
             | **test_canister_ts** | `${{ needs.deploy-test-canisters.outputs.test_canister_ts_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id && format('[Open UI](https://{0}.icp0.io)', needs.deploy-test-canisters.outputs.test_canister_ts_id) || 'N/A' }} |
             | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_rs_id && format('[Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id={0})', needs.deploy-test-canisters.outputs.test_canister_rs_id) || 'N/A' }} |
 
+            ### Custom Domain
+
+            | Domain | Status |
+            |--------|--------|
+            | `${{ needs.setup.outputs.domain }}` | ${{ needs.register-domain.result == 'success' && 'Registered' || needs.register-domain.result == 'skipped' && 'Skipped' || 'Check DNS' }} |
+
+            **Custom Domain URL:** https://${{ needs.setup.outputs.domain }}
+
             ### npm Package
 
             **Version:** `ic-siwa@${{ needs.publish-npm.outputs.version }}`
@@ -468,6 +498,7 @@ jobs:
         deploy-provider,
         verify-deployment,
         deploy-test-canisters,
+        register-domain,
         publish-npm,
         create-release,
       ]
@@ -492,6 +523,7 @@ jobs:
             echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
             echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
             echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
+            echo "| Register Domain | ${{ needs.register-domain.result }} |"
             echo "| Publish npm | ${{ needs.publish-npm.result }} |"
             echo "| Create Release | ${{ needs.create-release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"

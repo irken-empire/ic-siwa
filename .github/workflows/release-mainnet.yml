@@ -368,6 +368,27 @@ jobs:
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
 
   ##################################################
+  # Register Custom Domain (when debug=true)
+  ##################################################
+  register-domain:
+    name: Register Custom Domain
+    needs: [setup, deploy-test-canisters]
+    if: needs.setup.outputs.debug == 'true' && needs.setup.outputs.domain != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Mainnet
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Register domain
+        uses: ./.github/actions/register-domain
+        with:
+          domain: ${{ needs.setup.outputs.domain }}
+          canister_id: ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}
+
+  ##################################################
   # Publish npm (real publish)
   ##################################################
   publish-npm:
@@ -406,6 +427,7 @@ jobs:
         deploy-provider,
         verify-deployment,
         deploy-test-canisters,
+        register-domain,
         publish-npm,
       ]
     if: always() && needs.verify-deployment.result == 'success' && needs.publish-npm.result == 'success'
@@ -467,6 +489,7 @@ jobs:
         deploy-provider,
         verify-deployment,
         deploy-test-canisters,
+        register-domain,
         publish-npm,
         create-release,
       ]
@@ -491,6 +514,7 @@ jobs:
             echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
             echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
             echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
+            echo "| Register Domain | ${{ needs.register-domain.result }} |"
             echo "| Publish npm | ${{ needs.publish-npm.result }} |"
             echo "| Create Release | ${{ needs.create-release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
