@@ -511,8 +511,11 @@ cmd_version() {
 	log_info "Next steps:"
 	log_info "  1. Review changes: git diff"
 	log_info "  2. Commit: git commit -am 'chore(release): ${next_version}'"
-	log_info "  3. Tag: git tag v${next_version}"
-	log_info "  4. Push: git push && git push --tags"
+	log_info "  3. Push to trunk: git push"
+	log_info ""
+	log_info "GitHub Actions will automatically:"
+	log_info "  - Testnet: Create tag v${next_version}-testnet (prerelease) on push to trunk"
+	log_info "  - Mainnet: Create tag v${next_version} (release) via manual workflow dispatch"
 }
 
 # Force version bump (major/minor/patch)
