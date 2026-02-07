@@ -444,10 +444,18 @@ pub fn store_login_session(session: LoginSession) -> Result<(), String> {
 }
 
 /// Get a login session by address
+///
+/// Checks the requested entry's expiration inline (O(1)) rather than
+/// scanning all sessions. Full cleanup runs periodically via the rate
+/// limiter's counter.
 pub fn get_login_session(address: &str) -> Option<LoginSession> {
-    with_state_mut(|state| {
-        state.cleanup_expired_logins();
-        state.login_sessions.get(&address.to_lowercase()).cloned()
+    let now = ic_cdk::api::time();
+    with_state(|state| {
+        state
+            .login_sessions
+            .get(&address.to_lowercase())
+            .filter(|s| s.expires_at > now)
+            .cloned()
     })
 }
 
@@ -503,10 +511,18 @@ pub fn store_auth_session(key_hash: String, session: AuthSession) -> Result<(), 
 }
 
 /// Get an auth session by session key hash
+///
+/// Checks the requested entry's expiration inline (O(1)) rather than
+/// scanning all sessions. Full cleanup runs periodically via the rate
+/// limiter's counter.
 pub fn get_auth_session(key_hash: &str) -> Option<AuthSession> {
-    with_state_mut(|state| {
-        state.cleanup_expired_auth();
-        state.auth_sessions.get(key_hash).cloned()
+    let now = ic_cdk::api::time();
+    with_state(|state| {
+        state
+            .auth_sessions
+            .get(key_hash)
+            .filter(|s| s.expires_at > now)
+            .cloned()
     })
 }
 
@@ -569,6 +585,11 @@ pub fn check_rate_limit(address: &str) -> Result<(), String> {
     let count = CLEANUP_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     if count % CLEANUP_INTERVAL == 0 {
         cleanup_rate_limits();
+        // Also clean up expired sessions periodically
+        with_state_mut(|state| {
+            state.cleanup_expired_logins();
+            state.cleanup_expired_auth();
+        });
     }
 
     with_state_mut(
