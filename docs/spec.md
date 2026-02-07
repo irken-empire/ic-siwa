@@ -430,6 +430,17 @@ Default values (when `rate_limits` is not provided):
 | `max_logins_total`       | 1000    | Max total attempts per window       |
 | `window_seconds`         | 3600    | Window duration (1 hour)            |
 
+### Login Session Overwrite Protection
+
+Only one pending login session is allowed per address at a time. If
+`siwa_prepare_login` is called while an unexpired session already exists for
+the same address, the call is rejected with an error. This prevents a
+denial-of-service attack where an attacker could overwrite a legitimate user's
+pending login session before the user completes signing.
+
+The legitimate user must either complete their login or wait for the session
+to expire before a new `prepare_login` can be called for that address.
+
 ### Salt Security
 
 The salt is a critical secret used in both principal derivation and delegation

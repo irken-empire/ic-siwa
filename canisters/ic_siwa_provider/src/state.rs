@@ -429,18 +429,28 @@ pub fn create_certified_delegation_signature(
 /// Enforces capacity limit by cleaning up expired sessions first.
 /// Returns error if at capacity after cleanup.
 pub fn store_login_session(session: LoginSession) -> Result<(), String> {
+    let now = ic_cdk::api::time();
     with_state_mut(|state| {
         state.cleanup_expired_logins();
+
+        // Reject if an unexpired session already exists for this address.
+        // This prevents DoS where an attacker calls prepare_login to overwrite
+        // a legitimate user's pending session before they can complete login.
+        let key = session.address.to_lowercase();
+        if let Some(existing) = state.login_sessions.get(&key) {
+            if existing.expires_at > now {
+                return Err("A login session is already pending for this address. \
+                     Please wait for it to expire or complete the existing login."
+                    .to_string());
+            }
+        }
+
         if state.login_sessions.len() >= MAX_LOGIN_SESSIONS
-            && !state
-                .login_sessions
-                .contains_key(&session.address.to_lowercase())
+            && !state.login_sessions.contains_key(&key)
         {
             return Err("Too many pending login sessions. Please try again later.".to_string());
         }
-        state
-            .login_sessions
-            .insert(session.address.to_lowercase(), session);
+        state.login_sessions.insert(key, session);
         Ok(())
     })
 }
