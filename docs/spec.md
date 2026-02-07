@@ -196,6 +196,20 @@ This step is a **query call** that returns certified data. It must be preceded b
 `siwa_prepare_delegation` (Step 3) which sets up the certified data that this
 query reads.
 
+### Optimized Flow (Combined Endpoint)
+
+For reduced latency, the client can use `siwa_login_and_prepare` which combines
+Steps 2 and 3 into a single update call:
+
+1. `siwa_prepare_login` (update) - Generate SIWA message
+2. `siwa_login_and_prepare` (update) - Verify signature + prepare delegation
+3. `siwa_get_delegation` (query) - Retrieve signed delegation
+
+This reduces the login flow from 3 update calls + 1 query to 2 update calls + 1
+query, saving ~2 seconds of consensus latency. The combined endpoint accepts the
+same arguments as `siwa_login` and internally calls `siwa_prepare_delegation`
+with the login response's expiration.
+
 ## Canister Interface
 
 ### Core Endpoints
@@ -206,6 +220,7 @@ query reads.
 | `siwa_prepare_login_with_options` | update | Generate SIWA message with multi-tenant options |
 | `siwa_login`                      | update | Verify signature and create session             |
 | `siwa_prepare_delegation`         | update | Prepare certified data for delegation query     |
+| `siwa_login_and_prepare`          | update | Combined login + prepare delegation (optimized) |
 | `siwa_get_delegation`             | query  | Retrieve signed delegation (certified)          |
 
 ### Session Management Endpoints
