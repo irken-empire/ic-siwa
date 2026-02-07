@@ -99,9 +99,10 @@ pub fn get_delegation_targets() -> Option<Vec<candid::Principal>> {
 
 /// Compute the seed hash for an address
 pub fn compute_seed_hash(address: &str) -> Hash {
-    let salt = with_settings(|s| s.salt.clone());
-    let seed = generate_seed(&salt, address);
-    hash_bytes(seed)
+    with_settings(|s| {
+        let seed = generate_seed(&s.salt, address);
+        hash_bytes(seed)
+    })
 }
 
 /// Create a delegation hash from the given parameters
