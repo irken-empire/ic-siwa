@@ -24,7 +24,7 @@ import {
   type SiwaIdentity,
   type SerializedIdentity,
 } from "./identity";
-import {LocalStorageProvider, type StorageProvider} from "./storage";
+import {SessionStorageProvider, type StorageProvider} from "./storage";
 import type {PreparedLogin, LoginResult, PrepareLoginOptions} from "./types";
 
 /**
@@ -60,9 +60,16 @@ export class SiwaClient {
   constructor(options: SiwaClientOptions) {
     this.canisterId = Principal.fromText(options.canisterId);
     this.host = options.host ?? "https://ic0.app";
-    this.storage = options.storage ?? new LocalStorageProvider();
+    this.storage = options.storage ?? new SessionStorageProvider();
     this.autoRefresh = options.autoRefresh ?? true;
     this.refreshThreshold = options.refreshThreshold ?? 5 * 60 * 1000; // 5 minutes
+  }
+
+  /**
+   * Get a canister-namespaced storage key to prevent cross-canister conflicts
+   */
+  private storageKey(key: string): string {
+    return `${this.canisterId.toText()}_${key}`;
   }
 
   /**
@@ -82,7 +89,7 @@ export class SiwaClient {
     }
 
     // Try to restore from storage
-    const stored = await this.storage.get("siwa_identity");
+    const stored = await this.storage.get(this.storageKey("identity"));
     if (stored) {
       try {
         const data = JSON.parse(stored) as SerializedIdentity;
@@ -90,7 +97,9 @@ export class SiwaClient {
 
         if (!this.identity.isExpired()) {
           // Restore session key if stored
-          const storedKey = await this.storage.get("siwa_session_key");
+          const storedKey = await this.storage.get(
+            this.storageKey("session_key")
+          );
           if (storedKey) {
             this.sessionKey = Ed25519KeyIdentity.fromJSON(storedKey);
           }
@@ -105,8 +114,8 @@ export class SiwaClient {
       } catch {
         // Invalid stored identity, clean up
       }
-      await this.storage.remove("siwa_identity");
-      await this.storage.remove("siwa_session_key");
+      await this.storage.remove(this.storageKey("identity"));
+      await this.storage.remove(this.storageKey("session_key"));
     }
 
     return null;
@@ -352,11 +361,11 @@ export class SiwaClient {
 
       // Store identity and session key
       await this.storage.set(
-        "siwa_identity",
+        this.storageKey("identity"),
         JSON.stringify(serializedIdentity)
       );
       await this.storage.set(
-        "siwa_session_key",
+        this.storageKey("session_key"),
         JSON.stringify(this.sessionKey.toJSON())
       );
 
@@ -525,7 +534,7 @@ export class SiwaClient {
 
       this.identity = await createSiwaIdentity(serializedIdentity);
       await this.storage.set(
-        "siwa_identity",
+        this.storageKey("identity"),
         JSON.stringify(serializedIdentity)
       );
 
@@ -634,8 +643,8 @@ export class SiwaClient {
     this.agent = null;
     this.sessionKey = null;
 
-    await this.storage.remove("siwa_identity");
-    await this.storage.remove("siwa_session_key");
+    await this.storage.remove(this.storageKey("identity"));
+    await this.storage.remove(this.storageKey("session_key"));
   }
 
   /**

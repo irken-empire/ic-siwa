@@ -34,6 +34,7 @@ export {
 export {
   type StorageProvider,
   LocalStorageProvider,
+  SessionStorageProvider,
   MemoryStorageProvider,
 } from "./storage";
 export type {

@@ -47,6 +47,42 @@ export class LocalStorageProvider implements StorageProvider {
 }
 
 /**
+ * SessionStorage-based storage provider (browser)
+ *
+ * Uses sessionStorage which is cleared when the browser tab is closed.
+ * This is more secure than localStorage for storing session keys since
+ * sensitive key material does not persist beyond the browser session.
+ */
+export class SessionStorageProvider implements StorageProvider {
+  private prefix: string;
+
+  constructor(prefix = "ic_siwa_") {
+    this.prefix = prefix;
+  }
+
+  async get(key: string): Promise<string | null> {
+    if (typeof sessionStorage === "undefined") {
+      return null;
+    }
+    return sessionStorage.getItem(this.prefix + key);
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    if (typeof sessionStorage === "undefined") {
+      return;
+    }
+    sessionStorage.setItem(this.prefix + key, value);
+  }
+
+  async remove(key: string): Promise<void> {
+    if (typeof sessionStorage === "undefined") {
+      return;
+    }
+    sessionStorage.removeItem(this.prefix + key);
+  }
+}
+
+/**
  * In-memory storage provider (for testing or SSR)
  */
 export class MemoryStorageProvider implements StorageProvider {

@@ -134,8 +134,11 @@ describe("SiwaClient", () => {
   describe("logout", () => {
     it("should clear state even when not authenticated", async () => {
       const storage = new MemoryStorageProvider();
-      await storage.set("siwa_identity", "test");
-      await storage.set("siwa_session_key", "test");
+      // Keys are now namespaced by canister ID
+      const identityKey = `${TEST_CANISTER_ID}_identity`;
+      const sessionKey = `${TEST_CANISTER_ID}_session_key`;
+      await storage.set(identityKey, "test");
+      await storage.set(sessionKey, "test");
 
       const client = new SiwaClient({
         canisterId: TEST_CANISTER_ID,
@@ -144,8 +147,8 @@ describe("SiwaClient", () => {
 
       await client.logout();
 
-      expect(await storage.get("siwa_identity")).toBeNull();
-      expect(await storage.get("siwa_session_key")).toBeNull();
+      expect(await storage.get(identityKey)).toBeNull();
+      expect(await storage.get(sessionKey)).toBeNull();
     });
 
     it("should not throw when called multiple times", async () => {
