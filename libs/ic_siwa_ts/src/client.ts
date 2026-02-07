@@ -138,6 +138,50 @@ export class SiwaClient {
   }
 
   /**
+   * Check if the host is a local development environment.
+   * Uses strict hostname matching to avoid false positives
+   * (e.g. "localhost.evil.com" would NOT match).
+   */
+  private isLocalEnvironment(): boolean {
+    try {
+      const url = new URL(this.host);
+      const hostname = url.hostname;
+      return (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "::1" ||
+        hostname.endsWith(".localhost")
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Validate an Avalanche address format (0x-prefixed, 42 hex chars)
+   */
+  private static validateAddress(address: string): void {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+      throw new SiwaError(
+        SiwaErrorCode.InvalidAddress,
+        "Address must be 0x-prefixed followed by 40 hex characters"
+      );
+    }
+  }
+
+  /**
+   * Validate a hex-encoded signature format (0x-prefixed, 130 hex chars = 65 bytes)
+   */
+  private static validateSignature(signature: string): void {
+    if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) {
+      throw new SiwaError(
+        SiwaErrorCode.InvalidSignature,
+        "Signature must be 0x-prefixed followed by 130 hex characters (65 bytes)"
+      );
+    }
+  }
+
+  /**
    * Create an anonymous agent for canister calls
    */
   private async createAnonymousAgent(): Promise<HttpAgent> {
@@ -145,12 +189,7 @@ export class SiwaClient {
       host: this.host,
     });
 
-    // Fetch root key in non-production environments
-    if (
-      this.host.includes("localhost") ||
-      this.host.includes("127.0.0.1") ||
-      this.host.includes(".local")
-    ) {
+    if (this.isLocalEnvironment()) {
       await agent.fetchRootKey();
     }
 
@@ -203,6 +242,7 @@ export class SiwaClient {
   async prepareLoginWithOptions(
     options: PrepareLoginOptions
   ): Promise<PreparedLogin> {
+    SiwaClient.validateAddress(options.address);
     try {
       const actor = await this.createProviderActor();
 
@@ -249,6 +289,8 @@ export class SiwaClient {
     address: string,
     sessionKey?: Ed25519KeyIdentity
   ): Promise<LoginResult> {
+    SiwaClient.validateAddress(address);
+    SiwaClient.validateSignature(signature);
     try {
       // Generate session key if not provided
       this.sessionKey = sessionKey ?? generateSessionKey();
@@ -665,12 +707,7 @@ export class SiwaClient {
         identity: identity.getDelegationIdentity() as unknown as Identity,
       });
 
-      // Fetch root key in non-production environments
-      if (
-        this.host.includes("localhost") ||
-        this.host.includes("127.0.0.1") ||
-        this.host.includes(".local")
-      ) {
+      if (this.isLocalEnvironment()) {
         await this.agent.fetchRootKey();
       }
     }
