@@ -360,6 +360,10 @@ fn debug_info() -> Result<DebugInfo, String> {
         return Err("Only canister controllers can access debug info".to_string());
     }
 
+    if !state::is_debug_enabled() {
+        return Err("Debug mode is not enabled. Set debug: true in InitArgs.".to_string());
+    }
+
     let (
         login_sessions_count,
         auth_sessions_count,
