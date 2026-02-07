@@ -5,7 +5,7 @@
 
 use ic_certified_map::{leaf_hash, AsHashTree, Hash, HashTree, RbTree};
 use std::borrow::Cow;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
 
 /// Default expiration time for delegation signatures (1 minute in nanoseconds)
 pub const DELEGATION_SIGNATURE_EXPIRES_AT: u64 = 60 * 1_000_000_000;
@@ -54,6 +54,8 @@ impl PartialOrd for SigExpiration {
 pub struct SignatureMap {
     certified_map: RbTree<Hash, RbTree<Hash, Unit>>,
     expiration_queue: BinaryHeap<SigExpiration>,
+    /// O(1) lookup index: (seed_hash, delegation_hash) -> expiration timestamp
+    expiration_index: HashMap<(Hash, Hash), u64>,
 }
 
 impl SignatureMap {
@@ -86,6 +88,8 @@ impl SignatureMap {
             delegation_hash,
             signature_expires_at,
         });
+        self.expiration_index
+            .insert((seed_hash, delegation_hash), signature_expires_at);
     }
 
     /// Remove a delegation hash from the map
@@ -98,6 +102,7 @@ impl SignatureMap {
         if is_empty {
             self.certified_map.delete(&seed_hash[..]);
         }
+        self.expiration_index.remove(&(seed_hash, delegation_hash));
     }
 
     /// Prune expired entries from the map
@@ -147,17 +152,12 @@ impl SignatureMap {
             return true;
         }
 
-        // Check the expiration queue for the actual expiration time
-        let expiration = self
-            .expiration_queue
-            .iter()
-            .find(|e| e.seed_hash == seed_hash && e.delegation_hash == delegation_hash);
-
-        if let Some(expiration) = expiration {
-            return now > expiration.signature_expires_at;
+        // O(1) lookup of expiration time via index
+        if let Some(&expires_at) = self.expiration_index.get(&(seed_hash, delegation_hash)) {
+            return now > expires_at;
         }
 
-        // Exists in certified map but not in expiration queue - consider valid
+        // Exists in certified map but not in expiration index - consider valid
         // (This shouldn't happen normally, but better to allow than block)
         false
     }
