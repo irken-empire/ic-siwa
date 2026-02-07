@@ -183,11 +183,6 @@ impl PartialOrd for PreparedDelegationExpiry {
     }
 }
 
-/// Counter for periodic drain of stale prepared delegation queue entries
-static PREPARED_DRAIN_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-/// Drain stale queue entries every N store calls
-const PREPARED_DRAIN_INTERVAL: u64 = 50;
-
 /// Transient canister state (lost on upgrade, that's acceptable)
 #[derive(Default)]
 pub struct TransientState {
@@ -740,14 +735,8 @@ pub fn store_prepared_delegation(
     with_state_mut(|state| {
         let now = ic_cdk::api::time();
 
-        // Prune up to 20 expired entries from the front of the min-heap
+        // Prune up to 20 expired or orphaned entries from the front of the min-heap
         prune_prepared_delegations(state, now, 20);
-
-        // Periodically drain orphaned queue entries to bound memory
-        let count = PREPARED_DRAIN_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        if count % PREPARED_DRAIN_INTERVAL == 0 {
-            drain_stale_prepared_delegations(state);
-        }
 
         if state.prepared_delegations.len() >= MAX_PREPARED_DELEGATIONS
             && !state.prepared_delegations.contains_key(&key)
@@ -792,24 +781,16 @@ fn prune_prepared_delegations(state: &mut TransientState, now: u64, max_to_prune
         let Some(entry) = state.prepared_delegation_queue.pop() else {
             break;
         };
+
+        // Skip orphaned entries (key no longer in map, was overwritten)
+        let Some(stored) = state.prepared_delegations.get(&entry.key) else {
+            continue;
+        };
+
         // Only remove from the map if the entry is actually expired
-        // (it may have been overwritten with a newer expiration)
-        if let Some(stored) = state.prepared_delegations.get(&entry.key) {
-            if stored.final_expiration <= now {
-                state.prepared_delegations.remove(&entry.key);
-                pruned += 1;
-            }
+        if stored.final_expiration <= now {
+            state.prepared_delegations.remove(&entry.key);
+            pruned += 1;
         }
     }
-}
-
-/// Drain orphaned queue entries whose keys no longer exist in the map.
-/// This prevents the queue from growing unboundedly when delegations are
-/// overwritten (the old queue entry becomes orphaned).
-fn drain_stale_prepared_delegations(state: &mut TransientState) {
-    let old_queue = std::mem::take(&mut state.prepared_delegation_queue);
-    state.prepared_delegation_queue = old_queue
-        .into_iter()
-        .filter(|entry| state.prepared_delegations.contains_key(&entry.key))
-        .collect();
 }
