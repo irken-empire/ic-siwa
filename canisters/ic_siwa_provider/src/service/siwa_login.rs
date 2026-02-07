@@ -75,22 +75,12 @@ pub fn login(
         }
     }
 
-    // Reconstruct the SIWA message and verify the signature
-    let siwa_message = SiwaMessage {
-        domain: settings.domain.clone(),
-        address: address.clone(),
-        statement: Some("Sign in with Avalanche to the app.".to_string()),
-        uri: settings.uri.clone(),
-        version: "1".to_string(),
-        chain_id: settings.chain_id,
-        nonce: login_session.nonce.clone(),
-        issued_at: extract_timestamp(&login_session.message, "Issued At: ")
-            .ok_or("Failed to parse issued_at from stored message")?,
-        expiration_time: extract_timestamp(&login_session.message, "Expiration Time: "),
-        not_before: None,
-        request_id: None,
-        resources: None,
-    };
+    // Parse the stored SIWA message directly instead of reconstructing from settings.
+    // This ensures we verify the signature against the exact message the user signed,
+    // even if canister settings (domain, URI, etc.) changed between prepare_login and login,
+    // or if a multi-tenant domain/URI was used during prepare_login.
+    let siwa_message = SiwaMessage::from_message(&login_session.message)
+        .map_err(|e| format!("Failed to parse stored SIWA message: {}", e))?;
 
     // Verify the signature and recover the address
     let recovered_address = siwa_message
@@ -142,14 +132,6 @@ pub fn login(
     })
 }
 
-/// Extract a timestamp field from a SIWA message string
-fn extract_timestamp(message: &str, prefix: &str) -> Option<String> {
-    message
-        .lines()
-        .find(|line| line.starts_with(prefix))
-        .map(|line| line.strip_prefix(prefix).unwrap_or(line).to_string())
-}
-
 /// Extract the domain from a SIWA message
 /// The first line format is: "domain wants you to sign in with your Avalanche account:"
 fn extract_domain_from_message(message: &str) -> Option<String> {
@@ -191,20 +173,5 @@ mod tests {
     fn test_extract_domain_from_message_invalid() {
         let message = "invalid message format";
         assert_eq!(extract_domain_from_message(message), None);
-    }
-
-    #[test]
-    fn test_extract_timestamp() {
-        let message = "Some text\nIssued At: 2024-01-15T12:00:00Z\nMore text";
-        assert_eq!(
-            extract_timestamp(message, "Issued At: "),
-            Some("2024-01-15T12:00:00Z".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_timestamp_not_found() {
-        let message = "Some text without timestamp";
-        assert_eq!(extract_timestamp(message, "Issued At: "), None);
     }
 }
