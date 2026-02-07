@@ -321,16 +321,24 @@ fn compute_root_hash(signature_map: &SignatureMap) -> Hash {
 ///
 /// This adds the delegation to the certified data so it can be verified
 /// by the IC when used in queries.
-pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
+///
+/// # Arguments
+/// * `seed_hash` - Hash of the seed (derived from address + salt)
+/// * `delegation_hash` - Hash of the delegation
+/// * `delegation_expires_at` - When the delegation expires (nanoseconds)
+pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash, delegation_expires_at: u64) {
     let now = ic_cdk::api::time();
     with_state_mut(|state| {
         // Prune up to 20 expired entries to bound memory growth
         state.signature_map.prune_expired(now, 20);
-        state.signature_map.put(seed_hash, delegation_hash, now);
+        state
+            .signature_map
+            .put(seed_hash, delegation_hash, delegation_expires_at);
         debug_log!(
-            "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, now: {}, map_len: {}",
+            "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, delegation_expires_at: {}, now: {}, map_len: {}",
             hex::encode(seed_hash),
             hex::encode(delegation_hash),
+            delegation_expires_at,
             now,
             state.signature_map.len()
         );

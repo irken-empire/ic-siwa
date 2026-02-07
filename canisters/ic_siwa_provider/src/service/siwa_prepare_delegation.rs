@@ -53,8 +53,8 @@ pub fn prepare_delegation(
         session_key.len()
     );
 
-    // Store the delegation in the signature map
-    store_delegation(seed_hash, delegation_hash);
+    // Store the delegation in the signature map with the actual delegation expiration
+    store_delegation(seed_hash, delegation_hash, final_expiration);
 
     // Store the prepared delegation info so get_delegation can retrieve the exact
     // expiration value, avoiding hash mismatches due to time differences

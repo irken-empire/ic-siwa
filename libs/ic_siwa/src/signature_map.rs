@@ -7,8 +7,10 @@ use ic_certified_map::{leaf_hash, AsHashTree, Hash, HashTree, RbTree};
 use std::borrow::Cow;
 use std::collections::{BinaryHeap, HashMap};
 
-/// Default expiration time for delegation signatures (1 minute in nanoseconds)
-pub const DELEGATION_SIGNATURE_EXPIRES_AT: u64 = 60 * 1_000_000_000;
+/// Minimum buffer added to delegation expiration for signature map entries (5 minutes in nanoseconds).
+/// This ensures the signature remains available slightly beyond the delegation's lifetime,
+/// accounting for clock skew and query latency.
+pub const SIGNATURE_EXPIRATION_BUFFER_NS: u64 = 5 * 60 * 1_000_000_000;
 
 /// Unit type for the inner tree values
 #[derive(Default)]
@@ -69,9 +71,11 @@ impl SignatureMap {
     /// # Arguments
     /// * `seed_hash` - Hash of the seed (derived from address + salt)
     /// * `delegation_hash` - Hash of the delegation
-    /// * `now` - Current timestamp in nanoseconds
-    pub fn put(&mut self, seed_hash: Hash, delegation_hash: Hash, now: u64) {
-        let signature_expires_at = now.saturating_add(DELEGATION_SIGNATURE_EXPIRES_AT);
+    /// * `delegation_expires_at` - When the delegation itself expires (nanoseconds).
+    ///   A buffer is added so the signature outlives the delegation.
+    pub fn put(&mut self, seed_hash: Hash, delegation_hash: Hash, delegation_expires_at: u64) {
+        let signature_expires_at =
+            delegation_expires_at.saturating_add(SIGNATURE_EXPIRATION_BUFFER_NS);
 
         if self.certified_map.get(&seed_hash[..]).is_none() {
             let mut submap = RbTree::new();
@@ -227,9 +231,9 @@ mod tests {
         let mut map = SignatureMap::new();
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
-        let now = 1_000_000_000u64;
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000; // 30 min from "now"
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, expires_at);
 
         let witness = map.witness(seed_hash, delegation_hash);
         assert!(witness.is_some());
@@ -250,9 +254,9 @@ mod tests {
         let mut map = SignatureMap::new();
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
-        let now = 1_000_000_000u64;
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, expires_at);
         assert!(map.witness(seed_hash, delegation_hash).is_some());
 
         map.delete(seed_hash, delegation_hash);
@@ -265,17 +269,24 @@ mod tests {
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
         let now = 1_000_000_000u64;
+        // Delegation expires 30 minutes from now
+        let delegation_expires_at = now + 30 * 60 * 1_000_000_000;
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, delegation_expires_at);
         assert_eq!(map.len(), 1);
 
-        // Prune with current time - should not prune
+        // Prune at current time - should not prune (delegation hasn't expired)
         let pruned = map.prune_expired(now, 10);
         assert_eq!(pruned, 0);
         assert_eq!(map.len(), 1);
 
-        // Prune after expiration
-        let expired_time = now + DELEGATION_SIGNATURE_EXPIRES_AT + 1;
+        // Prune at delegation expiration - should not prune (buffer not yet elapsed)
+        let pruned = map.prune_expired(delegation_expires_at, 10);
+        assert_eq!(pruned, 0);
+        assert_eq!(map.len(), 1);
+
+        // Prune after delegation expiration + buffer
+        let expired_time = delegation_expires_at + SIGNATURE_EXPIRATION_BUFFER_NS + 1;
         let pruned = map.prune_expired(expired_time, 10);
         assert_eq!(pruned, 1);
         assert_eq!(map.len(), 0);
@@ -288,9 +299,9 @@ mod tests {
 
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
-        let now = 1_000_000_000u64;
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, expires_at);
         let after_put_hash = map.root_hash();
 
         assert_ne!(initial_hash, after_put_hash);
