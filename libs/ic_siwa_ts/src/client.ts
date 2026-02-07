@@ -298,9 +298,10 @@ export class SiwaClient {
       // Convert to number[] for Candid encoding (blob = vec nat8)
       const sessionKeyBytes = Array.from(new Uint8Array(sessionKeyDer));
 
-      // Call siwa_login
+      // Combined login + prepare_delegation in a single update call
+      // This saves ~2 seconds by eliminating one consensus round-trip
       const actor = await this.createProviderActor();
-      const loginResponse: Result_4 = await actor.siwa_login(
+      const loginResponse: Result_4 = await actor.siwa_login_and_prepare(
         signature,
         address,
         sessionKeyBytes
@@ -331,22 +332,7 @@ export class SiwaClient {
       // Use the expiration from login response (always present in LoginResponse)
       const expirationNs = loginExpiration;
 
-      // Prepare delegation first (stores in signature map for certified response)
-      const prepareResult = await actor.siwa_prepare_delegation(
-        address,
-        sessionKeyBytes,
-        expirationNs
-      );
-
-      if ("Err" in prepareResult) {
-        throw new SiwaError(
-          SiwaErrorCode.CanisterError,
-          prepareResult.Err,
-          prepareResult
-        );
-      }
-
-      // Now get the certified delegation
+      // Now get the certified delegation (delegation was prepared in the combined call)
       const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,

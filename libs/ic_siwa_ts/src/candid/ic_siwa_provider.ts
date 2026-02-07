@@ -80,6 +80,8 @@ export type Result_5 = { 'Ok' : null } |
   { 'Err' : string };
 export type Result_6 = { 'Ok' : PrepareLoginResponse } |
   { 'Err' : string };
+export type Result_7 = { 'Ok' : bigint } |
+  { 'Err' : string };
 export interface SignedDelegation {
   'signature' : Uint8Array | number[],
   'delegation' : Delegation,
@@ -138,6 +140,41 @@ export interface _SERVICE {
    */
   'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_4>,
   /**
+   * Combined login and prepare_delegation in a single update call
+   * 
+   * This reduces the login flow from 2 update calls + 1 query to
+   * 1 update call + 1 query, saving ~2 seconds of consensus latency.
+   * 
+   * # Arguments
+   * * `signature` - Hex-encoded signature from the user's wallet
+   * * `address` - The Avalanche address that signed the message
+   * * `session_key` - The session public key to bind to this authentication
+   * 
+   * # Returns
+   * * `Ok(LoginResponse)` - The derived principal and session expiration
+   * * `Err(String)` - Error if signature is invalid or session expired
+   */
+  'siwa_login_and_prepare' : ActorMethod<
+    [string, string, Uint8Array | number[]],
+    Result_4
+  >,
+  /**
+   * Logout - revoke a specific session
+   * 
+   * The caller must be the session owner (matching derived principal) or a
+   * canister controller. This prevents unauthenticated third parties from
+   * revoking other users' sessions.
+   * 
+   * # Arguments
+   * * `address` - The Avalanche address
+   * * `session_key` - The session public key from login
+   * 
+   * # Returns
+   * * `Ok(())` - Session revoked
+   * * `Err(String)` - Error if session not found or caller unauthorized
+   */
+  'siwa_logout' : ActorMethod<[string, Uint8Array | number[]], Result_5>,
+  /**
    * Prepare a delegation for an authenticated session
    * 
    * This must be called before `siwa_get_delegation` to store the delegation
@@ -192,6 +229,20 @@ export interface _SERVICE {
     [PrepareLoginRequest],
     Result_6
   >,
+  /**
+   * Revoke all sessions for an address (controller-only)
+   * 
+   * Emergency endpoint to revoke all active sessions for a given address.
+   * Only callable by canister controllers.
+   * 
+   * # Arguments
+   * * `address` - The Avalanche address to revoke sessions for
+   * 
+   * # Returns
+   * * `Ok(count)` - Number of sessions revoked
+   * * `Err(String)` - Error if not a controller
+   */
+  'siwa_revoke_all' : ActorMethod<[string], Result_7>,
 }
 
 export const idlFactory = ({ IDL }: { IDL: any }) => {
@@ -264,6 +315,7 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
     'domain' : IDL.Opt(IDL.Text),
     'address' : IDL.Text,
   });
+  const Result_7 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   return IDL.Service({
     'debug_info' : IDL.Func([], [Result], ['query']),
     'get_address' : IDL.Func([IDL.Principal], [Result_1], ['query']),
@@ -279,6 +331,12 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
         [Result_4],
         [],
       ),
+    'siwa_login_and_prepare' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Vec(IDL.Nat8)],
+        [Result_4],
+        [],
+      ),
+    'siwa_logout' : IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result_5], []),
     'siwa_prepare_delegation' : IDL.Func(
         [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Nat64],
         [Result_5],
@@ -290,6 +348,7 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
         [Result_6],
         [],
       ),
+    'siwa_revoke_all' : IDL.Func([IDL.Text], [Result_7], []),
   });
 };
 export const init = ({ IDL }: { IDL: any }) => {

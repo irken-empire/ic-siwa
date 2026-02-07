@@ -156,6 +156,36 @@ fn siwa_login(
     service::siwa_login::login(signature, address, session_key)
 }
 
+/// Combined login and prepare_delegation in a single update call
+///
+/// This reduces the login flow from 2 update calls + 1 query to
+/// 1 update call + 1 query, saving ~2 seconds of consensus latency.
+///
+/// # Arguments
+/// * `signature` - Hex-encoded signature from the user's wallet
+/// * `address` - The Avalanche address that signed the message
+/// * `session_key` - The session public key to bind to this authentication
+///
+/// # Returns
+/// * `Ok(LoginResponse)` - The derived principal and session expiration
+/// * `Err(String)` - Error if signature is invalid or session expired
+#[update]
+fn siwa_login_and_prepare(
+    signature: String,
+    address: String,
+    session_key: Vec<u8>,
+) -> Result<LoginResponse, String> {
+    check_caller_allowed()?;
+    let login_response =
+        service::siwa_login::login(signature, address.clone(), session_key.clone())?;
+    service::siwa_prepare_delegation::prepare_delegation(
+        address,
+        session_key,
+        login_response.expiration,
+    )?;
+    Ok(login_response)
+}
+
 /// Prepare a delegation for an authenticated session
 ///
 /// This must be called before `siwa_get_delegation` to store the delegation

@@ -60,6 +60,7 @@ type Result_3 = variant { Ok : SignedDelegation; Err : text };
 type Result_4 = variant { Ok : LoginResponse; Err : text };
 type Result_5 = variant { Ok; Err : text };
 type Result_6 = variant { Ok : PrepareLoginResponse; Err : text };
+type Result_7 = variant { Ok : nat64; Err : text };
 type SignedDelegation = record { signature : blob; delegation : Delegation };
 service : (InitArgs) -> {
   // Get debug diagnostics (restricted to canister controllers)
@@ -99,6 +100,34 @@ service : (InitArgs) -> {
   // * `Ok(LoginResponse)` - The derived principal and session expiration
   // * `Err(String)` - Error if signature is invalid or session expired
   siwa_login : (text, text, blob) -> (Result_4);
+  // Combined login and prepare_delegation in a single update call
+  // 
+  // This reduces the login flow from 2 update calls + 1 query to
+  // 1 update call + 1 query, saving ~2 seconds of consensus latency.
+  // 
+  // # Arguments
+  // * `signature` - Hex-encoded signature from the user's wallet
+  // * `address` - The Avalanche address that signed the message
+  // * `session_key` - The session public key to bind to this authentication
+  // 
+  // # Returns
+  // * `Ok(LoginResponse)` - The derived principal and session expiration
+  // * `Err(String)` - Error if signature is invalid or session expired
+  siwa_login_and_prepare : (text, text, blob) -> (Result_4);
+  // Logout - revoke a specific session
+  // 
+  // The caller must be the session owner (matching derived principal) or a
+  // canister controller. This prevents unauthenticated third parties from
+  // revoking other users' sessions.
+  // 
+  // # Arguments
+  // * `address` - The Avalanche address
+  // * `session_key` - The session public key from login
+  // 
+  // # Returns
+  // * `Ok(())` - Session revoked
+  // * `Err(String)` - Error if session not found or caller unauthorized
+  siwa_logout : (text, blob) -> (Result_5);
   // Prepare a delegation for an authenticated session
   // 
   // This must be called before `siwa_get_delegation` to store the delegation
@@ -142,4 +171,16 @@ service : (InitArgs) -> {
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error if address invalid or domain not whitelisted
   siwa_prepare_login_with_options : (PrepareLoginRequest) -> (Result_6);
+  // Revoke all sessions for an address (controller-only)
+  // 
+  // Emergency endpoint to revoke all active sessions for a given address.
+  // Only callable by canister controllers.
+  // 
+  // # Arguments
+  // * `address` - The Avalanche address to revoke sessions for
+  // 
+  // # Returns
+  // * `Ok(count)` - Number of sessions revoked
+  // * `Err(String)` - Error if not a controller
+  siwa_revoke_all : (text) -> (Result_7);
 }
