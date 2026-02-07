@@ -305,9 +305,38 @@ Default values (when `rate_limits` is not provided):
 
 ### Salt Security
 
+The salt is a critical secret used in both principal derivation and delegation
+seed generation. Its confidentiality determines the security of the identity
+mapping.
+
+**Core Requirements**:
+
 - The salt MUST be kept secret
 - The salt MUST be different for each deployment
-- The salt determines principal derivation - changing it invalidates all existing identities
+- The salt determines principal derivation -- changing it invalidates all existing identities
+- The salt cannot be rotated at runtime; changing it requires a canister upgrade
+
+**Visibility Properties**:
+
+The salt is passed as plaintext in the Candid `InitArgs` during canister
+installation. On the Internet Computer:
+
+- Init args are **NOT** stored in the canister history (only module hash and mode are recorded)
+- Init args are **NOT** queryable via any public IC API (`canister_info`, `canister_status`, `read_state`)
+- Init args **ARE** visible to all subnet replica nodes during ingress message processing
+- The salt stored in canister stable memory is also readable by node operators
+
+This means the salt has no public API exposure, but is not cryptographically
+protected from IC infrastructure operators (subnet node operators and boundary
+nodes).
+
+**Best Practices**:
+
+- Use a cryptographically random salt of sufficient length (32+ characters)
+- Generate a unique salt per deployment environment (development, testnet, mainnet)
+- Store salts in a secrets manager, not in source control
+- Accept that IC node operators have theoretical access to the salt (this is an inherent property of the IC's trust model, not specific to SIWA)
+- If the salt is compromised, an attacker could predict which principal maps to any address, but cannot impersonate users without their wallet private key
 
 ### Session Management
 
