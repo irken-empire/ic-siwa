@@ -219,7 +219,7 @@ Avalanche C-Chain addresses are Ethereum-compatible:
 
 - Algorithm: ECDSA on secp256k1
 - Hash function: Keccak256
-- Message prefix: "\x19Avalanche Signed Message:\n" + length + message
+- Message prefix: "\x19Ethereum Signed Message:\n" + length + message (Avalanche C-Chain uses the standard Ethereum personal sign prefix for EVM compatibility)
 - Recovery: Use recovery ID (v) to recover public key
 
 ### Principal Derivation
@@ -315,7 +315,7 @@ The following EIP-4361 fields are not implemented:
 ### Avalanche-Specific Adaptations
 
 - Chain ID defaults to 43113 (Fuji) or 43114 (Mainnet)
-- Message prefix adapted for Avalanche signing
+- Uses standard Ethereum personal sign prefix (`\x19Ethereum Signed Message:\n`) since Avalanche C-Chain is EVM-compatible
 - Address format identical to Ethereum (EIP-55)
 
 ## Project Components
