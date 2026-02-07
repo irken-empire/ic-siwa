@@ -1,12 +1,16 @@
 type DebugInfo = record {
   uri : text;
+  signature_map_count : nat64;
+  auth_sessions_count : nat64;
   domain : text;
   delegation_targets_count : nat64;
   chain_id : nat64;
   allowed_domains : vec text;
   allowed_domains_count : nat64;
+  login_sessions_count : nat64;
   rate_limit_total : nat32;
   rate_limit_per_address : nat32;
+  prepared_delegations_count : nat64;
   session_expiration_ns : nat64;
   rate_limit_window_seconds : nat64;
   delegation_targets : vec principal;
@@ -58,10 +62,10 @@ type Result_5 = variant { Ok; Err : text };
 type Result_6 = variant { Ok : PrepareLoginResponse; Err : text };
 type SignedDelegation = record { signature : blob; delegation : Delegation };
 service : (InitArgs) -> {
-  // Get debug diagnostics (only available when debug=true in init args)
+  // Get debug diagnostics (restricted to canister controllers)
   // 
   // Returns configuration and state information for debugging.
-  // This endpoint is disabled in production (when debug=false).
+  // Only callable by canister controllers for security.
   debug_info : () -> (Result) query;
   // Get Avalanche address for ICP principal
   get_address : (principal) -> (Result_1) query;

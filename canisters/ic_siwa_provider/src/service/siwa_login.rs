@@ -120,7 +120,7 @@ pub fn login(
         created_at: now,
         expires_at: session_expiration,
     };
-    store_auth_session(key_hash, auth_session);
+    store_auth_session(key_hash, auth_session)?;
 
     // Note: The delegation is stored in the signature map when get_delegation is called,
     // not here. This allows flexible expiration times in the delegation.

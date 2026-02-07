@@ -89,6 +89,15 @@ thread_local! {
 /// Label for the signature tree in certified data
 pub const LABEL_SIG: &[u8] = b"sig";
 
+// --- Capacity limits for transient state HashMaps ---
+
+/// Maximum number of pending login sessions (one per address attempting to log in)
+const MAX_LOGIN_SESSIONS: usize = 10_000;
+/// Maximum number of authenticated sessions
+const MAX_AUTH_SESSIONS: usize = 10_000;
+/// Maximum number of prepared delegations awaiting retrieval
+const MAX_PREPARED_DELEGATIONS: usize = 10_000;
+
 /// Active login session (pending signature verification)
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct LoginSession {
@@ -395,13 +404,24 @@ pub fn create_certified_delegation_signature(
 // --- Login sessions ---
 
 /// Store a new login session
-pub fn store_login_session(session: LoginSession) {
+///
+/// Enforces capacity limit by cleaning up expired sessions first.
+/// Returns error if at capacity after cleanup.
+pub fn store_login_session(session: LoginSession) -> Result<(), String> {
     with_state_mut(|state| {
         state.cleanup_expired_logins();
+        if state.login_sessions.len() >= MAX_LOGIN_SESSIONS
+            && !state
+                .login_sessions
+                .contains_key(&session.address.to_lowercase())
+        {
+            return Err("Too many pending login sessions. Please try again later.".to_string());
+        }
         state
             .login_sessions
             .insert(session.address.to_lowercase(), session);
-    });
+        Ok(())
+    })
 }
 
 /// Get a login session by address
@@ -422,13 +442,23 @@ pub fn remove_login_session(address: &str) {
 // --- Auth sessions ---
 
 /// Store an authenticated session
-pub fn store_auth_session(key_hash: String, session: AuthSession) {
+///
+/// Enforces capacity limit by cleaning up expired sessions first.
+/// Returns error if at capacity after cleanup.
+pub fn store_auth_session(key_hash: String, session: AuthSession) -> Result<(), String> {
     with_state_mut(|state| {
         state.cleanup_expired_auth();
+        if state.auth_sessions.len() >= MAX_AUTH_SESSIONS
+            && !state.auth_sessions.contains_key(&key_hash)
+        {
+            return Err("Too many active sessions. Please try again later.".to_string());
+        }
         state.auth_sessions.insert(key_hash, session.clone());
-    });
+        Ok(())
+    })?;
     // Store identity mappings in stable memory (persists across upgrades)
     store_identity_mapping(&session.address, session.principal);
+    Ok(())
 }
 
 /// Get an auth session by session key hash
@@ -508,15 +538,30 @@ pub fn cleanup_rate_limits() {
 // --- Prepared delegations ---
 
 /// Store a prepared delegation for later retrieval
+///
+/// Enforces capacity limit by cleaning up expired delegations first.
+/// Returns error if at capacity after cleanup.
 pub fn store_prepared_delegation(
     seed_hash: &[u8; 32],
     session_key_hash: &str,
     delegation: PreparedDelegation,
-) {
+) -> Result<(), String> {
     let key = format!("{}:{}", hex::encode(seed_hash), session_key_hash);
     with_state_mut(|state| {
+        // Clean up expired entries first
+        let now = ic_cdk::api::time();
+        state
+            .prepared_delegations
+            .retain(|_, v| v.final_expiration > now);
+
+        if state.prepared_delegations.len() >= MAX_PREPARED_DELEGATIONS
+            && !state.prepared_delegations.contains_key(&key)
+        {
+            return Err("Too many prepared delegations. Please try again later.".to_string());
+        }
         state.prepared_delegations.insert(key, delegation);
-    });
+        Ok(())
+    })
 }
 
 /// Get a prepared delegation by seed hash and session key hash

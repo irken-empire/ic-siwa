@@ -13,13 +13,17 @@ import { IDL } from '@icp-sdk/core/candid';
 
 export interface DebugInfo {
   'uri' : string,
+  'signature_map_count' : bigint,
+  'auth_sessions_count' : bigint,
   'domain' : string,
   'delegation_targets_count' : bigint,
   'chain_id' : bigint,
   'allowed_domains' : Array<string>,
   'allowed_domains_count' : bigint,
+  'login_sessions_count' : bigint,
   'rate_limit_total' : number,
   'rate_limit_per_address' : number,
+  'prepared_delegations_count' : bigint,
   'session_expiration_ns' : bigint,
   'rate_limit_window_seconds' : bigint,
   'delegation_targets' : Array<Principal>,
@@ -82,10 +86,10 @@ export interface SignedDelegation {
 }
 export interface _SERVICE {
   /**
-   * Get debug diagnostics (only available when debug=true in init args)
+   * Get debug diagnostics (restricted to canister controllers)
    * 
    * Returns configuration and state information for debugging.
-   * This endpoint is disabled in production (when debug=false).
+   * Only callable by canister controllers for security.
    */
   'debug_info' : ActorMethod<[], Result>,
   /**
@@ -210,13 +214,17 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
   });
   const DebugInfo = IDL.Record({
     'uri' : IDL.Text,
+    'signature_map_count' : IDL.Nat64,
+    'auth_sessions_count' : IDL.Nat64,
     'domain' : IDL.Text,
     'delegation_targets_count' : IDL.Nat64,
     'chain_id' : IDL.Nat64,
     'allowed_domains' : IDL.Vec(IDL.Text),
     'allowed_domains_count' : IDL.Nat64,
+    'login_sessions_count' : IDL.Nat64,
     'rate_limit_total' : IDL.Nat32,
     'rate_limit_per_address' : IDL.Nat32,
+    'prepared_delegations_count' : IDL.Nat64,
     'session_expiration_ns' : IDL.Nat64,
     'rate_limit_window_seconds' : IDL.Nat64,
     'delegation_targets' : IDL.Vec(IDL.Principal),

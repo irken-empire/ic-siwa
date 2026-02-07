@@ -112,7 +112,7 @@ pub fn store_prepared_delegation(
     final_expiration: u64,
     delegation_hash: Hash,
     targets: Option<Vec<candid::Principal>>,
-) {
+) -> Result<(), String> {
     state_store_prepared_delegation(
         seed_hash,
         session_key_hash,
@@ -121,7 +121,7 @@ pub fn store_prepared_delegation(
             delegation_hash,
             targets,
         },
-    );
+    )
 }
 
 /// Retrieve a prepared delegation

@@ -65,7 +65,7 @@ pub fn prepare_delegation(
         final_expiration,
         delegation_hash,
         targets,
-    );
+    )?;
 
     ic_cdk::println!(
         "[PREPARE_DELEGATION] Stored delegation. session_key_hash: {}",

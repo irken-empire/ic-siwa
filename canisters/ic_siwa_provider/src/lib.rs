@@ -220,6 +220,14 @@ pub struct DebugInfo {
     pub rate_limit_window_seconds: u64,
     /// Debug mode enabled
     pub debug_enabled: bool,
+    /// Number of active login sessions
+    pub login_sessions_count: u64,
+    /// Number of active auth sessions
+    pub auth_sessions_count: u64,
+    /// Number of prepared delegations
+    pub prepared_delegations_count: u64,
+    /// Number of entries in signature map
+    pub signature_map_count: u64,
 }
 
 /// Get debug diagnostics (restricted to canister controllers)
@@ -235,6 +243,20 @@ fn debug_info() -> Result<DebugInfo, String> {
 
     let settings = state::get_settings();
 
+    let (
+        login_sessions_count,
+        auth_sessions_count,
+        prepared_delegations_count,
+        signature_map_count,
+    ) = state::with_state(|s| {
+        (
+            s.login_sessions.len() as u64,
+            s.auth_sessions.len() as u64,
+            s.prepared_delegations.len() as u64,
+            s.signature_map.len() as u64,
+        )
+    });
+
     Ok(DebugInfo {
         domain: settings.domain.clone(),
         uri: settings.uri.clone(),
@@ -248,6 +270,10 @@ fn debug_info() -> Result<DebugInfo, String> {
         rate_limit_total: settings.rate_limits.max_logins_total,
         rate_limit_window_seconds: settings.rate_limits.window_seconds,
         debug_enabled: settings.debug,
+        login_sessions_count,
+        auth_sessions_count,
+        prepared_delegations_count,
+        signature_map_count,
     })
 }
 

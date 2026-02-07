@@ -118,7 +118,7 @@ pub async fn prepare_login_with_options(
         created_at: now,
         expires_at,
     };
-    store_login_session(session);
+    store_login_session(session)?;
 
     Ok(PrepareLoginResponse {
         message: message_string,
