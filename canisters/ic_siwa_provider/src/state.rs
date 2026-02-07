@@ -136,6 +136,8 @@ pub type PreparedDelegationKey = String;
 /// Transient canister state (lost on upgrade, that's acceptable)
 #[derive(Default)]
 pub struct TransientState {
+    /// Cached settings (avoids deserializing from stable memory on every call)
+    pub settings_cache: Option<Settings>,
     /// Active login sessions keyed by address
     pub login_sessions: HashMap<String, LoginSession>,
     /// Authenticated sessions keyed by session key hash
@@ -183,35 +185,49 @@ where
 
 // --- Settings (persistent via StableCell) ---
 
-/// Store settings to stable memory
+/// Store settings to stable memory and update the in-memory cache
 pub fn store_settings(settings: &Settings) {
     let bytes = candid::encode_one(settings).expect("Failed to encode settings");
     SETTINGS_CELL.with(|cell| {
         cell.borrow_mut().set(bytes);
     });
+    // Update the in-memory cache
+    with_state_mut(|state| {
+        state.settings_cache = Some(settings.clone());
+    });
 }
 
-/// Get current settings (panics if not initialized)
+/// Get current settings from the in-memory cache (panics if not initialized)
 pub fn get_settings() -> Settings {
-    SETTINGS_CELL.with(|cell| {
-        let bytes = cell.borrow().get().clone();
-        if bytes.is_empty() {
-            panic!("Canister not initialized - settings not set");
-        }
-        candid::decode_one(&bytes).expect("Failed to decode settings from stable memory")
+    with_state(|state| {
+        state
+            .settings_cache
+            .clone()
+            .expect("Canister not initialized - settings not set")
     })
 }
 
 /// Get settings if initialized, None otherwise
 pub fn try_get_settings() -> Option<Settings> {
-    SETTINGS_CELL.with(|cell| {
+    with_state(|state| state.settings_cache.clone())
+}
+
+/// Load settings from stable memory into the in-memory cache.
+/// Called during init/upgrade to populate the cache.
+fn load_settings_cache() {
+    let settings = SETTINGS_CELL.with(|cell| {
         let bytes = cell.borrow().get().clone();
         if bytes.is_empty() {
             None
         } else {
             candid::decode_one(&bytes).ok()
         }
-    })
+    });
+    if let Some(s) = settings {
+        with_state_mut(|state| {
+            state.settings_cache = Some(s);
+        });
+    }
 }
 
 // --- Initialization ---
@@ -241,6 +257,8 @@ pub fn init_state(settings: Settings) {
 ///
 /// Called when post_upgrade receives no new InitArgs but settings exist in stable memory.
 pub fn init_transient_state() {
+    // Load settings from stable memory into the in-memory cache first
+    load_settings_cache();
     let settings = get_settings();
     with_state_mut(|state| {
         state.rate_limiter = RateLimiter::new(settings.rate_limits.clone());
