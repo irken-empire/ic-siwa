@@ -20,13 +20,13 @@ use ic_siwa::siwa::hash_session_key;
 /// * `expiration` - Requested expiration timestamp (may be capped)
 ///
 /// # Returns
-/// * `Ok(())` - Delegation prepared successfully
+/// * `Ok(u64)` - The final capped expiration timestamp in nanoseconds
 /// * `Err(String)` - Error if not authenticated or expired
 pub fn prepare_delegation(
     address: String,
     session_key: Vec<u8>,
     expiration: u64,
-) -> Result<(), String> {
+) -> Result<u64, String> {
     // Periodically cleanup expired prepared delegations
     cleanup_expired_prepared_delegations();
 
@@ -72,5 +72,5 @@ pub fn prepare_delegation(
         session_key_hash
     );
 
-    Ok(())
+    Ok(final_expiration)
 }

@@ -45,6 +45,7 @@ export interface InitArgs {
   'delegation_targets' : [] | [Array<Principal>],
   'debug' : [] | [boolean],
   'session_expiration_time' : bigint,
+  'login_expiration_time' : [] | [bigint],
 }
 export interface LoginResponse {
   'user_principal' : Principal,
@@ -72,15 +73,15 @@ export type Result_1 = { 'Ok' : string } |
   { 'Err' : string };
 export type Result_2 = { 'Ok' : Principal } |
   { 'Err' : string };
-export type Result_3 = { 'Ok' : SignedDelegation } |
+export type Result_3 = { 'Ok' : bigint } |
   { 'Err' : string };
-export type Result_4 = { 'Ok' : LoginResponse } |
+export type Result_4 = { 'Ok' : SignedDelegation } |
   { 'Err' : string };
-export type Result_5 = { 'Ok' : null } |
+export type Result_5 = { 'Ok' : LoginResponse } |
   { 'Err' : string };
-export type Result_6 = { 'Ok' : PrepareLoginResponse } |
+export type Result_6 = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_7 = { 'Ok' : bigint } |
+export type Result_7 = { 'Ok' : PrepareLoginResponse } |
   { 'Err' : string };
 export interface SignedDelegation {
   'signature' : Uint8Array | number[],
@@ -92,6 +93,8 @@ export interface _SERVICE {
    * 
    * Returns configuration and state information for debugging.
    * Only callable by canister controllers for security.
+   * This is an update call so that caller identity is consensus-verified
+   * (query calls cannot reliably enforce access control on the IC).
    */
   'debug_info' : ActorMethod<[], Result>,
   /**
@@ -106,6 +109,18 @@ export interface _SERVICE {
    * Get ICP principal for Avalanche address
    */
   'get_principal' : ActorMethod<[string], Result_2>,
+  /**
+   * Purge all identity mappings from stable memory (controller-only)
+   * 
+   * Removes all address-to-principal and principal-to-address mappings.
+   * Mappings will be re-populated on next login for each address.
+   * Use this after changing the salt to clear stale mappings.
+   * 
+   * # Returns
+   * * `Ok(count)` - Number of mappings removed
+   * * `Err(String)` - Error if not a controller
+   */
+  'purge_identity_mappings' : ActorMethod<[], Result_3>,
   /**
    * Get delegation for authenticated principal
    * 
@@ -124,7 +139,7 @@ export interface _SERVICE {
    */
   'siwa_get_delegation' : ActorMethod<
     [string, Uint8Array | number[], bigint],
-    Result_3
+    Result_4
   >,
   /**
    * Complete SIWA login with signed message
@@ -138,7 +153,7 @@ export interface _SERVICE {
    * * `Ok(LoginResponse)` - The derived principal and session expiration
    * * `Err(String)` - Error if signature is invalid or session expired
    */
-  'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_4>,
+  'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_5>,
   /**
    * Combined login and prepare_delegation in a single update call
    * 
@@ -156,7 +171,7 @@ export interface _SERVICE {
    */
   'siwa_login_and_prepare' : ActorMethod<
     [string, string, Uint8Array | number[]],
-    Result_4
+    Result_5
   >,
   /**
    * Logout - revoke a specific session
@@ -173,7 +188,7 @@ export interface _SERVICE {
    * * `Ok(())` - Session revoked
    * * `Err(String)` - Error if session not found or caller unauthorized
    */
-  'siwa_logout' : ActorMethod<[string, Uint8Array | number[]], Result_5>,
+  'siwa_logout' : ActorMethod<[string, Uint8Array | number[]], Result_6>,
   /**
    * Prepare a delegation for an authenticated session
    * 
@@ -186,12 +201,12 @@ export interface _SERVICE {
    * * `expiration` - Requested expiration timestamp (may be capped)
    * 
    * # Returns
-   * * `Ok(())` - Delegation prepared successfully
+   * * `Ok(u64)` - The final capped expiration timestamp in nanoseconds
    * * `Err(String)` - Error if not authenticated or expired
    */
   'siwa_prepare_delegation' : ActorMethod<
     [string, Uint8Array | number[], bigint],
-    Result_5
+    Result_3
   >,
   /**
    * Prepare a SIWA login message for signing (simple version)
@@ -206,7 +221,7 @@ export interface _SERVICE {
    * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
    * * `Err(String)` - Error description if address is invalid
    */
-  'siwa_prepare_login' : ActorMethod<[string], Result_6>,
+  'siwa_prepare_login' : ActorMethod<[string], Result_7>,
   /**
    * Prepare a SIWA login message with custom domain/uri (multi-tenant version)
    * 
@@ -227,7 +242,7 @@ export interface _SERVICE {
    */
   'siwa_prepare_login_with_options' : ActorMethod<
     [PrepareLoginRequest],
-    Result_6
+    Result_7
   >,
   /**
    * Revoke all sessions for an address (controller-only)
@@ -242,7 +257,7 @@ export interface _SERVICE {
    * * `Ok(count)` - Number of sessions revoked
    * * `Err(String)` - Error if not a controller
    */
-  'siwa_revoke_all' : ActorMethod<[string], Result_7>,
+  'siwa_revoke_all' : ActorMethod<[string], Result_3>,
 }
 
 export const idlFactory = ({ IDL }: { IDL: any }) => {
@@ -262,6 +277,7 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
     'delegation_targets' : IDL.Opt(IDL.Vec(IDL.Principal)),
     'debug' : IDL.Opt(IDL.Bool),
     'session_expiration_time' : IDL.Nat64,
+    'login_expiration_time' : IDL.Opt(IDL.Nat64),
   });
   const DebugInfo = IDL.Record({
     'uri' : IDL.Text,
@@ -284,6 +300,7 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
   const Result = IDL.Variant({ 'Ok' : DebugInfo, 'Err' : IDL.Text });
   const Result_1 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   const Result_2 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : IDL.Text });
+  const Result_3 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   const Delegation = IDL.Record({
     'pubkey' : IDL.Vec(IDL.Nat8),
     'targets' : IDL.Opt(IDL.Vec(IDL.Principal)),
@@ -293,20 +310,20 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
     'signature' : IDL.Vec(IDL.Nat8),
     'delegation' : Delegation,
   });
-  const Result_3 = IDL.Variant({ 'Ok' : SignedDelegation, 'Err' : IDL.Text });
+  const Result_4 = IDL.Variant({ 'Ok' : SignedDelegation, 'Err' : IDL.Text });
   const LoginResponse = IDL.Record({
     'user_principal' : IDL.Principal,
     'user_canister_pubkey' : IDL.Vec(IDL.Nat8),
     'expiration' : IDL.Nat64,
   });
-  const Result_4 = IDL.Variant({ 'Ok' : LoginResponse, 'Err' : IDL.Text });
-  const Result_5 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
+  const Result_5 = IDL.Variant({ 'Ok' : LoginResponse, 'Err' : IDL.Text });
+  const Result_6 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   const PrepareLoginResponse = IDL.Record({
     'expiration' : IDL.Nat64,
     'message' : IDL.Text,
     'nonce' : IDL.Text,
   });
-  const Result_6 = IDL.Variant({
+  const Result_7 = IDL.Variant({
     'Ok' : PrepareLoginResponse,
     'Err' : IDL.Text,
   });
@@ -315,40 +332,40 @@ export const idlFactory = ({ IDL }: { IDL: any }) => {
     'domain' : IDL.Opt(IDL.Text),
     'address' : IDL.Text,
   });
-  const Result_7 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : IDL.Text });
   return IDL.Service({
-    'debug_info' : IDL.Func([], [Result], ['query']),
+    'debug_info' : IDL.Func([], [Result], []),
     'get_address' : IDL.Func([IDL.Principal], [Result_1], ['query']),
     'get_caller_address' : IDL.Func([], [Result_1], ['query']),
     'get_principal' : IDL.Func([IDL.Text], [Result_2], ['query']),
+    'purge_identity_mappings' : IDL.Func([], [Result_3], []),
     'siwa_get_delegation' : IDL.Func(
         [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result_3],
+        [Result_4],
         ['query'],
       ),
     'siwa_login' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Vec(IDL.Nat8)],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'siwa_login_and_prepare' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Vec(IDL.Nat8)],
-        [Result_4],
-        [],
-      ),
-    'siwa_logout' : IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result_5], []),
-    'siwa_prepare_delegation' : IDL.Func(
-        [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Nat64],
         [Result_5],
         [],
       ),
-    'siwa_prepare_login' : IDL.Func([IDL.Text], [Result_6], []),
-    'siwa_prepare_login_with_options' : IDL.Func(
-        [PrepareLoginRequest],
-        [Result_6],
+    'siwa_logout' : IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Result_6], []),
+    'siwa_prepare_delegation' : IDL.Func(
+        [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Nat64],
+        [Result_3],
         [],
       ),
-    'siwa_revoke_all' : IDL.Func([IDL.Text], [Result_7], []),
+    'siwa_prepare_login' : IDL.Func([IDL.Text], [Result_7], []),
+    'siwa_prepare_login_with_options' : IDL.Func(
+        [PrepareLoginRequest],
+        [Result_7],
+        [],
+      ),
+    'siwa_revoke_all' : IDL.Func([IDL.Text], [Result_3], []),
   });
 };
 export const init = ({ IDL }: { IDL: any }) => {
@@ -368,6 +385,7 @@ export const init = ({ IDL }: { IDL: any }) => {
     'delegation_targets' : IDL.Opt(IDL.Vec(IDL.Principal)),
     'debug' : IDL.Opt(IDL.Bool),
     'session_expiration_time' : IDL.Nat64,
+    'login_expiration_time' : IDL.Opt(IDL.Nat64),
   });
   return [InitArgs];
 };

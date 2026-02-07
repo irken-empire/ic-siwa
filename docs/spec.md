@@ -158,7 +158,7 @@ Expiration Time: {expiration_time}
 - Session public key (bytes)
 - Expiration timestamp (u64)
 
-**Output**: Success or error
+**Output**: Final capped expiration timestamp (u64, nanoseconds) or error
 
 **Behavior**:
 
@@ -168,10 +168,12 @@ Expiration Time: {expiration_time}
 4. Compute the delegation hash from the session key, expiration, and optional targets
 5. Store the delegation hash in the certified data signature map
 6. Cache the prepared delegation metadata for retrieval in Step 4
+7. Return the final capped expiration timestamp
 
 This step is an **update call** because only update calls can modify the canister's
 certified data. The certified data is required for the subsequent query call to
-return a verifiable delegation.
+return a verifiable delegation. The returned expiration value is the actual capped
+timestamp that should be passed to `siwa_get_delegation` in Step 4.
 
 ### Step 4: Get Delegation (`siwa_get_delegation`)
 

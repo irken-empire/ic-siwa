@@ -199,14 +199,14 @@ fn siwa_login_and_prepare(
 /// * `expiration` - Requested expiration timestamp (may be capped)
 ///
 /// # Returns
-/// * `Ok(())` - Delegation prepared successfully
+/// * `Ok(u64)` - The final capped expiration timestamp in nanoseconds
 /// * `Err(String)` - Error if not authenticated or expired
 #[update]
 fn siwa_prepare_delegation(
     address: String,
     session_key: Vec<u8>,
     expiration: u64,
-) -> Result<(), String> {
+) -> Result<u64, String> {
     check_caller_allowed()?;
     service::siwa_prepare_delegation::prepare_delegation(address, session_key, expiration)
 }

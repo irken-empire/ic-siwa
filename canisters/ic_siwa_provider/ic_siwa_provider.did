@@ -32,6 +32,7 @@ type InitArgs = record {
   delegation_targets : opt vec principal;
   debug : opt bool;
   session_expiration_time : nat64;
+  login_expiration_time : opt nat64;
 };
 type LoginResponse = record {
   user_principal : principal;
@@ -56,24 +57,36 @@ type RateLimitArgs = record {
 type Result = variant { Ok : DebugInfo; Err : text };
 type Result_1 = variant { Ok : text; Err : text };
 type Result_2 = variant { Ok : principal; Err : text };
-type Result_3 = variant { Ok : SignedDelegation; Err : text };
-type Result_4 = variant { Ok : LoginResponse; Err : text };
-type Result_5 = variant { Ok; Err : text };
-type Result_6 = variant { Ok : PrepareLoginResponse; Err : text };
-type Result_7 = variant { Ok : nat64; Err : text };
+type Result_3 = variant { Ok : nat64; Err : text };
+type Result_4 = variant { Ok : SignedDelegation; Err : text };
+type Result_5 = variant { Ok : LoginResponse; Err : text };
+type Result_6 = variant { Ok; Err : text };
+type Result_7 = variant { Ok : PrepareLoginResponse; Err : text };
 type SignedDelegation = record { signature : blob; delegation : Delegation };
 service : (InitArgs) -> {
   // Get debug diagnostics (restricted to canister controllers)
   // 
   // Returns configuration and state information for debugging.
   // Only callable by canister controllers for security.
-  debug_info : () -> (Result) query;
+  // This is an update call so that caller identity is consensus-verified
+  // (query calls cannot reliably enforce access control on the IC).
+  debug_info : () -> (Result);
   // Get Avalanche address for ICP principal
   get_address : (principal) -> (Result_1) query;
   // Get Avalanche address for caller
   get_caller_address : () -> (Result_1) query;
   // Get ICP principal for Avalanche address
   get_principal : (text) -> (Result_2) query;
+  // Purge all identity mappings from stable memory (controller-only)
+  // 
+  // Removes all address-to-principal and principal-to-address mappings.
+  // Mappings will be re-populated on next login for each address.
+  // Use this after changing the salt to clear stale mappings.
+  // 
+  // # Returns
+  // * `Ok(count)` - Number of mappings removed
+  // * `Err(String)` - Error if not a controller
+  purge_identity_mappings : () -> (Result_3);
   // Get delegation for authenticated principal
   // 
   // This is a **query** call that retrieves the certified delegation.
@@ -88,7 +101,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(SignedDelegation)` - The signed delegation for the session
   // * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
-  siwa_get_delegation : (text, blob, nat64) -> (Result_3) query;
+  siwa_get_delegation : (text, blob, nat64) -> (Result_4) query;
   // Complete SIWA login with signed message
   // 
   // # Arguments
@@ -99,7 +112,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(LoginResponse)` - The derived principal and session expiration
   // * `Err(String)` - Error if signature is invalid or session expired
-  siwa_login : (text, text, blob) -> (Result_4);
+  siwa_login : (text, text, blob) -> (Result_5);
   // Combined login and prepare_delegation in a single update call
   // 
   // This reduces the login flow from 2 update calls + 1 query to
@@ -113,7 +126,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(LoginResponse)` - The derived principal and session expiration
   // * `Err(String)` - Error if signature is invalid or session expired
-  siwa_login_and_prepare : (text, text, blob) -> (Result_4);
+  siwa_login_and_prepare : (text, text, blob) -> (Result_5);
   // Logout - revoke a specific session
   // 
   // The caller must be the session owner (matching derived principal) or a
@@ -127,7 +140,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(())` - Session revoked
   // * `Err(String)` - Error if session not found or caller unauthorized
-  siwa_logout : (text, blob) -> (Result_5);
+  siwa_logout : (text, blob) -> (Result_6);
   // Prepare a delegation for an authenticated session
   // 
   // This must be called before `siwa_get_delegation` to store the delegation
@@ -139,9 +152,9 @@ service : (InitArgs) -> {
   // * `expiration` - Requested expiration timestamp (may be capped)
   // 
   // # Returns
-  // * `Ok(())` - Delegation prepared successfully
+  // * `Ok(u64)` - The final capped expiration timestamp in nanoseconds
   // * `Err(String)` - Error if not authenticated or expired
-  siwa_prepare_delegation : (text, blob, nat64) -> (Result_5);
+  siwa_prepare_delegation : (text, blob, nat64) -> (Result_3);
   // Prepare a SIWA login message for signing (simple version)
   // 
   // Uses the canister's default domain/uri from init args.
@@ -153,7 +166,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error description if address is invalid
-  siwa_prepare_login : (text) -> (Result_6);
+  siwa_prepare_login : (text) -> (Result_7);
   // Prepare a SIWA login message with custom domain/uri (multi-tenant version)
   // 
   // This is the "SIWA as a Service" endpoint where each calling application
@@ -170,7 +183,7 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
   // * `Err(String)` - Error if address invalid or domain not whitelisted
-  siwa_prepare_login_with_options : (PrepareLoginRequest) -> (Result_6);
+  siwa_prepare_login_with_options : (PrepareLoginRequest) -> (Result_7);
   // Revoke all sessions for an address (controller-only)
   // 
   // Emergency endpoint to revoke all active sessions for a given address.
@@ -182,5 +195,5 @@ service : (InitArgs) -> {
   // # Returns
   // * `Ok(count)` - Number of sessions revoked
   // * `Err(String)` - Error if not a controller
-  siwa_revoke_all : (text) -> (Result_7);
+  siwa_revoke_all : (text) -> (Result_3);
 }

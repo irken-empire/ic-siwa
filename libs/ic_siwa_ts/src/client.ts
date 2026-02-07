@@ -12,9 +12,9 @@ import {Principal} from "@dfinity/principal";
 import {
   idlFactory,
   type _SERVICE,
-  type Result_3,
   type Result_4,
-  type Result_6,
+  type Result_5,
+  type Result_7,
   type Delegation as CandidDelegation,
 } from "./candid";
 import {SiwaError, SiwaErrorCode} from "./errors";
@@ -247,7 +247,7 @@ export class SiwaClient {
       const actor = await this.createProviderActor();
 
       // Use the new multi-tenant endpoint if domain/uri provided
-      const response: Result_6 = await actor.siwa_prepare_login_with_options({
+      const response: Result_7 = await actor.siwa_prepare_login_with_options({
         address: options.address,
         domain: options.domain ? [options.domain] : [],
         uri: options.uri ? [options.uri] : [],
@@ -301,7 +301,7 @@ export class SiwaClient {
       // Combined login + prepare_delegation in a single update call
       // This saves ~2 seconds by eliminating one consensus round-trip
       const actor = await this.createProviderActor();
-      const loginResponse: Result_4 = await actor.siwa_login_and_prepare(
+      const loginResponse: Result_5 = await actor.siwa_login_and_prepare(
         signature,
         address,
         sessionKeyBytes
@@ -424,16 +424,16 @@ export class SiwaClient {
     expirationNs: bigint,
     maxRetries = 3,
     baseDelayMs = 500
-  ): Promise<Extract<Result_3, {Ok: unknown}>> {
+  ): Promise<Extract<Result_4, {Ok: unknown}>> {
     let lastError: string | undefined;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const response: Result_3 = await actor.siwa_get_delegation(
+      const response: Result_4 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
         expirationNs
       );
       if ("Ok" in response) {
-        return response as Extract<Result_3, {Ok: unknown}>;
+        return response as Extract<Result_4, {Ok: unknown}>;
       }
       lastError = response.Err;
       // Wait with linear backoff before retrying
@@ -554,6 +554,11 @@ export class SiwaClient {
         return null;
       }
 
+      // Use the canister's capped expiration (not the uncapped requested value)
+      // to ensure the expiration passed to siwa_get_delegation matches what was
+      // actually stored during prepare_delegation.
+      const cappedExpirationNs = prepareResult.Ok;
+
       // Get the certified delegation with retry logic
       let delegationResponse;
       try {
@@ -561,7 +566,7 @@ export class SiwaClient {
           actor,
           address,
           sessionKeyBytes,
-          requestedExpirationNs
+          cappedExpirationNs
         );
       } catch {
         // Session may have expired or delegation unavailable, need to re-login
