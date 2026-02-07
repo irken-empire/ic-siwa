@@ -1,6 +1,6 @@
 {
   "name": "ic-siwa",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Sign in with Avalanche for the Internet Computer",
   "type": "module",
   "main": "./dist/index.js",
