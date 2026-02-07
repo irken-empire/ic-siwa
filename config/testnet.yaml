@@ -57,5 +57,6 @@ security:
 library:
   timeout_ms: 30000
 
-# Debug mode
+# Debug mode - enables test canister deployments and debug_info endpoint
+# The debug_info endpoint is restricted to canister controllers only (not public)
 debug: true

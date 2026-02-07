@@ -222,17 +222,18 @@ pub struct DebugInfo {
     pub debug_enabled: bool,
 }
 
-/// Get debug diagnostics (only available when debug=true in init args)
+/// Get debug diagnostics (restricted to canister controllers)
 ///
 /// Returns configuration and state information for debugging.
-/// This endpoint is disabled in production (when debug=false).
+/// Only callable by canister controllers for security.
 #[query]
 fn debug_info() -> Result<DebugInfo, String> {
-    let settings = state::get_settings();
-
-    if !settings.debug {
-        return Err("Debug endpoint disabled. Set debug=true in init args to enable.".to_string());
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only canister controllers can access debug info".to_string());
     }
+
+    let settings = state::get_settings();
 
     Ok(DebugInfo {
         domain: settings.domain.clone(),
