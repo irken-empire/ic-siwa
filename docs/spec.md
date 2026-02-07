@@ -357,6 +357,50 @@ When `debug` is enabled (`true`):
   - State counts: login sessions, auth sessions, prepared delegations, signature map size
 - MUST be set to `false` in production deployments
 
+## Canister Upgrade Behavior
+
+The canister uses **stable memory** for data that must persist across upgrades and
+**heap memory** for transient data that can be safely lost.
+
+### Persistent Data (Stable Memory)
+
+The following data is stored in stable memory using `ic-stable-structures` and
+survives canister upgrades:
+
+| Data                     | Storage Type     | Description                              |
+| ------------------------ | ---------------- | ---------------------------------------- |
+| Address-to-principal map | `StableBTreeMap` | Identity mappings (address -> principal) |
+| Principal-to-address map | `StableBTreeMap` | Reverse identity mappings                |
+| Settings                 | `StableCell`     | Candid-encoded canister configuration    |
+
+### Transient Data (Heap Memory)
+
+The following data is stored in heap memory and is **reset on every upgrade**.
+This is acceptable because users simply need to re-authenticate:
+
+| Data                 | Description                                   |
+| -------------------- | --------------------------------------------- |
+| Login sessions       | Pending signature verifications               |
+| Auth sessions        | Active authenticated sessions                 |
+| Prepared delegations | Delegations awaiting query retrieval          |
+| Signature map        | Certified data for delegation queries         |
+| Rate limiter state   | Per-address and global login attempt counters |
+
+### Upgrade Modes
+
+The `post_upgrade` hook supports two modes:
+
+1. **With `InitArgs`**: Settings are updated in stable memory; transient state is
+   reset. Identity mappings are preserved.
+2. **Without `InitArgs`**: Settings are loaded from stable memory; transient state
+   is reset. Identity mappings are preserved. The canister traps if no settings
+   exist in stable memory (i.e., it was never initialized).
+
+> **Note**: Changing the `salt` in `InitArgs` during an upgrade will cause all
+> future principal derivations to differ from existing identity mappings. The
+> existing mappings in stable memory will become stale. This is by design — the
+> salt is immutable for a given deployment's identity set.
+
 ## Cryptographic Specifications
 
 ### Address Validation
