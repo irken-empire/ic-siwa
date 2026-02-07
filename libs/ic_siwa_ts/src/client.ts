@@ -332,20 +332,15 @@ export class SiwaClient {
       // Use the expiration from login response (always present in LoginResponse)
       const expirationNs = loginExpiration;
 
-      // Now get the certified delegation (delegation was prepared in the combined call)
-      const delegationResponse: Result_3 = await actor.siwa_get_delegation(
+      // Get the certified delegation with retry logic to handle the IC
+      // certified data propagation race (query may hit a replica that hasn't
+      // yet processed the update call's state tree commit).
+      const delegationResponse = await this.getDelegationWithRetry(
+        actor,
         address,
         sessionKeyBytes,
         expirationNs
       );
-
-      if ("Err" in delegationResponse) {
-        throw new SiwaError(
-          SiwaErrorCode.CanisterError,
-          delegationResponse.Err,
-          delegationResponse
-        );
-      }
 
       // Create delegation chain from canister response
       const {delegation: candidDelegation, signature: delegationSignature} =
@@ -414,6 +409,42 @@ export class SiwaClient {
       }
       throw SiwaError.fromCanisterError(error);
     }
+  }
+
+  /**
+   * Get delegation with retry logic to handle IC certified data propagation delay.
+   *
+   * After an update call modifies certified data, a subsequent query may hit a
+   * replica that hasn't yet processed the new block. This retries with backoff.
+   */
+  private async getDelegationWithRetry(
+    actor: _SERVICE,
+    address: string,
+    sessionKeyBytes: number[],
+    expirationNs: bigint,
+    maxRetries = 3,
+    baseDelayMs = 500
+  ): Promise<Extract<Result_3, {Ok: unknown}>> {
+    let lastError: string | undefined;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const response: Result_3 = await actor.siwa_get_delegation(
+        address,
+        sessionKeyBytes,
+        expirationNs
+      );
+      if ("Ok" in response) {
+        return response as Extract<Result_3, {Ok: unknown}>;
+      }
+      lastError = response.Err;
+      // Wait with linear backoff before retrying
+      await new Promise((resolve) =>
+        setTimeout(resolve, baseDelayMs * (attempt + 1))
+      );
+    }
+    throw new SiwaError(
+      SiwaErrorCode.CanisterError,
+      lastError ?? "Failed to get delegation after retries"
+    );
   }
 
   /**
@@ -523,15 +554,17 @@ export class SiwaClient {
         return null;
       }
 
-      // Now get the certified delegation
-      const delegationResponse: Result_3 = await actor.siwa_get_delegation(
-        address,
-        sessionKeyBytes,
-        requestedExpirationNs
-      );
-
-      if ("Err" in delegationResponse) {
-        // Session may have expired, need to re-login
+      // Get the certified delegation with retry logic
+      let delegationResponse;
+      try {
+        delegationResponse = await this.getDelegationWithRetry(
+          actor,
+          address,
+          sessionKeyBytes,
+          requestedExpirationNs
+        );
+      } catch {
+        // Session may have expired or delegation unavailable, need to re-login
         await this.logout();
         return null;
       }
