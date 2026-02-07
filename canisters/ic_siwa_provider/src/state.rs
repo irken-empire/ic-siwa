@@ -441,15 +441,16 @@ pub fn store_login_session(session: LoginSession) -> Result<(), String> {
     with_state_mut(|state| {
         state.cleanup_expired_logins();
 
-        // Reject if an unexpired session already exists for this address.
-        // This prevents DoS where an attacker calls prepare_login to overwrite
-        // a legitimate user's pending session before they can complete login.
+        // Allow overwriting pending login sessions so users can retry after
+        // cancelling or failing a wallet signing prompt. Rate limiting already
+        // prevents abuse. Log overwrites for security monitoring.
         let key = session.address.to_lowercase();
         if let Some(existing) = state.login_sessions.get(&key) {
             if existing.expires_at > now {
-                return Err("A login session is already pending for this address. \
-                     Please wait for it to expire or complete the existing login."
-                    .to_string());
+                debug_log!(
+                    "[SECURITY] Overwriting pending login session for address {}",
+                    session.address
+                );
             }
         }
 

@@ -432,14 +432,13 @@ Default values (when `rate_limits` is not provided):
 
 ### Login Session Overwrite Protection
 
-Only one pending login session is allowed per address at a time. If
+Only one pending login session is stored per address at a time. If
 `siwa_prepare_login` is called while an unexpired session already exists for
-the same address, the call is rejected with an error. This prevents a
-denial-of-service attack where an attacker could overwrite a legitimate user's
-pending login session before the user completes signing.
+the same address, the existing session is replaced with the new one. This
+allows users to retry login immediately after cancelling or failing a wallet
+signing prompt, while rate limiting prevents abuse from repeated calls.
 
-The legitimate user must either complete their login or wait for the session
-to expire before a new `prepare_login` can be called for that address.
+The overwrite is logged (when debug mode is enabled) for security monitoring.
 
 ### Salt Security
 
