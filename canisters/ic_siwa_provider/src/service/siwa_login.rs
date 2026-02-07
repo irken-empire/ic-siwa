@@ -82,6 +82,22 @@ pub fn login(
     let siwa_message = SiwaMessage::from_message(&login_session.message)
         .map_err(|e| format!("Failed to parse stored SIWA message: {}", e))?;
 
+    // Validate chain ID matches settings (defense-in-depth against settings changes between prepare and login)
+    if siwa_message.chain_id != settings.chain_id {
+        return Err(format!(
+            "Chain ID mismatch: message has {} but settings require {}",
+            siwa_message.chain_id, settings.chain_id
+        ));
+    }
+
+    // Validate SIWA version
+    if siwa_message.version != "1" {
+        return Err(format!(
+            "Unsupported SIWA version: {}",
+            siwa_message.version
+        ));
+    }
+
     // Verify the signature and recover the address
     let recovered_address = siwa_message
         .verify_signature(&signature)
