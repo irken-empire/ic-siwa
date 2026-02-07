@@ -317,6 +317,11 @@ fn compute_root_hash(signature_map: &SignatureMap) -> Hash {
 
 // --- Delegation storage ---
 
+/// Counter for periodic signature map queue compaction
+static DELEGATION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// Drain stale queue entries every N store_delegation calls
+const DRAIN_STALE_INTERVAL: u64 = 50;
+
 /// Store a delegation hash in the signature map
 ///
 /// This adds the delegation to the certified data so it can be verified
@@ -331,6 +336,13 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash, delegation_expir
     with_state_mut(|state| {
         // Prune up to 20 expired entries to bound memory growth
         state.signature_map.prune_expired(now, 20);
+
+        // Periodically drain orphaned queue entries to bound memory
+        let count = DELEGATION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if count % DRAIN_STALE_INTERVAL == 0 {
+            state.signature_map.drain_stale();
+        }
+
         state
             .signature_map
             .put(seed_hash, delegation_hash, delegation_expires_at);

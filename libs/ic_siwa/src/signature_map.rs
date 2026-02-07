@@ -215,6 +215,28 @@ impl SignatureMap {
     pub fn len(&self) -> usize {
         self.expiration_index.len()
     }
+
+    /// Get the number of entries in the expiration queue (including stale entries)
+    pub fn queue_len(&self) -> usize {
+        self.expiration_queue.len()
+    }
+
+    /// Remove orphaned entries from the expiration queue.
+    ///
+    /// When `delete()` is called, entries are removed from the certified map and
+    /// expiration index but not from the `BinaryHeap` (which doesn't support
+    /// arbitrary removal). This method rebuilds the queue, discarding entries
+    /// that are no longer in the index.
+    pub fn drain_stale(&mut self) {
+        let mut new_queue = BinaryHeap::new();
+        for entry in self.expiration_queue.drain() {
+            let key = (entry.seed_hash, entry.delegation_hash);
+            if self.expiration_index.contains_key(&key) {
+                new_queue.push(entry);
+            }
+        }
+        self.expiration_queue = new_queue;
+    }
 }
 
 #[cfg(test)]
@@ -290,6 +312,32 @@ mod tests {
         let pruned = map.prune_expired(expired_time, 10);
         assert_eq!(pruned, 1);
         assert_eq!(map.len(), 0);
+    }
+
+    #[test]
+    fn test_drain_stale_removes_orphaned_queue_entries() {
+        let mut map = SignatureMap::new();
+        let seed1 = make_hash(b"seed1");
+        let del1 = make_hash(b"del1");
+        let seed2 = make_hash(b"seed2");
+        let del2 = make_hash(b"del2");
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
+
+        map.put(seed1, del1, expires_at);
+        map.put(seed2, del2, expires_at);
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.queue_len(), 2);
+
+        // Delete one entry — removes from index/map but not from queue
+        map.delete(seed1, del1);
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.queue_len(), 2); // orphaned entry still in queue
+
+        // Drain stale entries
+        map.drain_stale();
+        assert_eq!(map.queue_len(), 1); // orphaned entry removed
+        assert_eq!(map.len(), 1); // active entry still present
+        assert!(map.witness(seed2, del2).is_some());
     }
 
     #[test]
