@@ -182,16 +182,18 @@ impl Config {
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), SiwaError> {
         // Validate chain_id
-        if self.avalanche.chain_id == 0 {
-            return Err(SiwaError::ConfigError("chain_id must be non-zero".into()));
+        if self.avalanche.chain_id != 43113 && self.avalanche.chain_id != 43114 {
+            return Err(SiwaError::ConfigError(
+                "chain_id must be 43113 (Fuji) or 43114 (Mainnet)".into(),
+            ));
         }
 
-        // Validate session expiration (1 min to 7 days)
+        // Validate session expiration (1 min to 30 days, consistent with Settings::validate)
         if self.security.session_expiration_seconds < 60
-            || self.security.session_expiration_seconds > 604800
+            || self.security.session_expiration_seconds > 30 * 24 * 60 * 60
         {
             return Err(SiwaError::ConfigError(
-                "session_expiration_seconds must be between 60 and 604800".into(),
+                "session_expiration_seconds must be between 60 and 2592000 (30 days)".into(),
             ));
         }
 
