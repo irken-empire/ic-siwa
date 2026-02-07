@@ -286,10 +286,8 @@ export class SiwaClient {
           ? userCanisterPubkey
           : new Uint8Array(userCanisterPubkey);
 
-      // Use the expiration from login response, or default to 30 minutes
-      const expirationNs =
-        loginExpiration ??
-        BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
+      // Use the expiration from login response (always present in LoginResponse)
+      const expirationNs = loginExpiration;
 
       // Prepare delegation first (stores in signature map for certified response)
       const prepareResult = await actor.siwa_prepare_delegation(
@@ -478,15 +476,17 @@ export class SiwaClient {
     try {
       const actor = await this.createProviderActor();
 
-      // Get new delegation
-      const expirationNs =
-        BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
+      // Request delegation with the canister's configured expiration
+      // Pass current identity's expiration as a hint; the canister will
+      // enforce its own session_expiration_time cap.
+      const requestedExpirationNs =
+        BigInt(serialized.expiration) * BigInt(1_000_000);
 
       // Prepare delegation first (stores in signature map for certified response)
       const prepareResult = await actor.siwa_prepare_delegation(
         address,
         sessionKeyBytes,
-        expirationNs
+        requestedExpirationNs
       );
 
       if ("Err" in prepareResult) {
@@ -499,7 +499,7 @@ export class SiwaClient {
       const delegationResponse: Result_3 = await actor.siwa_get_delegation(
         address,
         sessionKeyBytes,
-        expirationNs
+        requestedExpirationNs
       );
 
       if ("Err" in delegationResponse) {
@@ -522,7 +522,10 @@ export class SiwaClient {
         canisterPubkeyBytes
       );
 
-      const expirationMs = Number(expirationNs / BigInt(1_000_000));
+      // Use the canister's actual expiration from the delegation response
+      const expirationMs = Number(
+        candidDelegation.expiration / BigInt(1_000_000)
+      );
 
       const serializedIdentity: SerializedIdentity = {
         baseKey: JSON.stringify(this.sessionKey.toJSON()),
