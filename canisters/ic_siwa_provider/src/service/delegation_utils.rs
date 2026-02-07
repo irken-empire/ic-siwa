@@ -14,7 +14,12 @@ use ic_siwa::hash::hash_bytes;
 use ic_siwa::siwa::hash_session_key;
 use ic_siwa::{create_delegation_hash, generate_seed, DelegationInfo};
 
-/// Validate a session and return common data needed for delegation operations
+/// Validate session data (address, key, expiration) without caller authorization.
+///
+/// Use this for **query** endpoints where the caller principal is not
+/// consensus-verified and therefore cannot be trusted. The real security
+/// guarantee for query-returned delegations is that they are useless without
+/// the corresponding private session key, which never leaves the client.
 ///
 /// # Arguments
 /// * `address` - The Avalanche address
@@ -23,7 +28,7 @@ use ic_siwa::{create_delegation_hash, generate_seed, DelegationInfo};
 /// # Returns
 /// * `Ok((key_hash, session_expires_at))` - Session key hash and session expiration
 /// * `Err(String)` - Error message if validation fails
-pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u64), String> {
+pub fn validate_session_data(address: &str, session_key: &[u8]) -> Result<(String, u64), String> {
     // Look up the auth session
     let key_hash = hash_session_key(session_key);
     let auth_session = get_auth_session(&key_hash)
@@ -45,10 +50,33 @@ pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u6
         return Err("Session has expired".to_string());
     }
 
+    Ok((key_hash, auth_session.expires_at))
+}
+
+/// Validate a session with full caller authorization.
+///
+/// Use this only from **update** endpoints where the caller principal is
+/// consensus-verified. In addition to the data checks performed by
+/// [`validate_session_data`], this verifies that the caller is the session
+/// owner, an allowed canister, or a controller.
+///
+/// # Arguments
+/// * `address` - The Avalanche address
+/// * `session_key` - The session public key
+///
+/// # Returns
+/// * `Ok((key_hash, session_expires_at))` - Session key hash and session expiration
+/// * `Err(String)` - Error message if validation fails
+pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u64), String> {
+    let (key_hash, expires_at) = validate_session_data(address, session_key)?;
+
     // Verify the caller is the session owner or an allowed canister.
-    // This prevents unauthorized third parties from preparing/retrieving
-    // delegations using publicly visible session keys.
+    // This check is only meaningful in update calls where the caller
+    // principal is consensus-verified. Do NOT use this from query
+    // endpoints — use validate_session_data() instead.
     let caller = ic_cdk::api::msg_caller();
+    let auth_session = get_auth_session(&key_hash)
+        .ok_or_else(|| "Session disappeared during validation".to_string())?;
     let is_session_owner = caller == auth_session.principal;
     let is_allowed_canister =
         with_settings(|s| !s.allowed_canisters.is_empty() && s.allowed_canisters.contains(&caller));
@@ -59,7 +87,7 @@ pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u6
         );
     }
 
-    Ok((key_hash, auth_session.expires_at))
+    Ok((key_hash, expires_at))
 }
 
 /// Compute the final expiration for a delegation

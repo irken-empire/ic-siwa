@@ -231,9 +231,11 @@ fn siwa_get_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<SignedDelegation, String> {
-    // No check_caller_allowed() here: query calls cannot verify caller identity
-    // (not consensus-verified). Session validation in get_delegation provides
-    // the real authorization check.
+    // No caller authorization here: query calls cannot verify caller identity
+    // (not consensus-verified). Session data (address, key, expiration) is
+    // validated, but not the caller principal. The signed delegation is only
+    // useful when paired with the private session key, which never leaves the
+    // client — that is the real security guarantee.
     service::siwa_get_delegation::get_delegation(address, session_key, expiration)
 }
 
