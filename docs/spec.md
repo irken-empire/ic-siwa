@@ -568,8 +568,9 @@ principal = Principal::from_bytes(hash[0..28])
 ```
 
 The first 28 bytes of the hash are used as the principal data (IC principals are
-at most 29 bytes). This ensures the same wallet address always produces the same
-ICP principal for a given canister deployment.
+at most 29 bytes). This produces an **opaque** principal (not self-authenticating).
+The same wallet address always produces the same ICP principal for a given
+canister deployment.
 
 ### Delegation Seed
 

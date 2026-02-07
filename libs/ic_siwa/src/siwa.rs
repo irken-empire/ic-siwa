@@ -492,8 +492,8 @@ pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
 
 /// Derive an ICP principal from an Avalanche address and salt
 ///
-/// This creates a self-authenticating principal based on the wallet address.
 /// The derivation is deterministic: same address + salt = same principal.
+/// The resulting principal is opaque (not self-authenticating).
 pub fn derive_principal(address: &str, salt: &str) -> Result<candid::Principal, SiwaError> {
     // Normalize the address to lowercase
     let normalized_address = address.to_lowercase();
@@ -502,7 +502,7 @@ pub fn derive_principal(address: &str, salt: &str) -> Result<candid::Principal, 
     let seed_input = format!("{}{}", normalized_address, salt);
     let seed = keccak256(seed_input.as_bytes());
 
-    // Create a self-authenticating principal from the seed
+    // Create an opaque principal from the seed
     // IC principals can be at most 29 bytes
     // We use the first 28 bytes of the hash for the principal data
     let principal_bytes = &seed[..28];
