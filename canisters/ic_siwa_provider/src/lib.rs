@@ -199,9 +199,9 @@ fn get_caller_address() -> Result<String, String> {
 
 /// Logout - revoke a specific session
 ///
-/// The caller must provide the session key that was used during login.
-/// This removes the auth session from the canister, effectively invalidating
-/// any delegations created for that session.
+/// The caller must be the session owner (matching derived principal) or a
+/// canister controller. This prevents unauthenticated third parties from
+/// revoking other users' sessions.
 ///
 /// # Arguments
 /// * `address` - The Avalanche address
@@ -209,9 +209,10 @@ fn get_caller_address() -> Result<String, String> {
 ///
 /// # Returns
 /// * `Ok(())` - Session revoked
-/// * `Err(String)` - Error if session not found
+/// * `Err(String)` - Error if session not found or caller unauthorized
 #[update]
 fn siwa_logout(address: String, session_key: Vec<u8>) -> Result<(), String> {
+    let caller = ic_cdk::api::msg_caller();
     let key_hash = ic_siwa::siwa::hash_session_key(&session_key);
 
     // Verify the session belongs to this address
@@ -220,6 +221,11 @@ fn siwa_logout(address: String, session_key: Vec<u8>) -> Result<(), String> {
 
     if session.address.to_lowercase() != address.to_lowercase() {
         return Err("Address does not match session".to_string());
+    }
+
+    // Verify the caller is the session owner or a canister controller
+    if caller != session.principal && !ic_cdk::api::is_controller(&caller) {
+        return Err("Caller is not the session owner or a controller".to_string());
     }
 
     state::remove_auth_session(&key_hash);
