@@ -127,17 +127,10 @@ impl Default for Settings {
     }
 }
 
-/// Avalanche chain IDs
-pub mod chain_ids {
-    /// Avalanche C-Chain Mainnet
-    pub const AVALANCHE_MAINNET: u64 = 43114;
-    /// Avalanche Fuji Testnet
-    pub const AVALANCHE_FUJI: u64 = 43113;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chain_ids;
 
     #[test]
     fn test_settings_new() {
