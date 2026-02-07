@@ -69,13 +69,24 @@ pub fn create_delegation_hash(delegation: &DelegationInfo<'_>) -> Hash {
 pub fn generate_seed(salt: &str, address: &str) -> [u8; 32] {
     let mut seed_input: Vec<u8> = vec![];
 
-    // Add salt with length prefix
+    // Add salt with length prefix.
+    // Settings validation (ticket #035) enforces salt <= 255 bytes at init,
+    // so the `as u8` cast is safe. Assert in debug builds as defense-in-depth.
     let salt_bytes = salt.as_bytes();
+    debug_assert!(
+        salt_bytes.len() <= 255,
+        "Salt exceeds 255 bytes; length prefix would truncate"
+    );
     seed_input.push(salt_bytes.len() as u8);
     seed_input.extend_from_slice(salt_bytes);
 
-    // Add address with length prefix (lowercase for consistency)
+    // Add address with length prefix (lowercase for consistency).
+    // Avalanche addresses are always 42 bytes ("0x" + 40 hex chars).
     let address_bytes = address.to_lowercase().as_bytes().to_vec();
+    debug_assert!(
+        address_bytes.len() <= 255,
+        "Address exceeds 255 bytes; length prefix would truncate"
+    );
     seed_input.push(address_bytes.len() as u8);
     seed_input.extend_from_slice(&address_bytes);
 
