@@ -860,7 +860,6 @@ cmd_candid() {
 	# Step 2: Generate TypeScript from .did using didc
 	log_info "Generating TypeScript module..."
 	{
-		echo '// @ts-nocheck'
 		echo '/**'
 		echo ' * Auto-generated Candid bindings for ic_siwa_provider canister'
 		echo ' * Generated from: canisters/ic_siwa_provider/ic_siwa_provider.did'
@@ -879,6 +878,32 @@ cmd_candid() {
 		log_error "Failed to generate TypeScript module"
 		return 1
 	}
+
+	# Step 3: Post-process the generated TypeScript for compatibility
+	log_info "Fixing Candid TypeScript imports and unused variables..."
+
+	# Fix imports from @icp-sdk/core to @dfinity/* (didc generates new SDK paths)
+	sed -i \
+		-e "s|@icp-sdk/core/principal|@dfinity/principal|g" \
+		-e "s|@icp-sdk/core/agent|@dfinity/agent|g" \
+		-e "s|@icp-sdk/core/candid|@dfinity/candid|g" \
+		"${ts_file}"
+
+	# Remove unused top-level IDL import (IDL is passed as parameter to factory functions)
+	sed -i "/^import { IDL } from '@dfinity\/candid';$/d" "${ts_file}"
+
+	# Remove init-only type declarations (RateLimitArgs, InitArgs) from idlFactory.
+	# didc emits these at the top of idlFactory but they're only needed in init().
+	# They cause noUnusedLocals errors since idlFactory's IDL.Service doesn't reference them.
+	# Use awk to precisely remove only these blocks within idlFactory.
+	awk '
+		/^export const idlFactory/ { in_factory=1 }
+		/^};/ && in_factory { in_factory=0 }
+		in_factory && /^  const RateLimitArgs = IDL\.Record/ { skip=1 }
+		in_factory && /^  const InitArgs = IDL\.Record/ { skip=1 }
+		skip && /^  \}\);/ { skip=0; next }
+		!skip { print }
+	' "${ts_file}" >"${ts_file}.tmp" && mv "${ts_file}.tmp" "${ts_file}"
 
 	# Update index.ts to re-export
 	cat <<-EOF >"${ts_output_dir}/index.ts"
