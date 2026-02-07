@@ -193,6 +193,57 @@ fn get_caller_address() -> Result<String, String> {
         .ok_or_else(|| "No address found for caller".to_string())
 }
 
+/// Logout - revoke a specific session
+///
+/// The caller must provide the session key that was used during login.
+/// This removes the auth session from the canister, effectively invalidating
+/// any delegations created for that session.
+///
+/// # Arguments
+/// * `address` - The Avalanche address
+/// * `session_key` - The session public key from login
+///
+/// # Returns
+/// * `Ok(())` - Session revoked
+/// * `Err(String)` - Error if session not found
+#[update]
+fn siwa_logout(address: String, session_key: Vec<u8>) -> Result<(), String> {
+    let key_hash = ic_siwa::siwa::hash_session_key(&session_key);
+
+    // Verify the session belongs to this address
+    let session =
+        state::get_auth_session(&key_hash).ok_or_else(|| "Session not found".to_string())?;
+
+    if session.address.to_lowercase() != address.to_lowercase() {
+        return Err("Address does not match session".to_string());
+    }
+
+    state::remove_auth_session(&key_hash);
+    Ok(())
+}
+
+/// Revoke all sessions for an address (controller-only)
+///
+/// Emergency endpoint to revoke all active sessions for a given address.
+/// Only callable by canister controllers.
+///
+/// # Arguments
+/// * `address` - The Avalanche address to revoke sessions for
+///
+/// # Returns
+/// * `Ok(count)` - Number of sessions revoked
+/// * `Err(String)` - Error if not a controller
+#[update]
+fn siwa_revoke_all(address: String) -> Result<u64, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only canister controllers can revoke sessions".to_string());
+    }
+
+    let removed = state::remove_all_sessions_for_address(&address);
+    Ok(removed as u64)
+}
+
 /// Debug diagnostics response
 #[derive(CandidType, serde::Serialize)]
 pub struct DebugInfo {

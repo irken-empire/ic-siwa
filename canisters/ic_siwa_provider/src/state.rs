@@ -493,6 +493,25 @@ pub fn get_auth_session(key_hash: &str) -> Option<AuthSession> {
     })
 }
 
+/// Remove an auth session by session key hash
+pub fn remove_auth_session(key_hash: &str) -> bool {
+    with_state_mut(|state| state.auth_sessions.remove(key_hash).is_some())
+}
+
+/// Remove all auth sessions for an address
+///
+/// Returns the number of sessions removed.
+pub fn remove_all_sessions_for_address(address: &str) -> usize {
+    let address_lower = address.to_lowercase();
+    with_state_mut(|state| {
+        let before = state.auth_sessions.len();
+        state
+            .auth_sessions
+            .retain(|_, s| s.address.to_lowercase() != address_lower);
+        before - state.auth_sessions.len()
+    })
+}
+
 // --- Identity mappings (persistent via StableBTreeMap) ---
 
 /// Store an address <-> principal mapping in stable memory
