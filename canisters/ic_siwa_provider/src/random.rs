@@ -47,9 +47,11 @@ impl CsprngState {
     /// Create initial state from IC time (weak seed, before raw_rand is available).
     fn new() -> Self {
         let time = ic_cdk::api::time();
+        let caller = ic_cdk::api::msg_caller();
         let mut hasher = Sha256::new();
         hasher.update(b"ic-siwa-csprng-init");
         hasher.update(time.to_le_bytes());
+        hasher.update(caller.as_slice());
         let key: [u8; 32] = hasher.finalize().into();
 
         Self {
