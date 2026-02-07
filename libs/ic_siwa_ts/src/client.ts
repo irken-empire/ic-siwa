@@ -504,11 +504,11 @@ export class SiwaClient {
     try {
       const actor = await this.createProviderActor();
 
-      // Request delegation with the canister's configured expiration
-      // Pass current identity's expiration as a hint; the canister will
-      // enforce its own session_expiration_time cap.
+      // Request the maximum possible expiration and let the canister cap it
+      // to its configured session_expiration_time. Using the old (nearly expired)
+      // delegation's timestamp would produce an immediately-expiring delegation.
       const requestedExpirationNs =
-        BigInt(serialized.expiration) * BigInt(1_000_000);
+        BigInt(Number.MAX_SAFE_INTEGER) * BigInt(1_000_000);
 
       // Prepare delegation first (stores in signature map for certified response)
       const prepareResult = await actor.siwa_prepare_delegation(
