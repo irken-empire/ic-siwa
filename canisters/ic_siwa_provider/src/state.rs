@@ -637,27 +637,41 @@ pub fn get_address_for_principal(principal: &Principal) -> Option<String> {
     PRINCIPAL_TO_ADDRESS.with(|map| map.borrow().get(&StorablePrincipal(*principal)))
 }
 
-/// Purge all identity mappings from stable memory.
-///
-/// Returns the number of mappings removed. Mappings will be re-populated
-/// on next login for each address.
-pub fn purge_identity_mappings() -> u64 {
-    let mut count = 0u64;
+/// Maximum number of identity mappings to purge per call to stay within
+/// IC instruction limits.
+const PURGE_BATCH_SIZE: usize = 1000;
 
-    ADDRESS_TO_PRINCIPAL.with(|map| {
-        let mut map = map.borrow_mut();
-        let keys: Vec<String> = map.iter().map(|entry| entry.key().clone()).collect();
-        for key in keys {
-            map.remove(&key);
-            count += 1;
-        }
+/// Purge identity mappings from stable memory in bounded batches.
+///
+/// Removes up to [`PURGE_BATCH_SIZE`] mappings per call to avoid exceeding
+/// the IC instruction limit. Call repeatedly until the return value is 0
+/// to purge all mappings. Mappings will be re-populated on next login for
+/// each address.
+///
+/// Returns the number of mappings removed in this call.
+pub fn purge_identity_mappings() -> u64 {
+    // Collect a batch of addresses from the forward map
+    let addresses: Vec<String> = ADDRESS_TO_PRINCIPAL.with(|map| {
+        map.borrow()
+            .iter()
+            .take(PURGE_BATCH_SIZE)
+            .map(|entry| entry.key().clone())
+            .collect()
     });
-    PRINCIPAL_TO_ADDRESS.with(|map| {
-        let mut map = map.borrow_mut();
-        let keys: Vec<StorablePrincipal> = map.iter().map(|entry| entry.key().clone()).collect();
-        for key in keys {
-            map.remove(&key);
-        }
+
+    let count = addresses.len() as u64;
+
+    // Look up and remove each mapping from both directions
+    ADDRESS_TO_PRINCIPAL.with(|fwd| {
+        let mut fwd = fwd.borrow_mut();
+        PRINCIPAL_TO_ADDRESS.with(|rev| {
+            let mut rev = rev.borrow_mut();
+            for addr in &addresses {
+                if let Some(principal) = fwd.remove(addr) {
+                    rev.remove(&principal);
+                }
+            }
+        });
     });
 
     count
