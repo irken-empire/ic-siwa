@@ -238,6 +238,12 @@ with the login response's expiration.
 | ------------ | ------ | ------------------------------------------ |
 | `debug_info` | update | Get canister diagnostics (controller-only) |
 
+### Administrative Endpoints
+
+| Endpoint                  | Type   | Description                                            |
+| ------------------------- | ------ | ------------------------------------------------------ |
+| `purge_identity_mappings` | update | Clear all address-principal mappings (controller-only) |
+
 ### Utility Endpoints
 
 | Endpoint             | Type  | Description                                 |
@@ -553,8 +559,9 @@ The `post_upgrade` hook supports two modes:
 
 > **Note**: Changing the `salt` in `InitArgs` during an upgrade will cause all
 > future principal derivations to differ from existing identity mappings. The
-> existing mappings in stable memory will become stale. This is by design — the
-> salt is immutable for a given deployment's identity set.
+> existing mappings in stable memory will become stale. After changing the salt,
+> call `purge_identity_mappings` to remove stale mappings. New mappings will be
+> created automatically on next login for each address.
 
 ## Cryptographic Specifications
 
