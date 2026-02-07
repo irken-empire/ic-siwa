@@ -303,6 +303,10 @@ const btnClasses = ["btn", variantClass, sizeClass, styleClass, className]
 
         const address = accounts[0] as string;
 
+        if (!address || !address.startsWith("0x") || address.length !== 42) {
+          throw new Error("Wallet returned an invalid address. Please try again.");
+        }
+
         // Prepare login message
         const prepared = await client.prepareLogin(address);
 
