@@ -54,6 +54,28 @@ pub struct InitArgs {
     pub debug: Option<bool>,
 }
 
+/// Check if the caller is allowed by the `allowed_canisters` whitelist.
+///
+/// When `allowed_canisters` is empty, all callers are allowed (backward compatible).
+/// When configured, only whitelisted canister principals may call the endpoint.
+fn check_caller_allowed() -> Result<(), String> {
+    let settings = state::get_settings();
+    if settings.allowed_canisters.is_empty() {
+        return Ok(());
+    }
+    let caller = ic_cdk::api::msg_caller();
+    if caller == Principal::anonymous() {
+        return Err("Anonymous callers are not allowed".to_string());
+    }
+    if !settings.allowed_canisters.contains(&caller) {
+        return Err(format!(
+            "Caller {} is not in the allowed_canisters whitelist",
+            caller
+        ));
+    }
+    Ok(())
+}
+
 /// Initialize the canister
 #[init]
 fn init(args: InitArgs) {
@@ -85,6 +107,7 @@ fn post_upgrade(args: Option<InitArgs>) {
 /// * `Err(String)` - Error description if address is invalid
 #[update]
 async fn siwa_prepare_login(address: String) -> Result<PrepareLoginResponse, String> {
+    check_caller_allowed()?;
     service::siwa_prepare_login::prepare_login(address).await
 }
 
@@ -108,6 +131,7 @@ async fn siwa_prepare_login(address: String) -> Result<PrepareLoginResponse, Str
 async fn siwa_prepare_login_with_options(
     request: PrepareLoginRequest,
 ) -> Result<PrepareLoginResponse, String> {
+    check_caller_allowed()?;
     service::siwa_prepare_login::prepare_login_with_options(request).await
 }
 
@@ -127,6 +151,7 @@ fn siwa_login(
     address: String,
     session_key: Vec<u8>,
 ) -> Result<LoginResponse, String> {
+    check_caller_allowed()?;
     service::siwa_login::login(signature, address, session_key)
 }
 
@@ -149,6 +174,7 @@ fn siwa_prepare_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<(), String> {
+    check_caller_allowed()?;
     service::siwa_prepare_delegation::prepare_delegation(address, session_key, expiration)
 }
 
@@ -172,6 +198,7 @@ fn siwa_get_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<SignedDelegation, String> {
+    check_caller_allowed()?;
     service::siwa_get_delegation::get_delegation(address, session_key, expiration)
 }
 
