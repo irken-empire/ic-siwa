@@ -97,6 +97,8 @@ const MAX_LOGIN_SESSIONS: usize = 10_000;
 const MAX_AUTH_SESSIONS: usize = 10_000;
 /// Maximum number of prepared delegations awaiting retrieval
 const MAX_PREPARED_DELEGATIONS: usize = 10_000;
+/// Maximum number of concurrent auth sessions per address
+const MAX_SESSIONS_PER_ADDRESS: usize = 5;
 
 /// Active login session (pending signature verification)
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -448,11 +450,33 @@ pub fn remove_login_session(address: &str) {
 pub fn store_auth_session(key_hash: String, session: AuthSession) -> Result<(), String> {
     with_state_mut(|state| {
         state.cleanup_expired_auth();
+
+        // Enforce global limit
         if state.auth_sessions.len() >= MAX_AUTH_SESSIONS
             && !state.auth_sessions.contains_key(&key_hash)
         {
             return Err("Too many active sessions. Please try again later.".to_string());
         }
+
+        // Enforce per-address limit: evict oldest session for this address if at limit
+        let address_lower = session.address.to_lowercase();
+        let address_sessions: Vec<(String, u64)> = state
+            .auth_sessions
+            .iter()
+            .filter(|(_, s)| s.address.to_lowercase() == address_lower)
+            .map(|(k, s)| (k.clone(), s.created_at))
+            .collect();
+
+        if address_sessions.len() >= MAX_SESSIONS_PER_ADDRESS {
+            // Remove the oldest session for this address
+            if let Some((oldest_key, _)) = address_sessions
+                .iter()
+                .min_by_key(|(_, created_at)| created_at)
+            {
+                state.auth_sessions.remove(oldest_key);
+            }
+        }
+
         state.auth_sessions.insert(key_hash, session.clone());
         Ok(())
     })?;
