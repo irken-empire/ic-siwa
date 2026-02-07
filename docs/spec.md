@@ -265,6 +265,7 @@ type InitArgs = record {
     allowed_canisters: opt vec principal;    // Optional: Caller canister whitelist
     delegation_targets: opt vec principal;   // Optional: Canisters delegations are valid for
     rate_limits: opt RateLimitArgs;          // Optional: Rate limiting configuration
+    login_expiration_time: opt nat64;        // Optional: Login message TTL in nanoseconds (default: 5 min, range: 30s–10min)
     debug: opt bool;                         // Optional: Enable debug endpoints (default: false)
 };
 ```

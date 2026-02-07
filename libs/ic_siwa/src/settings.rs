@@ -145,6 +145,16 @@ impl Settings {
             return Err("Session expiration must not exceed 30 days".to_string());
         }
 
+        // Login expiration: at least 30 seconds, at most 10 minutes
+        let thirty_secs_ns = 30 * 1_000_000_000u64;
+        let ten_mins_ns = 10 * 60 * 1_000_000_000u64;
+        if self.login_expiration_time < thirty_secs_ns {
+            return Err("Login expiration must be at least 30 seconds".to_string());
+        }
+        if self.login_expiration_time > ten_mins_ns {
+            return Err("Login expiration must not exceed 10 minutes".to_string());
+        }
+
         Ok(())
     }
 

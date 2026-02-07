@@ -27,7 +27,7 @@ pub fn init(args: InitArgs) {
         salt: args.salt,
         chain_id: args.chain_id,
         session_expiration_time: args.session_expiration_time,
-        login_expiration_time: 5 * 60 * 1_000_000_000, // 5 minutes default
+        login_expiration_time: args.login_expiration_time.unwrap_or(5 * 60 * 1_000_000_000),
         allowed_domains: args.allowed_domains.unwrap_or_default(),
         allowed_canisters: args.allowed_canisters.unwrap_or_default(),
         delegation_targets: args.delegation_targets.unwrap_or_default(),

@@ -50,6 +50,8 @@ pub struct InitArgs {
     pub delegation_targets: Option<Vec<Principal>>,
     /// Optional rate limiting configuration
     pub rate_limits: Option<RateLimitArgs>,
+    /// Optional login message expiration in nanoseconds (default: 5 minutes)
+    pub login_expiration_time: Option<u64>,
     /// Enable debug endpoints (should be false in production)
     pub debug: Option<bool>,
 }
