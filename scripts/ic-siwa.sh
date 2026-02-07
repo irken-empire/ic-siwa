@@ -618,6 +618,19 @@ cmd_version_check() {
 		fi
 	done
 
+	# Check TypeScript VERSION constant
+	local ts_index="${PROJECT_ROOT}/libs/ic_siwa_ts/src/index.ts"
+	if [[ -f ${ts_index} ]]; then
+		local ts_version
+		ts_version=$(grep -oP 'export const VERSION = "\K[^"]+' "${ts_index}" || echo "unknown")
+		if [[ ${cargo_version} == "${ts_version}" ]]; then
+			echo "  libs/ic_siwa_ts/src/index.ts (VERSION): ${ts_version} ✓"
+		else
+			echo "  libs/ic_siwa_ts/src/index.ts (VERSION): ${ts_version} ✗ (mismatch!)"
+			has_error=true
+		fi
+	fi
+
 	if [[ ${has_error} == "true" ]]; then
 		log_error "Version mismatch detected! Run 'ic-siwa version --sync' to fix."
 		return 1
@@ -643,6 +656,13 @@ cmd_version_sync() {
 			log_info "Updated ${npm_package}"
 		fi
 	done
+
+	# Update hardcoded VERSION constant in TypeScript source
+	local ts_index="${PROJECT_ROOT}/libs/ic_siwa_ts/src/index.ts"
+	if [[ -f ${ts_index} ]]; then
+		sed -i "s/export const VERSION = \".*\"/export const VERSION = \"${cargo_version}\"/" "${ts_index}"
+		log_info "Updated TypeScript VERSION constant"
+	fi
 
 	log_success "Versions synced to ${cargo_version}"
 }
