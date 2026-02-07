@@ -662,12 +662,30 @@ export class SiwaClient {
 
   /**
    * Logout and clear stored identity
+   *
+   * Revokes the session on the canister (best-effort) before clearing
+   * local state. If the canister is unreachable, local logout still
+   * succeeds and the server-side session will expire naturally.
    */
   async logout(): Promise<void> {
     // Clear refresh timer
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
+    }
+
+    // Revoke session on the canister (best-effort, don't block on failure)
+    if (this.identity && this.sessionKey) {
+      try {
+        const address = this.identity.getAddress();
+        const sessionKeyBytes = Array.from(
+          new Uint8Array(this.sessionKey.getPublicKey().toDer())
+        );
+        const actor = await this.createProviderActor();
+        await actor.siwa_logout(address, sessionKeyBytes);
+      } catch {
+        // Best-effort: canister may be unreachable, session will expire naturally
+      }
     }
 
     this.identity = null;
