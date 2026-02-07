@@ -143,8 +143,6 @@ pub struct AuthSession {
     pub address: String,
     /// The derived ICP principal
     pub principal: Principal,
-    /// Session key for delegation
-    pub session_key: Vec<u8>,
     /// Timestamp when this session was created (nanoseconds)
     pub created_at: u64,
     /// Timestamp when this session expires (nanoseconds)

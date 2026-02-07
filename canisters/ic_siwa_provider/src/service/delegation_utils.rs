@@ -39,10 +39,7 @@ pub fn validate_session_data(address: &str, session_key: &[u8]) -> Result<(Strin
         return Err("Address mismatch".to_string());
     }
 
-    // Verify the session key matches
-    if auth_session.session_key != session_key {
-        return Err("Session key mismatch".to_string());
-    }
+    // Key match is implicit: hash_session_key(session_key) found an entry
 
     // Check if the auth session has expired
     let now = ic_cdk::api::time();

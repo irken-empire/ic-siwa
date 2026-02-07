@@ -166,7 +166,6 @@ pub fn login(
     let auth_session = AuthSession {
         address: address.clone(),
         principal,
-        session_key,
         created_at: now,
         expires_at: session_expiration,
     };
