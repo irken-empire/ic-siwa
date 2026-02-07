@@ -131,10 +131,10 @@ pub async fn seed_rng() {
             RNG_STATE.with(|state| {
                 state.borrow_mut().reseed(&entropy);
             });
-            ic_cdk::println!("[CSPRNG] Seeded with {} bytes from raw_rand", entropy.len());
+            crate::state::debug_log!("[CSPRNG] Seeded with {} bytes from raw_rand", entropy.len());
         }
         Err(e) => {
-            ic_cdk::println!(
+            crate::state::debug_log!(
                 "[CSPRNG] WARNING: Failed to seed from raw_rand: {:?}. \
                  Falling back to time-based entropy.",
                 e

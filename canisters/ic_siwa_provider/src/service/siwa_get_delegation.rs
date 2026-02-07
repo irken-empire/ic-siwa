@@ -64,7 +64,7 @@ pub fn get_delegation(
     // Get the session key hash for looking up the prepared delegation
     let session_key_hash = hash_session_key(&session_key);
 
-    ic_cdk::println!(
+    crate::state::debug_log!(
         "[GET_DELEGATION] address: {}, seed_hash: {}, session_key_hash: {}, session_key_len: {}",
         address,
         hex::encode(seed_hash),
@@ -88,7 +88,7 @@ pub fn get_delegation(
     let delegation_hash = prepared.delegation_hash;
     let targets = prepared.targets;
 
-    ic_cdk::println!(
+    crate::state::debug_log!(
         "[GET_DELEGATION] Found prepared delegation. delegation_hash: {}, final_expiration: {}",
         hex::encode(delegation_hash),
         final_expiration

@@ -44,7 +44,7 @@ pub fn prepare_delegation(
     let delegation_hash =
         compute_delegation_hash(&session_key, final_expiration, targets.as_deref());
 
-    ic_cdk::println!(
+    crate::state::debug_log!(
         "[PREPARE_DELEGATION] address: {}, seed_hash: {}, delegation_hash: {}, final_expiration: {}, session_key_len: {}",
         address,
         hex::encode(seed_hash),
@@ -67,7 +67,7 @@ pub fn prepare_delegation(
         targets,
     )?;
 
-    ic_cdk::println!(
+    crate::state::debug_log!(
         "[PREPARE_DELEGATION] Stored delegation. session_key_hash: {}",
         session_key_hash
     );

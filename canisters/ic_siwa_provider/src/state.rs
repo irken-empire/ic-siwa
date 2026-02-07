@@ -89,6 +89,23 @@ thread_local! {
 /// Label for the signature tree in certified data
 pub const LABEL_SIG: &[u8] = b"sig";
 
+/// Check if debug logging is enabled in settings.
+/// Returns false if settings are not yet loaded (during init).
+pub fn is_debug_enabled() -> bool {
+    with_state(|state| state.settings_cache.as_ref().is_some_and(|s| s.debug))
+}
+
+/// Debug logging macro that only emits output when `settings.debug` is true.
+/// Avoids string formatting costs when debug is disabled.
+macro_rules! debug_log {
+    ($($arg:tt)*) => {
+        if $crate::state::is_debug_enabled() {
+            ic_cdk::println!($($arg)*);
+        }
+    };
+}
+pub(crate) use debug_log;
+
 // --- Capacity limits for transient state HashMaps ---
 
 /// Maximum number of pending login sessions (one per address attempting to log in)
@@ -308,7 +325,7 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
     let now = ic_cdk::api::time();
     with_state_mut(|state| {
         state.signature_map.put(seed_hash, delegation_hash, now);
-        ic_cdk::println!(
+        debug_log!(
             "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, now: {}, map_len: {}",
             hex::encode(seed_hash),
             hex::encode(delegation_hash),
@@ -317,7 +334,7 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
         );
     });
     update_certified_data();
-    ic_cdk::println!("[STORE_DELEGATION] Certified data updated");
+    debug_log!("[STORE_DELEGATION] Certified data updated");
 }
 
 /// Create a certified signature for a delegation
@@ -328,7 +345,7 @@ pub fn create_certified_delegation_signature(
     seed_hash: Hash,
     delegation_hash: Hash,
 ) -> Option<Vec<u8>> {
-    ic_cdk::println!(
+    debug_log!(
         "[CERTIFIED_SIG] Called with seed_hash: {}, delegation_hash: {}",
         hex::encode(seed_hash),
         hex::encode(delegation_hash)
@@ -336,11 +353,11 @@ pub fn create_certified_delegation_signature(
 
     let certificate = ic_cdk::api::data_certificate();
     if certificate.is_none() {
-        ic_cdk::println!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
+        debug_log!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
         return None;
     }
     let certificate = certificate.unwrap();
-    ic_cdk::println!(
+    debug_log!(
         "[CERTIFIED_SIG] Got data certificate, len: {}",
         certificate.len()
     );
@@ -348,7 +365,7 @@ pub fn create_certified_delegation_signature(
     with_state(|state| {
         let now = ic_cdk::api::time();
         let map_len = state.signature_map.len();
-        ic_cdk::println!(
+        debug_log!(
             "[CERTIFIED_SIG] Checking expiration. now: {}, signature_map_len: {}",
             now,
             map_len
@@ -358,7 +375,7 @@ pub fn create_certified_delegation_signature(
             .signature_map
             .is_expired(now, seed_hash, delegation_hash)
         {
-            ic_cdk::println!(
+            debug_log!(
                 "[CERTIFIED_SIG] Delegation expired or not found. seed_hash: {}, delegation_hash: {}, now: {}",
                 hex::encode(seed_hash),
                 hex::encode(delegation_hash),
@@ -367,11 +384,11 @@ pub fn create_certified_delegation_signature(
             return None;
         }
 
-        ic_cdk::println!("[CERTIFIED_SIG] Delegation is valid, getting witness");
+        debug_log!("[CERTIFIED_SIG] Delegation is valid, getting witness");
 
         let witness = state.signature_map.witness(seed_hash, delegation_hash);
         if witness.is_none() {
-            ic_cdk::println!(
+            debug_log!(
                 "[CERTIFIED_SIG] Failed to get witness. seed_hash: {}, delegation_hash: {}",
                 hex::encode(seed_hash),
                 hex::encode(delegation_hash)
@@ -380,20 +397,20 @@ pub fn create_certified_delegation_signature(
         }
         let witness = witness.unwrap();
 
-        ic_cdk::println!("[CERTIFIED_SIG] Got witness, creating labeled tree");
+        debug_log!("[CERTIFIED_SIG] Got witness, creating labeled tree");
 
         let tree = ic_certified_map::labeled(LABEL_SIG, witness);
 
         match ic_siwa::create_certified_signature(certificate.clone(), tree) {
             Ok(sig) => {
-                ic_cdk::println!(
+                debug_log!(
                     "[CERTIFIED_SIG] Successfully created certified signature, len: {}",
                     sig.len()
                 );
                 Some(sig)
             }
             Err(e) => {
-                ic_cdk::println!(
+                debug_log!(
                     "[CERTIFIED_SIG] Failed to create certified signature: {:?}",
                     e
                 );
@@ -558,7 +575,7 @@ pub fn check_rate_limit(address: &str) -> Result<(), String> {
         |state| match state.rate_limiter.check_and_record(address, now_ns) {
             Ok(()) => Ok(()),
             Err(e) => {
-                ic_cdk::println!(
+                debug_log!(
                     "[RATE_LIMIT] Blocked address={} remaining_global={} error={}",
                     address,
                     state.rate_limiter.remaining_global(now_ns),

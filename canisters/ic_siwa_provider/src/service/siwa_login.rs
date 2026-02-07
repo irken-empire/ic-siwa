@@ -63,7 +63,7 @@ pub fn login(
         // Validate the domain against the whitelist
         let validator = DomainValidator::new(&settings.allowed_domains);
         if !validator.is_allowed(&message_domain) {
-            ic_cdk::println!(
+            crate::state::debug_log!(
                 "[SECURITY] Domain rejected: '{}' not in allowed list for address {}",
                 message_domain,
                 address
