@@ -7,9 +7,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Principal } from '@dfinity/principal';
-import type { ActorMethod } from '@dfinity/agent';
-import { IDL } from '@dfinity/candid';
+import type { Principal } from '@icp-sdk/core/principal';
+import type { ActorMethod } from '@icp-sdk/core/agent';
+import { IDL } from '@icp-sdk/core/candid';
 
 export interface DebugInfo {
   'uri' : string,

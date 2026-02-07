@@ -1,14 +1,90 @@
 //! Canister state management for IC-SIWA Provider
 //!
-//! Stores settings, active login sessions, address-principal mappings, rate limiter,
-//! and the signature map for certified delegations.
+//! Uses stable memory for persistent data (identity mappings, settings) and
+//! in-memory storage for transient data (sessions, rate limiter, signature map).
+//!
+//! Persistent data survives canister upgrades. Transient data is lost on upgrade,
+//! which is acceptable since users simply need to re-authenticate.
 
 use candid::{CandidType, Principal};
 use ic_certified_map::{labeled_hash, Hash};
 use ic_siwa::{RateLimiter, Settings, SignatureMap};
+use ic_stable_structures::{
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
+    storable::Bound,
+    BTreeMap as StableBTreeMap, Cell as StableCell, DefaultMemoryImpl, Storable,
+};
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+// --- Stable memory layout ---
+
+/// Memory ID for the address -> principal mapping
+const MEMORY_ID_ADDRESS_TO_PRINCIPAL: MemoryId = MemoryId::new(0);
+/// Memory ID for the principal -> address mapping
+const MEMORY_ID_PRINCIPAL_TO_ADDRESS: MemoryId = MemoryId::new(1);
+/// Memory ID for the settings cell
+const MEMORY_ID_SETTINGS: MemoryId = MemoryId::new(2);
+
+/// Virtual memory type alias
+type Memory = VirtualMemory<DefaultMemoryImpl>;
+
+// --- Storable wrapper for Principal ---
+
+/// Wrapper for `candid::Principal` to implement `Storable` for stable structures.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct StorablePrincipal(Principal);
+
+impl Storable for StorablePrincipal {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        Cow::Owned(self.0.as_slice().to_vec())
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        self.0.as_slice().to_vec()
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Self(Principal::from_slice(&bytes))
+    }
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 29,
+        is_fixed_size: false,
+    };
+}
+
+// --- Thread-local stable structures ---
+
+thread_local! {
+    /// Memory manager for stable memory regions
+    static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+
+    /// Persistent: address (lowercase) -> principal mapping
+    static ADDRESS_TO_PRINCIPAL: RefCell<StableBTreeMap<String, StorablePrincipal, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MEMORY_ID_ADDRESS_TO_PRINCIPAL))
+        ));
+
+    /// Persistent: principal -> address mapping
+    static PRINCIPAL_TO_ADDRESS: RefCell<StableBTreeMap<StorablePrincipal, String, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MEMORY_ID_PRINCIPAL_TO_ADDRESS))
+        ));
+
+    /// Persistent: settings stored as Candid-encoded bytes
+    static SETTINGS_CELL: RefCell<StableCell<Vec<u8>, Memory>> =
+        RefCell::new(StableCell::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MEMORY_ID_SETTINGS)),
+            vec![]
+        ));
+
+    /// Transient state (lost on upgrade -- sessions, rate limiter, signature map)
+    static STATE: RefCell<TransientState> = RefCell::new(TransientState::default());
+}
 
 /// Label for the signature tree in certified data
 pub const LABEL_SIG: &[u8] = b"sig";
@@ -57,19 +133,13 @@ pub struct PreparedDelegation {
 /// Key for looking up prepared delegations (seed_hash + session_key_hash)
 pub type PreparedDelegationKey = String;
 
-/// Global canister state
+/// Transient canister state (lost on upgrade, that's acceptable)
 #[derive(Default)]
-pub struct State {
-    /// SIWA settings
-    pub settings: Option<Settings>,
+pub struct TransientState {
     /// Active login sessions keyed by address
     pub login_sessions: HashMap<String, LoginSession>,
     /// Authenticated sessions keyed by session key hash
     pub auth_sessions: HashMap<String, AuthSession>,
-    /// Address to principal mapping
-    pub address_to_principal: HashMap<String, Principal>,
-    /// Principal to address mapping
-    pub principal_to_address: HashMap<Principal, String>,
     /// Rate limiter for login attempts
     pub rate_limiter: RateLimiter,
     /// Signature map for certified delegations
@@ -79,12 +149,7 @@ pub struct State {
     pub prepared_delegations: HashMap<PreparedDelegationKey, PreparedDelegation>,
 }
 
-thread_local! {
-    /// Thread-local state storage
-    static STATE: RefCell<State> = RefCell::new(State::default());
-}
-
-impl State {
+impl TransientState {
     /// Clean up expired login sessions
     pub fn cleanup_expired_logins(&mut self) {
         let now = ic_cdk::api::time();
@@ -100,39 +165,94 @@ impl State {
     }
 }
 
-/// Read state immutably
+/// Read transient state immutably
 pub fn with_state<F, R>(f: F) -> R
 where
-    F: FnOnce(&State) -> R,
+    F: FnOnce(&TransientState) -> R,
 {
     STATE.with(|state| f(&state.borrow()))
 }
 
-/// Mutate state
+/// Mutate transient state
 pub fn with_state_mut<F, R>(f: F) -> R
 where
-    F: FnOnce(&mut State) -> R,
+    F: FnOnce(&mut TransientState) -> R,
 {
     STATE.with(|state| f(&mut state.borrow_mut()))
 }
 
-/// Initialize state with settings
+// --- Settings (persistent via StableCell) ---
+
+/// Store settings to stable memory
+pub fn store_settings(settings: &Settings) {
+    let bytes = candid::encode_one(settings).expect("Failed to encode settings");
+    SETTINGS_CELL.with(|cell| {
+        cell.borrow_mut().set(bytes);
+    });
+}
+
+/// Get current settings (panics if not initialized)
+pub fn get_settings() -> Settings {
+    SETTINGS_CELL.with(|cell| {
+        let bytes = cell.borrow().get().clone();
+        if bytes.is_empty() {
+            panic!("Canister not initialized - settings not set");
+        }
+        candid::decode_one(&bytes).expect("Failed to decode settings from stable memory")
+    })
+}
+
+/// Get settings if initialized, None otherwise
+pub fn try_get_settings() -> Option<Settings> {
+    SETTINGS_CELL.with(|cell| {
+        let bytes = cell.borrow().get().clone();
+        if bytes.is_empty() {
+            None
+        } else {
+            candid::decode_one(&bytes).ok()
+        }
+    })
+}
+
+// --- Initialization ---
+
+/// Initialize canister state with settings
+///
+/// Stores settings to stable memory and resets transient state.
+/// Identity mappings in stable memory are NOT cleared -- they persist across upgrades.
 pub fn init_state(settings: Settings) {
+    // Store settings to stable memory
+    store_settings(&settings);
+
+    // Reset transient state (sessions, rate limiter, signature map)
     with_state_mut(|state| {
-        // Initialize rate limiter with settings
         state.rate_limiter = RateLimiter::new(settings.rate_limits.clone());
-        state.settings = Some(settings);
-        // Clear all session and mapping data on init/upgrade
         state.login_sessions.clear();
         state.auth_sessions.clear();
-        state.address_to_principal.clear();
-        state.principal_to_address.clear();
-        // Reset signature map
         state.signature_map = SignatureMap::default();
+        state.prepared_delegations.clear();
     });
+
     // Update certified data with empty signature map
     update_certified_data();
 }
+
+/// Initialize only transient state after an upgrade where settings are already in stable memory
+///
+/// Called when post_upgrade receives no new InitArgs but settings exist in stable memory.
+pub fn init_transient_state() {
+    let settings = get_settings();
+    with_state_mut(|state| {
+        state.rate_limiter = RateLimiter::new(settings.rate_limits.clone());
+        state.login_sessions.clear();
+        state.auth_sessions.clear();
+        state.signature_map = SignatureMap::default();
+        state.prepared_delegations.clear();
+    });
+    update_certified_data();
+}
+
+// --- Certified data ---
 
 /// Update the canister's certified data with the current signature map root hash
 ///
@@ -146,28 +266,15 @@ pub fn update_certified_data() {
 
 /// Compute the root hash for certified data
 fn compute_root_hash(signature_map: &SignatureMap) -> Hash {
-    // Create a labeled hash for the signature tree
     labeled_hash(LABEL_SIG, &signature_map.root_hash())
 }
 
-/// Get current settings (panics if not initialized)
-pub fn get_settings() -> Settings {
-    with_state(|state| {
-        state
-            .settings
-            .clone()
-            .expect("Canister not initialized - settings not set")
-    })
-}
+// --- Delegation storage ---
 
 /// Store a delegation hash in the signature map
 ///
 /// This adds the delegation to the certified data so it can be verified
 /// by the IC when used in queries.
-///
-/// # Arguments
-/// * `seed_hash` - Hash of the seed (derived from address + salt)
-/// * `delegation_hash` - Hash of the delegation
 pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
     let now = ic_cdk::api::time();
     with_state_mut(|state| {
@@ -188,13 +295,6 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
 ///
 /// This creates the full CBOR-encoded signature with certificate and witness tree,
 /// suitable for use as an IC canister signature.
-///
-/// # Arguments
-/// * `seed_hash` - Hash of the seed
-/// * `delegation_hash` - Hash of the delegation
-///
-/// # Returns
-/// The CBOR-encoded certified signature bytes, or None if delegation not found
 pub fn create_certified_delegation_signature(
     seed_hash: Hash,
     delegation_hash: Hash,
@@ -205,7 +305,6 @@ pub fn create_certified_delegation_signature(
         hex::encode(delegation_hash)
     );
 
-    // Get the data certificate from the IC (only available in query calls)
     let certificate = ic_cdk::api::data_certificate();
     if certificate.is_none() {
         ic_cdk::println!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
@@ -218,7 +317,6 @@ pub fn create_certified_delegation_signature(
     );
 
     with_state(|state| {
-        // Check if expired first
         let now = ic_cdk::api::time();
         let map_len = state.signature_map.len();
         ic_cdk::println!(
@@ -242,7 +340,6 @@ pub fn create_certified_delegation_signature(
 
         ic_cdk::println!("[CERTIFIED_SIG] Delegation is valid, getting witness");
 
-        // Get the witness from the signature map
         let witness = state.signature_map.witness(seed_hash, delegation_hash);
         if witness.is_none() {
             ic_cdk::println!(
@@ -256,10 +353,8 @@ pub fn create_certified_delegation_signature(
 
         ic_cdk::println!("[CERTIFIED_SIG] Got witness, creating labeled tree");
 
-        // Create the labeled tree with the signature label
         let tree = ic_certified_map::labeled(LABEL_SIG, witness);
 
-        // Create the certified signature (CBOR-encoded with self-describing tag)
         match ic_siwa::create_certified_signature(certificate.clone(), tree) {
             Ok(sig) => {
                 ic_cdk::println!(
@@ -279,17 +374,12 @@ pub fn create_certified_delegation_signature(
     })
 }
 
-/// Get settings reference if initialized
-pub fn try_get_settings() -> Option<Settings> {
-    with_state(|state| state.settings.clone())
-}
+// --- Login sessions ---
 
 /// Store a new login session
 pub fn store_login_session(session: LoginSession) {
     with_state_mut(|state| {
-        // Clean up expired sessions first
         state.cleanup_expired_logins();
-        // Store the new session
         state
             .login_sessions
             .insert(session.address.to_lowercase(), session);
@@ -311,19 +401,16 @@ pub fn remove_login_session(address: &str) {
     });
 }
 
+// --- Auth sessions ---
+
 /// Store an authenticated session
 pub fn store_auth_session(key_hash: String, session: AuthSession) {
     with_state_mut(|state| {
         state.cleanup_expired_auth();
         state.auth_sessions.insert(key_hash, session.clone());
-        // Also store the address-principal mappings
-        state
-            .address_to_principal
-            .insert(session.address.to_lowercase(), session.principal);
-        state
-            .principal_to_address
-            .insert(session.principal, session.address);
     });
+    // Store identity mappings in stable memory (persists across upgrades)
+    store_identity_mapping(&session.address, session.principal);
 }
 
 /// Get an auth session by session key hash
@@ -334,24 +421,37 @@ pub fn get_auth_session(key_hash: &str) -> Option<AuthSession> {
     })
 }
 
-/// Get principal for address
-pub fn get_principal_for_address(address: &str) -> Option<Principal> {
-    with_state(|state| {
-        state
-            .address_to_principal
-            .get(&address.to_lowercase())
-            .copied()
-    })
+// --- Identity mappings (persistent via StableBTreeMap) ---
+
+/// Store an address <-> principal mapping in stable memory
+fn store_identity_mapping(address: &str, principal: Principal) {
+    let address_lower = address.to_lowercase();
+    let storable_principal = StorablePrincipal(principal);
+
+    ADDRESS_TO_PRINCIPAL.with(|map| {
+        map.borrow_mut()
+            .insert(address_lower.clone(), storable_principal.clone());
+    });
+    PRINCIPAL_TO_ADDRESS.with(|map| {
+        map.borrow_mut().insert(storable_principal, address_lower);
+    });
 }
 
-/// Get address for principal
-pub fn get_address_for_principal(principal: &Principal) -> Option<String> {
-    with_state(|state| state.principal_to_address.get(principal).cloned())
+/// Get principal for address (from stable memory)
+pub fn get_principal_for_address(address: &str) -> Option<Principal> {
+    ADDRESS_TO_PRINCIPAL.with(|map| map.borrow().get(&address.to_lowercase()).map(|sp| sp.0))
 }
+
+/// Get address for principal (from stable memory)
+pub fn get_address_for_principal(principal: &Principal) -> Option<String> {
+    PRINCIPAL_TO_ADDRESS.with(|map| map.borrow().get(&StorablePrincipal(*principal)))
+}
+
+// --- Rate limiting ---
 
 /// Counter for periodic cleanup
 static CLEANUP_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-const CLEANUP_INTERVAL: u64 = 100; // Cleanup every 100 requests
+const CLEANUP_INTERVAL: u64 = 100;
 
 /// Check rate limit for an address and record the attempt if allowed
 pub fn check_rate_limit(address: &str) -> Result<(), String> {
@@ -359,15 +459,14 @@ pub fn check_rate_limit(address: &str) -> Result<(), String> {
 
     // Periodically cleanup expired entries to prevent memory growth
     let count = CLEANUP_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    if count.is_multiple_of(CLEANUP_INTERVAL) {
+    if count % CLEANUP_INTERVAL == 0 {
         cleanup_rate_limits();
     }
 
-    with_state_mut(|state| {
-        match state.rate_limiter.check_and_record(address, now_ns) {
+    with_state_mut(
+        |state| match state.rate_limiter.check_and_record(address, now_ns) {
             Ok(()) => Ok(()),
             Err(e) => {
-                // Log rate limit hits for monitoring
                 ic_cdk::println!(
                     "[RATE_LIMIT] Blocked address={} remaining_global={} error={}",
                     address,
@@ -376,8 +475,8 @@ pub fn check_rate_limit(address: &str) -> Result<(), String> {
                 );
                 Err(e.to_string())
             }
-        }
-    })
+        },
+    )
 }
 
 /// Cleanup expired rate limit entries (call periodically)
@@ -388,12 +487,9 @@ pub fn cleanup_rate_limits() {
     });
 }
 
+// --- Prepared delegations ---
+
 /// Store a prepared delegation for later retrieval
-///
-/// # Arguments
-/// * `seed_hash` - Hash of the seed (hex-encoded for the key)
-/// * `session_key_hash` - Hash of the session key
-/// * `delegation` - The prepared delegation metadata
 pub fn store_prepared_delegation(
     seed_hash: &[u8; 32],
     session_key_hash: &str,
@@ -406,13 +502,6 @@ pub fn store_prepared_delegation(
 }
 
 /// Get a prepared delegation by seed hash and session key hash
-///
-/// # Arguments
-/// * `seed_hash` - Hash of the seed
-/// * `session_key_hash` - Hash of the session key
-///
-/// # Returns
-/// The prepared delegation if found
 pub fn get_prepared_delegation(
     seed_hash: &[u8; 32],
     session_key_hash: &str,

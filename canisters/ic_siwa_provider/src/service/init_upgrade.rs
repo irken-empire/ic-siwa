@@ -1,14 +1,17 @@
 //! Init and Upgrade Service
 //!
 //! Handles canister initialization and upgrade logic.
+//!
+//! Settings and identity mappings are stored in stable memory and persist
+//! across upgrades. Transient state (sessions, rate limiter, signature map)
+//! is reset on every upgrade.
 
-use crate::state::{init_state, try_get_settings};
+use crate::state::{init_state, init_transient_state, try_get_settings};
 use crate::InitArgs;
 use ic_siwa::{RateLimitSettings, Settings};
 
 /// Initialize the canister with provided arguments
 pub fn init(args: InitArgs) {
-    // Convert rate limit args to settings, using defaults if not provided
     let rate_limits = args
         .rate_limits
         .map(|rl| RateLimitSettings {
@@ -36,13 +39,19 @@ pub fn init(args: InitArgs) {
 }
 
 /// Handle post-upgrade logic
+///
+/// If new InitArgs are provided, settings are updated in stable memory.
+/// If no args are provided, settings are read from stable memory (they persist).
+/// In both cases, transient state (sessions, etc.) is reset.
 pub fn post_upgrade(args: Option<InitArgs>) {
-    // If new args provided, reinitialize settings
-    // Otherwise, state should be preserved from stable memory
     if let Some(args) = args {
+        // New args provided: update settings in stable memory and reset transient state
         init(args);
-    } else if try_get_settings().is_none() {
-        // If no settings exist and no args provided, panic
+    } else if try_get_settings().is_some() {
+        // No args but settings exist in stable memory: just reset transient state
+        init_transient_state();
+    } else {
+        // No args and no settings in stable memory: cannot proceed
         ic_cdk::trap("Canister upgraded without settings and no InitArgs provided");
     }
 }
