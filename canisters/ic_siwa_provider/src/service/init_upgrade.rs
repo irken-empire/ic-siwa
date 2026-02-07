@@ -61,4 +61,8 @@ pub fn post_upgrade(args: Option<InitArgs>) {
         // No args and no settings in stable memory: cannot proceed
         ic_cdk::trap("Canister upgraded without settings and no InitArgs provided");
     }
+
+    ic_cdk::println!(
+        "post_upgrade: transient state reset - rate limiter, sessions, and signature map cleared"
+    );
 }
