@@ -478,6 +478,52 @@ fn is_leap_year(year: u64) -> bool {
     (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
+/// Parse an ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) into Unix seconds.
+///
+/// This is the inverse of [`format_timestamp`] and only supports the exact
+/// format produced by this crate. Returns `None` on malformed input.
+pub fn parse_timestamp(s: &str) -> Option<u64> {
+    // Expected: "YYYY-MM-DDTHH:MM:SSZ" (20 chars)
+    if s.len() != 20 || !s.ends_with('Z') {
+        return None;
+    }
+    let b = s.as_bytes();
+    if b[4] != b'-' || b[7] != b'-' || b[10] != b'T' || b[13] != b':' || b[16] != b':' {
+        return None;
+    }
+
+    let year: u64 = s[0..4].parse().ok()?;
+    let month: u64 = s[5..7].parse().ok()?;
+    let day: u64 = s[8..10].parse().ok()?;
+    let hours: u64 = s[11..13].parse().ok()?;
+    let minutes: u64 = s[14..16].parse().ok()?;
+    let seconds: u64 = s[17..19].parse().ok()?;
+
+    if month < 1 || month > 12 || day < 1 || day > 31 || hours > 23 || minutes > 59 || seconds > 59
+    {
+        return None;
+    }
+
+    // Days from epoch to start of year
+    let mut days = 0u64;
+    for y in 1970..year {
+        days += if is_leap_year(y) { 366 } else { 365 };
+    }
+
+    // Days from start of year to start of month
+    let days_in_months: [u64; 12] = if is_leap_year(year) {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+    for m in 0..(month - 1) as usize {
+        days += days_in_months[m];
+    }
+    days += day - 1;
+
+    Some(days * 86400 + hours * 3600 + minutes * 60 + seconds)
+}
+
 /// Generate a random nonce using IC randomness
 pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
     // Use IC management canister for randomness
@@ -559,6 +605,27 @@ mod tests {
         let ts = format_timestamp(1705322245);
         assert!(ts.starts_with("2024-01-15T"));
         assert!(ts.ends_with("Z"));
+    }
+
+    #[test]
+    fn test_parse_timestamp_roundtrip() {
+        // Verify parse_timestamp is the inverse of format_timestamp
+        for &secs in &[0u64, 1705322245, 86400, 1_700_000_000] {
+            let formatted = format_timestamp(secs);
+            assert_eq!(
+                parse_timestamp(&formatted),
+                Some(secs),
+                "roundtrip failed for {secs}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_timestamp_invalid() {
+        assert_eq!(parse_timestamp(""), None);
+        assert_eq!(parse_timestamp("not-a-timestamp-here"), None);
+        assert_eq!(parse_timestamp("2024-01-15T12:00:00"), None); // missing Z
+        assert_eq!(parse_timestamp("2024-13-15T12:00:00Z"), None); // month 13
     }
 
     #[test]

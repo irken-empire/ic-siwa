@@ -110,6 +110,20 @@ pub fn login(
         ));
     }
 
+    // Validate message expiration time (defense-in-depth, per EIP-4361).
+    // The login session expiration (checked above) is derived from the same
+    // login_expiration_time setting, so in practice they are equivalent.
+    // This explicit check guards against any future divergence.
+    if let Some(ref exp_time) = siwa_message.expiration_time {
+        if let Some(exp_secs) = ic_siwa::siwa::parse_timestamp(exp_time) {
+            let now_secs = now / 1_000_000_000;
+            if now_secs > exp_secs {
+                remove_login_session(&address);
+                return Err("SIWA message has expired".to_string());
+            }
+        }
+    }
+
     // Verify the signature and recover the address
     let recovered_address = siwa_message
         .verify_signature(&signature)
