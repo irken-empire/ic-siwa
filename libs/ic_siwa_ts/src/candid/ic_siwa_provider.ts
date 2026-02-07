@@ -88,7 +88,7 @@ export interface SignedDelegation {
 export interface _SERVICE {
   /**
    * Get debug diagnostics (restricted to canister controllers)
-   *
+   * 
    * Returns configuration and state information for debugging.
    * Only callable by canister controllers for security.
    * This is an update call so that caller identity is consensus-verified
@@ -109,11 +109,11 @@ export interface _SERVICE {
   'get_principal' : ActorMethod<[string], Result_2>,
   /**
    * Purge all identity mappings from stable memory (controller-only)
-   *
+   * 
    * Removes all address-to-principal and principal-to-address mappings.
    * Mappings will be re-populated on next login for each address.
    * Use this after changing the salt to clear stale mappings.
-   *
+   * 
    * # Returns
    * * `Ok(count)` - Number of mappings removed
    * * `Err(String)` - Error if not a controller
@@ -121,16 +121,16 @@ export interface _SERVICE {
   'purge_identity_mappings' : ActorMethod<[], Result_3>,
   /**
    * Get delegation for authenticated principal
-   *
+   * 
    * This is a **query** call that retrieves the certified delegation.
    * You **must** call `siwa_prepare_delegation` first (an update call) and wait
    * for it to complete before calling this query.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
    * * `expiration` - Requested expiration timestamp (used for validation)
-   *
+   * 
    * # Returns
    * * `Ok(SignedDelegation)` - The signed delegation for the session
    * * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
@@ -141,12 +141,12 @@ export interface _SERVICE {
   >,
   /**
    * Complete SIWA login with signed message
-   *
+   * 
    * # Arguments
    * * `signature` - Hex-encoded signature from the user's wallet
    * * `address` - The Avalanche address that signed the message
    * * `session_key` - The session public key to bind to this authentication
-   *
+   * 
    * # Returns
    * * `Ok(LoginResponse)` - The derived principal and session expiration
    * * `Err(String)` - Error if signature is invalid or session expired
@@ -154,15 +154,15 @@ export interface _SERVICE {
   'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_5>,
   /**
    * Combined login and prepare_delegation in a single update call
-   *
+   * 
    * This reduces the login flow from 2 update calls + 1 query to
    * 1 update call + 1 query, saving ~2 seconds of consensus latency.
-   *
+   * 
    * # Arguments
    * * `signature` - Hex-encoded signature from the user's wallet
    * * `address` - The Avalanche address that signed the message
    * * `session_key` - The session public key to bind to this authentication
-   *
+   * 
    * # Returns
    * * `Ok(LoginResponse)` - The derived principal and session expiration
    * * `Err(String)` - Error if signature is invalid or session expired
@@ -173,15 +173,15 @@ export interface _SERVICE {
   >,
   /**
    * Logout - revoke a specific session
-   *
+   * 
    * The caller must be the session owner (matching derived principal) or a
    * canister controller. This prevents unauthenticated third parties from
    * revoking other users' sessions.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
-   *
+   * 
    * # Returns
    * * `Ok(())` - Session revoked
    * * `Err(String)` - Error if session not found or caller unauthorized
@@ -189,15 +189,15 @@ export interface _SERVICE {
   'siwa_logout' : ActorMethod<[string, Uint8Array | number[]], Result_6>,
   /**
    * Prepare a delegation for an authenticated session
-   *
+   * 
    * This must be called before `siwa_get_delegation` to store the delegation
    * in the signature map for certified responses.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
    * * `expiration` - Requested expiration timestamp (may be capped)
-   *
+   * 
    * # Returns
    * * `Ok(u64)` - The final capped expiration timestamp in nanoseconds
    * * `Err(String)` - Error if not authenticated or expired
@@ -208,13 +208,13 @@ export interface _SERVICE {
   >,
   /**
    * Prepare a SIWA login message for signing (simple version)
-   *
+   * 
    * Uses the canister's default domain/uri from init args.
    * For multi-tenant "SIWA as a Service", use `siwa_prepare_login_with_options` instead.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address (0x-prefixed, EIP-55 checksummed)
-   *
+   * 
    * # Returns
    * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
    * * `Err(String)` - Error description if address is invalid
@@ -222,18 +222,18 @@ export interface _SERVICE {
   'siwa_prepare_login' : ActorMethod<[string], Result_7>,
   /**
    * Prepare a SIWA login message with custom domain/uri (multi-tenant version)
-   *
+   * 
    * This is the "SIWA as a Service" endpoint where each calling application
    * can specify its own domain/uri for the wallet signing prompt.
-   *
+   * 
    * The domain must be in the `allowed_domains` whitelist configured at init.
-   *
+   * 
    * # Arguments
    * * `request` - Login request containing:
    * - `address`: The Avalanche address (0x-prefixed)
    * - `domain`: Optional domain to show in wallet (must be whitelisted)
    * - `uri`: Optional URI to show in wallet
-   *
+   * 
    * # Returns
    * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
    * * `Err(String)` - Error if address invalid or domain not whitelisted
@@ -244,13 +244,13 @@ export interface _SERVICE {
   >,
   /**
    * Revoke all sessions for an address (controller-only)
-   *
+   * 
    * Emergency endpoint to revoke all active sessions for a given address.
    * Only callable by canister controllers.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address to revoke sessions for
-   *
+   * 
    * # Returns
    * * `Ok(count)` - Number of sessions revoked
    * * `Err(String)` - Error if not a controller

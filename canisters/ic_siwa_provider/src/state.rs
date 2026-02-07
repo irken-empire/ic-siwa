@@ -785,7 +785,9 @@ fn prune_prepared_delegations(state: &mut TransientState, now: u64, max_to_prune
             Some(entry) if entry.expires_at <= now => {}
             _ => break,
         }
-        let entry = state.prepared_delegation_queue.pop().unwrap();
+        let Some(entry) = state.prepared_delegation_queue.pop() else {
+            break;
+        };
         // Only remove from the map if the entry is actually expired
         // (it may have been overwritten with a newer expiration)
         if let Some(stored) = state.prepared_delegations.get(&entry.key) {
