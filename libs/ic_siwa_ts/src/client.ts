@@ -95,7 +95,10 @@ export class SiwaClient {
         const data = JSON.parse(stored) as SerializedIdentity;
         this.identity = await createSiwaIdentity(data);
 
-        if (!this.identity.isExpired()) {
+        // Use a 30-second buffer so we don't return a nearly-expired
+        // identity that would fail on the first canister call.
+        const RESTORE_BUFFER_MS = 30_000;
+        if (Date.now() + RESTORE_BUFFER_MS < this.identity.getExpiration()) {
           // Restore session key if stored
           const storedKey = await this.storage.get(
             this.storageKey("session_key")
