@@ -707,17 +707,21 @@ export class SiwaClient {
       this.refreshTimer = null;
     }
 
-    // Revoke session on the canister (best-effort, don't block on failure)
+    // Revoke session on the canister (best-effort, don't block on failure).
+    // Uses the authenticated agent so the caller principal matches the session
+    // owner, which is required by the canister's authorization check.
     if (this.identity && this.sessionKey) {
       try {
         const address = this.identity.getAddress();
         const sessionKeyBytes = Array.from(
           new Uint8Array(this.sessionKey.getPublicKey().toDer())
         );
-        const actor = await this.createProviderActor();
+        const agent = await this.getAgent();
+        const actor = await this.createProviderActor(agent);
         await actor.siwa_logout(address, sessionKeyBytes);
       } catch {
-        // Best-effort: canister may be unreachable, session will expire naturally
+        // Best-effort: canister may be unreachable or delegation already expired,
+        // session will expire naturally on the canister side
       }
     }
 
