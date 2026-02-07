@@ -337,11 +337,11 @@ between prepare and login.
 
 ### Fallback Behavior
 
-| `domain` provided? | `allowed_domains` configured? | Result                               |
-| ------------------ | ----------------------------- | ------------------------------------ |
-| Yes                | Yes                           | Validate against whitelist           |
-| Yes                | No (empty)                    | Accept any domain                    |
-| No                 | Yes or No                     | Use canister default from `InitArgs` |
+| `domain` provided? | `allowed_domains` configured? | Result                                    |
+| ------------------ | ----------------------------- | ----------------------------------------- |
+| Yes                | Yes                           | Validate against whitelist                |
+| Yes                | No (empty)                    | Reject (custom domains require whitelist) |
+| No                 | Yes or No                     | Use canister default from `InitArgs`      |
 
 ### Configuration
 

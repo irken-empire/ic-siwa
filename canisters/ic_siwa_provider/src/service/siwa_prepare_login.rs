@@ -75,8 +75,11 @@ pub async fn prepare_login_with_options(
     let domain = if let Some(ref requested_domain) = request.domain {
         // Validate the requested domain against allowed_domains whitelist
         if settings.allowed_domains.is_empty() {
-            // No whitelist configured - allow any domain (not recommended for production)
-            requested_domain.clone()
+            // No whitelist configured - reject custom domains to prevent phishing
+            return Err("Custom domains require allowed_domains to be configured. \
+                 Use siwa_prepare_login for the default domain, or configure \
+                 allowed_domains in InitArgs for multi-tenant mode."
+                .to_string());
         } else {
             let validator = DomainValidator::new(&settings.allowed_domains);
             if !validator.is_allowed(requested_domain) {
