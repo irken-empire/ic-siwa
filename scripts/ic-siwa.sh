@@ -936,7 +936,7 @@ cmd_test_integration() {
 
 	local failed=0
 	local test_num=0
-	local total_tests=11
+	local total_tests=17
 
 	# Test 1: Health check on test canister
 	((++test_num))
@@ -1121,7 +1121,140 @@ cmd_test_integration() {
 		log_warn "  NOTE: You can't run this test with 'loop' as it resets the login counter. You must use 'test-integration' directly."
 	fi
 
-	# Test 11: Rate limiting - rapid requests should eventually be blocked
+	# ==========================================
+	# Multi-Tenant and Domain Tests
+	# ==========================================
+	log_info ""
+	log_info "Running multi-tenant and domain tests..."
+
+	# Test 11: Multi-tenant prepare_login_with_options (whitelisted domain)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing multi-tenant prepare_login_with_options..."
+
+	# Read allowed_domains from config to find a whitelisted domain
+	local config_file_mt
+	case "${network}" in
+	dfx | juno) config_file_mt="${PROJECT_ROOT}/config/development.yaml" ;;
+	testnet) config_file_mt="${PROJECT_ROOT}/config/testnet.yaml" ;;
+	ic) config_file_mt="${PROJECT_ROOT}/config/mainnet.yaml" ;;
+	*) config_file_mt="${PROJECT_ROOT}/config/development.yaml" ;;
+	esac
+
+	local first_allowed_domain=""
+	if [[ -f ${config_file_mt} ]] && command -v yq &>/dev/null; then
+		first_allowed_domain=$(yq -r '.security.allowed_domains[0] // ""' "${config_file_mt}")
+		# Strip wildcard prefix if present (*.example.com -> example.com)
+		first_allowed_domain="${first_allowed_domain#\*.}"
+	fi
+
+	if [[ -n ${first_allowed_domain} ]]; then
+		local mt_test_address="0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
+		local mt_result
+		mt_result=$(dfx canister call ic_siwa_provider siwa_prepare_login_with_options \
+			"(record { address = \"${mt_test_address}\"; domain = opt \"${first_allowed_domain}\"; uri = opt \"https://${first_allowed_domain}\" })" \
+			--network "${network}" 2>/dev/null)
+		if echo "${mt_result}" | grep -q "Ok"; then
+			# Verify the returned message contains the custom domain
+			if echo "${mt_result}" | grep -q "${first_allowed_domain}"; then
+				log_success "  Multi-tenant login returned message with domain '${first_allowed_domain}'"
+			else
+				log_warn "  Multi-tenant login returned Ok but domain not found in message"
+			fi
+		else
+			log_error "  Multi-tenant prepare_login_with_options failed: ${mt_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_info "  Skipped (no allowed_domains configured)"
+	fi
+
+	# Test 12: Domain whitelisting rejection (non-whitelisted domain)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing domain whitelisting rejection..."
+
+	if [[ -n ${first_allowed_domain} ]]; then
+		local reject_address="0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
+		local reject_result
+		reject_result=$(dfx canister call ic_siwa_provider siwa_prepare_login_with_options \
+			"(record { address = \"${reject_address}\"; domain = opt \"evil-domain.example.net\"; uri = opt \"https://evil-domain.example.net\" })" \
+			--network "${network}" 2>/dev/null)
+		if echo "${reject_result}" | grep -qi "Err\|not.*allowed\|not in"; then
+			log_success "  Non-whitelisted domain correctly rejected"
+		else
+			log_error "  Non-whitelisted domain should have been rejected: ${reject_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		# No allowed_domains means any domain is accepted
+		log_info "  Skipped (no allowed_domains configured - all domains accepted)"
+	fi
+
+	# Test 13: Concurrent login attempts from same address
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing concurrent login from same address..."
+	local concurrent_address="0x1111111111111111111111111111111111111111"
+	local concurrent_result1 concurrent_result2
+	concurrent_result1=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>/dev/null)
+	concurrent_result2=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>/dev/null)
+	if echo "${concurrent_result1}" | grep -q "Ok" && echo "${concurrent_result2}" | grep -q "Ok"; then
+		# Second call should succeed (overwriting the first session for same address)
+		log_success "  Second prepare_login for same address succeeds (overwrites previous)"
+	else
+		log_error "  Concurrent login test failed"
+		log_error "    Result 1: ${concurrent_result1}"
+		log_error "    Result 2: ${concurrent_result2}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 14: Login with invalid signature (simulates wrong wallet)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing login with invalid signature..."
+	local bad_sig_address="0x2222222222222222222222222222222222222222"
+	# First prepare a login
+	dfx canister call ic_siwa_provider siwa_prepare_login "(\"${bad_sig_address}\")" --network "${network}" >/dev/null 2>&1
+	# Then try to login with a garbage signature
+	local fake_sig
+	fake_sig="0x$(printf 'ab%.0s' {1..64})1b"
+	local bad_sig_result
+	bad_sig_result=$(dfx canister call ic_siwa_provider siwa_login "(\"${fake_sig}\", \"${bad_sig_address}\", blob \"\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\")" --network "${network}" 2>/dev/null)
+	if echo "${bad_sig_result}" | grep -qi "Err"; then
+		log_success "  Invalid signature correctly rejected"
+	else
+		log_error "  Invalid signature should have been rejected: ${bad_sig_result}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 15: Prepare delegation without authenticated session
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing prepare_delegation without session..."
+	local no_session_result
+	no_session_result=$(dfx canister call ic_siwa_provider siwa_prepare_delegation \
+		'("0x3333333333333333333333333333333333333333", blob "\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f", 3600000000000 : nat64)' \
+		--network "${network}" 2>/dev/null)
+	if echo "${no_session_result}" | grep -qi "Err"; then
+		log_success "  Prepare delegation correctly requires authenticated session"
+	else
+		log_error "  Prepare delegation should fail without valid session"
+		failed=$((failed + 1))
+	fi
+
+	# Test 16: Logout without valid session (should fail gracefully)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing logout without session..."
+	local logout_result
+	logout_result=$(dfx canister call ic_siwa_provider siwa_logout \
+		'("0x4444444444444444444444444444444444444444", blob "\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f")' \
+		--network "${network}" 2>&1)
+	if echo "${logout_result}" | grep -qi "Err\|not found\|Session not found"; then
+		log_success "  Logout correctly fails for non-existent session"
+	elif echo "${logout_result}" | grep -qi "has no method\|is not defined"; then
+		log_warn "  Skipped (siwa_logout not in Candid interface - regenerate with 'ic-siwa candid')"
+	else
+		log_error "  Logout should fail for non-existent session: ${logout_result}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 17: Rate limiting - rapid requests should eventually be blocked
 	# NOTE: This test MUST be last - it triggers rate limits that block requests for 60 seconds
 	((++test_num))
 	log_info "[${test_num}/${total_tests}] Testing rate limiting..."
