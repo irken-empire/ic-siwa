@@ -58,6 +58,8 @@ pub struct InitArgs {
 #[init]
 fn init(args: InitArgs) {
     service::init_upgrade::init(args);
+    // Asynchronously seed the CSPRNG with entropy from raw_rand()
+    ic_cdk::spawn(random::seed_rng());
     ic_cdk::println!("ic_siwa_provider initialized");
 }
 
@@ -65,6 +67,8 @@ fn init(args: InitArgs) {
 #[post_upgrade]
 fn post_upgrade(args: Option<InitArgs>) {
     service::init_upgrade::post_upgrade(args);
+    // Asynchronously seed the CSPRNG with entropy from raw_rand()
+    ic_cdk::spawn(random::seed_rng());
     ic_cdk::println!("ic_siwa_provider upgraded");
 }
 
