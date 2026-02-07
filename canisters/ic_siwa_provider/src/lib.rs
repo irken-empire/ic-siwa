@@ -229,7 +229,9 @@ fn siwa_get_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<SignedDelegation, String> {
-    check_caller_allowed()?;
+    // No check_caller_allowed() here: query calls cannot verify caller identity
+    // (not consensus-verified). Session validation in get_delegation provides
+    // the real authorization check.
     service::siwa_get_delegation::get_delegation(address, session_key, expiration)
 }
 
@@ -373,7 +375,9 @@ pub struct DebugInfo {
 ///
 /// Returns configuration and state information for debugging.
 /// Only callable by canister controllers for security.
-#[query]
+/// This is an update call so that caller identity is consensus-verified
+/// (query calls cannot reliably enforce access control on the IC).
+#[update]
 fn debug_info() -> Result<DebugInfo, String> {
     let caller = ic_cdk::api::msg_caller();
     if !ic_cdk::api::is_controller(&caller) {

@@ -217,9 +217,9 @@ query reads.
 
 ### Diagnostic Endpoints
 
-| Endpoint     | Type  | Description                                |
-| ------------ | ----- | ------------------------------------------ |
-| `debug_info` | query | Get canister diagnostics (controller-only) |
+| Endpoint     | Type   | Description                                |
+| ------------ | ------ | ------------------------------------------ |
+| `debug_info` | update | Get canister diagnostics (controller-only) |
 
 ### Utility Endpoints
 
@@ -486,7 +486,7 @@ nodes).
 
 When `debug` is enabled (`true`):
 
-- The `debug_info` query endpoint becomes available
+- The `debug_info` update endpoint becomes available
 - Only callable by canister controllers for security
 - Exposes diagnostic information including:
   - Configuration: domain, URI, chain ID, session expiration
