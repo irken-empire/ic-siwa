@@ -45,6 +45,20 @@ pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u6
         return Err("Session has expired".to_string());
     }
 
+    // Verify the caller is the session owner or an allowed canister.
+    // This prevents unauthorized third parties from preparing/retrieving
+    // delegations using publicly visible session keys.
+    let caller = ic_cdk::api::msg_caller();
+    let is_session_owner = caller == auth_session.principal;
+    let is_allowed_canister =
+        with_settings(|s| !s.allowed_canisters.is_empty() && s.allowed_canisters.contains(&caller));
+    let is_controller = ic_cdk::api::is_controller(&caller);
+    if !is_session_owner && !is_allowed_canister && !is_controller {
+        return Err(
+            "Unauthorized: caller is not the session owner or an allowed canister".to_string(),
+        );
+    }
+
     Ok((key_hash, auth_session.expires_at))
 }
 
