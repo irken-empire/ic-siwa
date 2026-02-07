@@ -490,16 +490,6 @@ pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
     Ok(hex::encode(nonce_bytes))
 }
 
-/// Generate a nonce synchronously (for testing or when async isn't available)
-/// Uses a combination of time and caller principal for uniqueness
-pub fn generate_nonce_sync() -> Nonce {
-    let time = ic_cdk::api::time();
-    let caller = ic_cdk::api::msg_caller();
-    let data = format!("{}{}", time, caller);
-    let hash = keccak256(data.as_bytes());
-    hex::encode(&hash[..16])
-}
-
 /// Derive an ICP principal from an Avalanche address and salt
 ///
 /// This creates a self-authenticating principal based on the wallet address.
