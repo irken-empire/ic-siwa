@@ -35,6 +35,11 @@ pub fn init(args: InitArgs) {
         debug: args.debug.unwrap_or(false),
     };
 
+    // Validate settings before storing
+    if let Err(e) = settings.validate() {
+        ic_cdk::trap(&format!("Invalid settings: {}", e));
+    }
+
     init_state(settings);
 }
 
