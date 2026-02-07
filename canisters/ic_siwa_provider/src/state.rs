@@ -604,6 +604,32 @@ pub fn get_address_for_principal(principal: &Principal) -> Option<String> {
     PRINCIPAL_TO_ADDRESS.with(|map| map.borrow().get(&StorablePrincipal(*principal)))
 }
 
+/// Purge all identity mappings from stable memory.
+///
+/// Returns the number of mappings removed. Mappings will be re-populated
+/// on next login for each address.
+pub fn purge_identity_mappings() -> u64 {
+    let mut count = 0u64;
+
+    ADDRESS_TO_PRINCIPAL.with(|map| {
+        let mut map = map.borrow_mut();
+        let keys: Vec<String> = map.iter().map(|entry| entry.key().clone()).collect();
+        for key in keys {
+            map.remove(&key);
+            count += 1;
+        }
+    });
+    PRINCIPAL_TO_ADDRESS.with(|map| {
+        let mut map = map.borrow_mut();
+        let keys: Vec<StorablePrincipal> = map.iter().map(|entry| entry.key().clone()).collect();
+        for key in keys {
+            map.remove(&key);
+        }
+    });
+
+    count
+}
+
 // --- Rate limiting ---
 
 /// Counter for periodic cleanup

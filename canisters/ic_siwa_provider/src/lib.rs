@@ -312,6 +312,26 @@ fn siwa_revoke_all(address: String) -> Result<u64, String> {
     Ok(removed as u64)
 }
 
+/// Purge all identity mappings from stable memory (controller-only)
+///
+/// Removes all address-to-principal and principal-to-address mappings.
+/// Mappings will be re-populated on next login for each address.
+/// Use this after changing the salt to clear stale mappings.
+///
+/// # Returns
+/// * `Ok(count)` - Number of mappings removed
+/// * `Err(String)` - Error if not a controller
+#[update]
+fn purge_identity_mappings() -> Result<u64, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only canister controllers can purge identity mappings".to_string());
+    }
+
+    let count = state::purge_identity_mappings();
+    Ok(count)
+}
+
 /// Debug diagnostics response
 #[derive(CandidType, serde::Serialize)]
 pub struct DebugInfo {
