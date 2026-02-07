@@ -661,24 +661,133 @@ library:
 debug: false
 ```
 
-## Error Handling
+## Error Reference
 
-### Error Types
+All canister endpoints return errors as `Err(String)` with a descriptive message.
+This section documents every error that the SIWA library and provider canister can
+produce, along with the endpoints that return them and the corresponding TypeScript
+client error code.
 
-| Error Code             | Description                         |
-| ---------------------- | ----------------------------------- |
-| `InvalidAddress`       | Malformed Avalanche address         |
-| `InvalidSignature`     | Signature verification failed       |
-| `SignatureExpired`     | SIWA message has expired            |
-| `SessionExpired`       | Session delegation has expired      |
-| `UnauthorizedDomain`   | Request from non-whitelisted domain |
-| `UnauthorizedCanister` | Delegation target not in whitelist  |
-| `NotAuthenticated`     | No valid session for caller         |
-| `RateLimited`          | Too many login attempts             |
+### Library Errors (`ic_siwa::SiwaError`)
 
-### Error Response Format
+These errors originate from the core SIWA Rust library and are converted to strings
+via `Display`.
 
-All errors are returned as `Err(String)` with a descriptive message.
+| Variant              | String Format                     | Endpoints                                                       | Description                                                                     |
+| -------------------- | --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `InvalidAddress`     | `"Invalid address: {detail}"`     | `siwa_prepare_login`, `siwa_login`                              | Address fails EIP-55 validation (missing 0x prefix, wrong length, bad checksum) |
+| `InvalidSignature`   | `"Invalid signature: {detail}"`   | `siwa_login`, `siwa_login_and_prepare`                          | Signature format invalid or ECDSA recovery failed                               |
+| `InvalidMessage`     | `"Invalid message: {detail}"`     | `siwa_login`, `siwa_login_and_prepare`                          | SIWA message cannot be parsed or has invalid structure                          |
+| `MessageExpired`     | `"Message expired"`               | `siwa_login`, `siwa_login_and_prepare`                          | SIWA message past its `expiration_time`                                         |
+| `InvalidNonce`       | `"Invalid nonce: {detail}"`       | `siwa_login`, `siwa_login_and_prepare`                          | Nonce mismatch or already consumed                                              |
+| `DomainNotAllowed`   | `"Domain not allowed: {domain}"`  | `siwa_prepare_login_with_options`, `siwa_login`                 | Domain not in `allowed_domains` whitelist                                       |
+| `CanisterNotAllowed` | `"Canister not allowed: {id}"`    | all update endpoints                                            | Caller not in `allowed_canisters` whitelist                                     |
+| `SessionNotFound`    | `"Session not found"`             | `siwa_prepare_delegation`, `siwa_get_delegation`, `siwa_logout` | No authenticated session for the given address and key                          |
+| `DelegationError`    | `"Delegation error: {detail}"`    | `siwa_prepare_delegation`, `siwa_get_delegation`                | Delegation preparation or retrieval failed                                      |
+| `ConfigError`        | `"Configuration error: {detail}"` | `init`, `post_upgrade`                                          | Invalid canister settings                                                       |
+| `InternalError`      | `"Internal error: {detail}"`      | any                                                             | Unexpected internal state                                                       |
+| `RateLimited`        | `"Rate limit exceeded: {detail}"` | `siwa_prepare_login`                                            | Per-address or global rate limit exceeded                                       |
+
+### Provider Canister Errors
+
+These errors are produced directly by the provider canister's endpoint
+implementations.
+
+#### Authentication and Authorization
+
+| Error String                                                             | Endpoints                                        | Description                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------- |
+| `"Anonymous callers are not allowed"`                                    | all update endpoints                             | Anonymous principal called an endpoint that requires authentication |
+| `"Caller {id} is not in the allowed_canisters whitelist"`                | all update endpoints                             | `allowed_canisters` is configured and caller is not whitelisted     |
+| `"Only canister controllers can revoke sessions"`                        | `siwa_revoke_all`                                | Non-controller called a controller-only endpoint                    |
+| `"Only canister controllers can purge identity mappings"`                | `purge_identity_mappings`                        | Non-controller called a controller-only endpoint                    |
+| `"Only canister controllers can access debug info"`                      | `debug_info`                                     | Non-controller called a controller-only endpoint                    |
+| `"Debug mode is not enabled. Set debug: true in InitArgs."`              | `debug_info`                                     | Debug endpoint called but `debug` is `false`                        |
+| `"Unauthorized: caller is not the session owner or an allowed canister"` | `siwa_prepare_delegation`, `siwa_get_delegation` | Caller is neither the session owner nor in `allowed_canisters`      |
+| `"Caller is not the session owner or a controller"`                      | `siwa_logout`                                    | Caller is neither the session owner nor a canister controller       |
+
+#### Login Flow
+
+| Error String                                                     | Endpoints                              | Description                                           |
+| ---------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------- |
+| `"Custom domains require allowed_domains to be configured..."`   | `siwa_prepare_login_with_options`      | Custom domain provided but `allowed_domains` is empty |
+| `"Domain '{domain}' is not in the allowed domains list..."`      | `siwa_prepare_login_with_options`      | Requested domain not in whitelist                     |
+| `"Failed to generate nonce: {error}"`                            | `siwa_prepare_login`                   | IC random bytes generation failed                     |
+| `"No pending login session for address {address}"`               | `siwa_login`, `siwa_login_and_prepare` | No `siwa_prepare_login` was called for this address   |
+| `"Login session has expired"`                                    | `siwa_login`, `siwa_login_and_prepare` | Pending login session past expiration                 |
+| `"Login must be completed by the same caller that initiated it"` | `siwa_login`, `siwa_login_and_prepare` | Different principal calling login than prepare        |
+| `"Failed to extract domain from SIWA message"`                   | `siwa_login`, `siwa_login_and_prepare` | Stored message has malformed domain field             |
+| `"Domain '{domain}' is not allowed..."`                          | `siwa_login`, `siwa_login_and_prepare` | Domain in stored message fails re-validation          |
+| `"Failed to parse stored SIWA message: {error}"`                 | `siwa_login`, `siwa_login_and_prepare` | Stored SIWA message cannot be deserialized            |
+| `"Chain ID mismatch: message has {x} but settings require {y}"`  | `siwa_login`, `siwa_login_and_prepare` | Message chain ID differs from canister settings       |
+| `"Unsupported SIWA version: {version}"`                          | `siwa_login`, `siwa_login_and_prepare` | Message version is not `1`                            |
+| `"SIWA message has expired"`                                     | `siwa_login`, `siwa_login_and_prepare` | Message `expiration_time` is in the past              |
+| `"Signature verification failed: {error}"`                       | `siwa_login`, `siwa_login_and_prepare` | ECDSA signature verification failed                   |
+| `"Recovered address {x} does not match expected address {y}"`    | `siwa_login`, `siwa_login_and_prepare` | Signer address differs from claimed address           |
+| `"Failed to derive principal: {error}"`                          | `siwa_login`, `siwa_login_and_prepare` | Principal derivation from address + salt failed       |
+| `"Failed to create user canister pubkey: {error}"`               | `siwa_login`, `siwa_login_and_prepare` | DER-encoded canister public key creation failed       |
+
+#### Delegation
+
+| Error String                                             | Endpoints                                        | Description                                                       |
+| -------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| `"No authenticated session found for address {address}"` | `siwa_prepare_delegation`, `siwa_get_delegation` | No login completed for this address                               |
+| `"Address mismatch"`                                     | `siwa_prepare_delegation`, `siwa_get_delegation` | Session address does not match request                            |
+| `"Session has expired"`                                  | `siwa_prepare_delegation`, `siwa_get_delegation` | Authenticated session past expiration                             |
+| `"Session disappeared during validation"`                | `siwa_prepare_delegation`, `siwa_get_delegation` | Session removed between lookup and use (race condition)           |
+| `"Delegation not found in signature map..."`             | `siwa_get_delegation`                            | `siwa_prepare_delegation` was not called or delegation was pruned |
+| `"Failed to create certified signature..."`              | `siwa_get_delegation`                            | Certificate witness creation failed; delegation may have expired  |
+
+#### Lookup
+
+| Error String                                   | Endpoints            | Description                                           |
+| ---------------------------------------------- | -------------------- | ----------------------------------------------------- |
+| `"No principal found for address {address}"`   | `get_principal`      | Address has no stored identity mapping                |
+| `"No address found for principal {principal}"` | `get_address`        | Principal has no stored identity mapping              |
+| `"No address found for caller"`                | `get_caller_address` | Calling principal has no stored identity mapping      |
+| `"Session not found"`                          | `siwa_logout`        | No session matches the provided address and key       |
+| `"Address does not match session"`             | `siwa_logout`        | Provided address does not match the session's address |
+
+#### Capacity Limits
+
+| Error String                                                 | Endpoints                              | Description                                    |
+| ------------------------------------------------------------ | -------------------------------------- | ---------------------------------------------- |
+| `"Too many pending login sessions. Please try again later."` | `siwa_prepare_login`                   | Login session store at capacity (10,000)       |
+| `"Too many active sessions. Please try again later."`        | `siwa_login`, `siwa_login_and_prepare` | Auth session store at capacity (10,000)        |
+| `"Too many prepared delegations. Please try again later."`   | `siwa_prepare_delegation`              | Prepared delegation store at capacity (10,000) |
+
+#### Canister Lifecycle
+
+| Error String                                                    | Endpoints              | Description                                                           |
+| --------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------- |
+| `"Invalid settings: {error}"`                                   | `init`, `post_upgrade` | Settings validation failed (trap)                                     |
+| `"Failed to initialize state: {error}"`                         | `init`, `post_upgrade` | State initialization failed (trap)                                    |
+| `"Canister upgraded without settings and no InitArgs provided"` | `post_upgrade`         | Upgrade without args and no existing settings in stable memory (trap) |
+| `"Failed to encode settings: {error}"`                          | `init`, `post_upgrade` | Candid encoding of settings failed                                    |
+
+### TypeScript Client Error Code Mapping
+
+The TypeScript client (`ic_siwa_ts`) defines `SiwaErrorCode` to categorise errors
+for frontend handling. The mapping from canister error strings to client codes:
+
+| `SiwaErrorCode`    | Value                  | Canister Error Prefix                                                                | Description                         |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------------------ | ----------------------------------- |
+| `InvalidAddress`   | `"INVALID_ADDRESS"`    | `"Invalid address: "`                                                                | Address validation failed           |
+| `InvalidSignature` | `"INVALID_SIGNATURE"`  | `"Invalid signature: "`, `"Signature verification failed: "`, `"Recovered address "` | Signature-related errors            |
+| `MessageExpired`   | `"MESSAGE_EXPIRED"`    | `"Message expired"`, `"SIWA message has expired"`, `"Login session has expired"`     | Message or login session expiration |
+| `SessionExpired`   | `"SESSION_EXPIRED"`    | `"Session has expired"`                                                              | Authenticated session expiration    |
+| `DomainNotAllowed` | `"DOMAIN_NOT_ALLOWED"` | `"Domain not allowed: "`, `"Domain '"`                                               | Domain whitelist rejection          |
+| `NotAuthenticated` | `"NOT_AUTHENTICATED"`  | `"Session not found"`, `"No authenticated session"`, `"Anonymous callers"`           | No valid session or identity        |
+| `NetworkError`     | `"NETWORK_ERROR"`      | (client-side)                                                                        | Network communication failure       |
+| `CanisterError`    | `"CANISTER_ERROR"`     | (catch-all for unmatched canister errors)                                            | Generic canister error              |
+| `StorageError`     | `"STORAGE_ERROR"`      | (client-side)                                                                        | Client storage read/write failure   |
+| `NotImplemented`   | `"NOT_IMPLEMENTED"`    | (client-side)                                                                        | Feature not yet implemented         |
+| `Unknown`          | `"UNKNOWN"`            | (fallback)                                                                           | Unrecognised error                  |
+
+> **Note**: The TypeScript client wraps all canister errors in `SiwaError` objects.
+> Errors that don't match a known prefix are mapped to `SiwaErrorCode.CanisterError`
+> or `SiwaErrorCode.Unknown`. Frontend integrators should use `SiwaErrorCode` for
+> programmatic error handling and the error `message` property for display.
 
 ## Client Library Requirements
 
