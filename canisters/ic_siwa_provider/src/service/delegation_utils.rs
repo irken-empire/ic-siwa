@@ -5,8 +5,9 @@
 
 use crate::state::{
     cleanup_expired_prepared_delegations as state_cleanup_expired_prepared_delegations,
-    get_auth_session, get_prepared_delegation as state_get_prepared_delegation, get_settings,
-    store_prepared_delegation as state_store_prepared_delegation, PreparedDelegation,
+    get_auth_session, get_prepared_delegation as state_get_prepared_delegation,
+    store_prepared_delegation as state_store_prepared_delegation, with_settings,
+    PreparedDelegation,
 };
 use ic_certified_map::Hash;
 use ic_siwa::hash::hash_bytes;
@@ -60,31 +61,32 @@ pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u6
 /// # Returns
 /// The final capped expiration time
 pub fn compute_final_expiration(requested_expiration: u64, session_expires_at: u64) -> u64 {
-    let settings = get_settings();
+    let session_expiration_time = with_settings(|s| s.session_expiration_time);
     let now = ic_cdk::api::time();
 
     // Cap the requested expiration to the session expiration
     let capped_expiration = requested_expiration.min(session_expires_at);
 
     // Also cap to the configured session expiration time from now
-    let max_expiration = now + settings.session_expiration_time;
+    let max_expiration = now + session_expiration_time;
     capped_expiration.min(max_expiration)
 }
 
 /// Get delegation targets from settings
 pub fn get_delegation_targets() -> Option<Vec<candid::Principal>> {
-    let settings = get_settings();
-    if settings.delegation_targets.is_empty() {
-        None
-    } else {
-        Some(settings.delegation_targets.clone())
-    }
+    with_settings(|settings| {
+        if settings.delegation_targets.is_empty() {
+            None
+        } else {
+            Some(settings.delegation_targets.clone())
+        }
+    })
 }
 
 /// Compute the seed hash for an address
 pub fn compute_seed_hash(address: &str) -> Hash {
-    let settings = get_settings();
-    let seed = generate_seed(&settings.salt, address);
+    let salt = with_settings(|s| s.salt.clone());
+    let seed = generate_seed(&salt, address);
     hash_bytes(seed)
 }
 

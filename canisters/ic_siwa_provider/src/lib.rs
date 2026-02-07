@@ -59,21 +59,22 @@ pub struct InitArgs {
 /// When `allowed_canisters` is empty, all callers are allowed (backward compatible).
 /// When configured, only whitelisted canister principals may call the endpoint.
 fn check_caller_allowed() -> Result<(), String> {
-    let settings = state::get_settings();
-    if settings.allowed_canisters.is_empty() {
-        return Ok(());
-    }
-    let caller = ic_cdk::api::msg_caller();
-    if caller == Principal::anonymous() {
-        return Err("Anonymous callers are not allowed".to_string());
-    }
-    if !settings.allowed_canisters.contains(&caller) {
-        return Err(format!(
-            "Caller {} is not in the allowed_canisters whitelist",
-            caller
-        ));
-    }
-    Ok(())
+    state::with_settings(|settings| {
+        if settings.allowed_canisters.is_empty() {
+            return Ok(());
+        }
+        let caller = ic_cdk::api::msg_caller();
+        if caller == Principal::anonymous() {
+            return Err("Anonymous callers are not allowed".to_string());
+        }
+        if !settings.allowed_canisters.contains(&caller) {
+            return Err(format!(
+                "Caller {} is not in the allowed_canisters whitelist",
+                caller
+            ));
+        }
+        Ok(())
+    })
 }
 
 /// Initialize the canister
@@ -329,8 +330,6 @@ fn debug_info() -> Result<DebugInfo, String> {
         return Err("Only canister controllers can access debug info".to_string());
     }
 
-    let settings = state::get_settings();
-
     let (
         login_sessions_count,
         auth_sessions_count,
@@ -345,7 +344,7 @@ fn debug_info() -> Result<DebugInfo, String> {
         )
     });
 
-    Ok(DebugInfo {
+    Ok(state::with_settings(|settings| DebugInfo {
         domain: settings.domain.clone(),
         uri: settings.uri.clone(),
         chain_id: settings.chain_id,
@@ -362,7 +361,7 @@ fn debug_info() -> Result<DebugInfo, String> {
         auth_sessions_count,
         prepared_delegations_count,
         signature_map_count,
-    })
+    }))
 }
 
 // Export Candid interface

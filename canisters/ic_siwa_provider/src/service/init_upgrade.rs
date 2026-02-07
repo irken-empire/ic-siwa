@@ -6,7 +6,7 @@
 //! across upgrades. Transient state (sessions, rate limiter, signature map)
 //! is reset on every upgrade.
 
-use crate::state::{init_state, init_transient_state, try_get_settings};
+use crate::state::{has_settings, init_state, init_transient_state};
 use crate::InitArgs;
 use ic_siwa::{RateLimitSettings, Settings};
 
@@ -52,7 +52,7 @@ pub fn post_upgrade(args: Option<InitArgs>) {
     if let Some(args) = args {
         // New args provided: update settings in stable memory and reset transient state
         init(args);
-    } else if try_get_settings().is_some() {
+    } else if has_settings() {
         // No args but settings exist in stable memory: just reset transient state
         init_transient_state();
     } else {

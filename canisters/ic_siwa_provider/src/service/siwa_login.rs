@@ -3,7 +3,7 @@
 //! Verifies a signed SIWA message and creates an authenticated session.
 
 use crate::state::{
-    get_login_session, get_settings, remove_login_session, store_auth_session, AuthSession,
+    get_login_session, remove_login_session, store_auth_session, with_settings, AuthSession,
 };
 use candid::Principal;
 use ic_siwa::siwa::{derive_principal, hash_session_key, validate_address};
@@ -51,29 +51,27 @@ pub fn login(
         return Err("Login session has expired".to_string());
     }
 
-    // Get settings for principal derivation and domain validation
-    let settings = get_settings();
+    // Validate domain against settings whitelist (zero-copy access)
+    with_settings(|settings| {
+        if !settings.allowed_domains.is_empty() {
+            let message_domain = extract_domain_from_message(&login_session.message)
+                .ok_or("Failed to extract domain from SIWA message")?;
 
-    // Validate domain if allowed_domains is configured
-    if !settings.allowed_domains.is_empty() {
-        // Extract domain from the stored message (first line contains "domain wants you to sign in")
-        let message_domain = extract_domain_from_message(&login_session.message)
-            .ok_or("Failed to extract domain from SIWA message")?;
-
-        // Validate the domain against the whitelist
-        let validator = DomainValidator::new(&settings.allowed_domains);
-        if !validator.is_allowed(&message_domain) {
-            crate::state::debug_log!(
-                "[SECURITY] Domain rejected: '{}' not in allowed list for address {}",
-                message_domain,
-                address
-            );
-            return Err(format!(
-                "Domain '{}' is not allowed. This canister only accepts logins from configured domains.",
-                message_domain
-            ));
+            let validator = DomainValidator::new(&settings.allowed_domains);
+            if !validator.is_allowed(&message_domain) {
+                crate::state::debug_log!(
+                    "[SECURITY] Domain rejected: '{}' not in allowed list for address {}",
+                    message_domain,
+                    address
+                );
+                return Err(format!(
+                    "Domain '{}' is not allowed. This canister only accepts logins from configured domains.",
+                    message_domain
+                ));
+            }
         }
-    }
+        Ok(())
+    })?;
 
     // Parse the stored SIWA message directly instead of reconstructing from settings.
     // This ensures we verify the signature against the exact message the user signed,
@@ -83,10 +81,11 @@ pub fn login(
         .map_err(|e| format!("Failed to parse stored SIWA message: {}", e))?;
 
     // Validate chain ID matches settings (defense-in-depth against settings changes between prepare and login)
-    if siwa_message.chain_id != settings.chain_id {
+    let chain_id = with_settings(|s| s.chain_id);
+    if siwa_message.chain_id != chain_id {
         return Err(format!(
             "Chain ID mismatch: message has {} but settings require {}",
-            siwa_message.chain_id, settings.chain_id
+            siwa_message.chain_id, chain_id
         ));
     }
 
@@ -111,18 +110,26 @@ pub fn login(
         ));
     }
 
-    // Derive the ICP principal from the address and salt
-    let principal = derive_principal(&address, &settings.salt)
-        .map_err(|e| format!("Failed to derive principal: {}", e))?;
+    // Derive the ICP principal and canister pubkey using settings (zero-copy access)
+    let (principal, user_canister_pubkey, session_expiration_time) =
+        with_settings(|settings| -> Result<_, String> {
+            let principal = derive_principal(&address, &settings.salt)
+                .map_err(|e| format!("Failed to derive principal: {}", e))?;
 
-    // Generate the seed and user canister public key for the delegation chain
-    let seed = generate_seed(&settings.salt, &address);
-    let canister_id = ic_cdk::api::canister_self();
-    let user_canister_pubkey = create_user_canister_pubkey(&canister_id, &seed)
-        .map_err(|e| format!("Failed to create user canister pubkey: {}", e))?;
+            let seed = generate_seed(&settings.salt, &address);
+            let canister_id = ic_cdk::api::canister_self();
+            let user_canister_pubkey = create_user_canister_pubkey(&canister_id, &seed)
+                .map_err(|e| format!("Failed to create user canister pubkey: {}", e))?;
+
+            Ok((
+                principal,
+                user_canister_pubkey,
+                settings.session_expiration_time,
+            ))
+        })?;
 
     // Calculate session expiration
-    let session_expiration = now + settings.session_expiration_time;
+    let session_expiration = now + session_expiration_time;
 
     // Remove the used login session (prevent replay)
     remove_login_session(&address);

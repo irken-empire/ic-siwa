@@ -225,19 +225,19 @@ pub fn store_settings(settings: &Settings) {
     });
 }
 
-/// Get current settings from the in-memory cache (panics if not initialized)
-pub fn get_settings() -> Settings {
+/// Access current settings via a closure (zero-copy, no heap allocation)
+pub fn with_settings<R>(f: impl FnOnce(&Settings) -> R) -> R {
     with_state(|state| {
-        state
+        f(state
             .settings_cache
-            .clone()
-            .expect("Canister not initialized - settings not set")
+            .as_ref()
+            .expect("Canister not initialized - settings not set"))
     })
 }
 
-/// Get settings if initialized, None otherwise
-pub fn try_get_settings() -> Option<Settings> {
-    with_state(|state| state.settings_cache.clone())
+/// Check if settings have been initialized
+pub fn has_settings() -> bool {
+    with_state(|state| state.settings_cache.is_some())
 }
 
 /// Load settings from stable memory into the in-memory cache.
@@ -287,9 +287,9 @@ pub fn init_state(settings: Settings) {
 pub fn init_transient_state() {
     // Load settings from stable memory into the in-memory cache first
     load_settings_cache();
-    let settings = get_settings();
+    let rate_limits = with_settings(|s| s.rate_limits.clone());
     with_state_mut(|state| {
-        state.rate_limiter = RateLimiter::new(settings.rate_limits.clone());
+        state.rate_limiter = RateLimiter::new(rate_limits);
         state.login_sessions.clear();
         state.auth_sessions.clear();
         state.signature_map = SignatureMap::default();

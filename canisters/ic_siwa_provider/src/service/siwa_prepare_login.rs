@@ -4,7 +4,7 @@
 //! Supports multi-tenant "SIWA as a Service" where each calling application
 //! can specify its own domain/uri for the wallet signing prompt.
 
-use crate::state::{check_rate_limit, get_settings, store_login_session, LoginSession};
+use crate::state::{check_rate_limit, store_login_session, with_settings, LoginSession};
 use ic_siwa::{siwa::validate_address, DomainValidator, SiwaMessage};
 
 /// Request parameters for prepare_login
@@ -68,50 +68,51 @@ pub async fn prepare_login_with_options(
     // Check rate limit before proceeding (this consumes cycles)
     check_rate_limit(&request.address)?;
 
-    // Get settings
-    let settings = get_settings();
-
-    // Determine the domain to use
-    let domain = if let Some(ref requested_domain) = request.domain {
-        // Validate the requested domain against allowed_domains whitelist
-        if settings.allowed_domains.is_empty() {
-            // No whitelist configured - reject custom domains to prevent phishing
-            return Err("Custom domains require allowed_domains to be configured. \
-                 Use siwa_prepare_login for the default domain, or configure \
-                 allowed_domains in InitArgs for multi-tenant mode."
-                .to_string());
-        } else {
-            let validator = DomainValidator::new(&settings.allowed_domains);
-            if !validator.is_allowed(requested_domain) {
-                return Err(format!(
-                    "Domain '{}' is not in the allowed domains list. \
-                    Contact the SIWA provider to whitelist your domain.",
-                    requested_domain
-                ));
+    // Resolve domain, URI, and build SIWA message using settings (zero-copy access)
+    let (domain, uri, login_expiration_time) = with_settings(|settings| {
+        let domain = if let Some(ref requested_domain) = request.domain {
+            // Validate the requested domain against allowed_domains whitelist
+            if settings.allowed_domains.is_empty() {
+                // No whitelist configured - reject custom domains to prevent phishing
+                return Err("Custom domains require allowed_domains to be configured. \
+                     Use siwa_prepare_login for the default domain, or configure \
+                     allowed_domains in InitArgs for multi-tenant mode."
+                    .to_string());
+            } else {
+                let validator = DomainValidator::new(&settings.allowed_domains);
+                if !validator.is_allowed(requested_domain) {
+                    return Err(format!(
+                        "Domain '{}' is not in the allowed domains list. \
+                        Contact the SIWA provider to whitelist your domain.",
+                        requested_domain
+                    ));
+                }
+                requested_domain.clone()
             }
-            requested_domain.clone()
-        }
-    } else {
-        // Fall back to canister default
-        settings.domain.clone()
-    };
+        } else {
+            // Fall back to canister default
+            settings.domain.clone()
+        };
 
-    // Determine the URI to use
-    let uri = request.uri.unwrap_or_else(|| settings.uri.clone());
+        let uri = request.uri.clone().unwrap_or_else(|| settings.uri.clone());
+        Ok((domain, uri, settings.login_expiration_time))
+    })?;
 
-    // Generate a unique nonce
+    // Generate a unique nonce (requires await, so must be outside with_settings)
     let nonce = ic_siwa::siwa::generate_nonce()
         .await
         .map_err(|e| format!("Failed to generate nonce: {}", e))?;
 
     // Create the SIWA message with the resolved domain/uri
-    let siwa_message =
-        SiwaMessage::new_with_domain(&settings, &request.address, &nonce, &domain, &uri);
-    let message_string = siwa_message.to_message();
+    let message_string = with_settings(|settings| {
+        let siwa_message =
+            SiwaMessage::new_with_domain(settings, &request.address, &nonce, &domain, &uri);
+        siwa_message.to_message()
+    });
 
     // Calculate expiration
     let now = ic_cdk::api::time();
-    let expires_at = now + settings.login_expiration_time;
+    let expires_at = now + login_expiration_time;
 
     // Store the login session
     let session = LoginSession {
