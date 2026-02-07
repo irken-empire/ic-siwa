@@ -51,6 +51,19 @@ pub fn login(
         return Err("Login session has expired".to_string());
     }
 
+    // In multi-tenant mode (allowed_canisters configured), verify the caller
+    // is the same principal that initiated the login via prepare_login.
+    // This prevents one whitelisted canister from completing a login flow
+    // initiated by another. Controllers are always allowed.
+    let caller = ic_cdk::api::msg_caller();
+    let has_allowed_canisters = with_settings(|s| !s.allowed_canisters.is_empty());
+    if has_allowed_canisters
+        && caller != login_session.initiator
+        && !ic_cdk::api::is_controller(&caller)
+    {
+        return Err("Login must be completed by the same caller that initiated it".to_string());
+    }
+
     // Validate domain against settings whitelist (zero-copy access)
     with_settings(|settings| {
         if !settings.allowed_domains.is_empty() {

@@ -114,13 +114,16 @@ pub async fn prepare_login_with_options(
     let now = ic_cdk::api::time();
     let expires_at = now + login_expiration_time;
 
-    // Store the login session
+    // Store the login session, binding it to the caller who initiated it.
+    // In multi-tenant mode (allowed_canisters configured), only this caller
+    // can complete the login via siwa_login.
     let session = LoginSession {
         address: request.address.clone(),
         nonce: nonce.clone(),
         message: message_string.clone(),
         created_at: now,
         expires_at,
+        initiator: ic_cdk::api::msg_caller(),
     };
     store_login_session(session)?;
 

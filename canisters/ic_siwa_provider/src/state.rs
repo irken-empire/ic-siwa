@@ -130,6 +130,10 @@ pub struct LoginSession {
     pub created_at: u64,
     /// Timestamp when this session expires (nanoseconds)
     pub expires_at: u64,
+    /// The caller principal that initiated this login via prepare_login.
+    /// Used to bind login completion to the originating caller in multi-tenant
+    /// deployments (when `allowed_canisters` is configured).
+    pub initiator: Principal,
 }
 
 /// Completed authentication session
