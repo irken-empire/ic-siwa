@@ -243,8 +243,9 @@ where
 // --- Settings (persistent via StableCell) ---
 
 /// Store settings to stable memory and update the in-memory cache
-pub fn store_settings(settings: &Settings) {
-    let bytes = candid::encode_one(settings).expect("Failed to encode settings");
+pub fn store_settings(settings: &Settings) -> Result<(), String> {
+    let bytes =
+        candid::encode_one(settings).map_err(|e| format!("Failed to encode settings: {e}"))?;
     SETTINGS_CELL.with(|cell| {
         cell.borrow_mut().set(bytes);
     });
@@ -252,6 +253,7 @@ pub fn store_settings(settings: &Settings) {
     with_state_mut(|state| {
         state.settings_cache = Some(settings.clone());
     });
+    Ok(())
 }
 
 /// Access current settings via a closure (zero-copy, no heap allocation)
@@ -293,9 +295,9 @@ fn load_settings_cache() {
 ///
 /// Stores settings to stable memory and resets transient state.
 /// Identity mappings in stable memory are NOT cleared -- they persist across upgrades.
-pub fn init_state(settings: Settings) {
+pub fn init_state(settings: Settings) -> Result<(), String> {
     // Store settings to stable memory
-    store_settings(&settings);
+    store_settings(&settings)?;
 
     // Reset transient state (sessions, rate limiter, signature map)
     with_state_mut(|state| {
@@ -309,6 +311,8 @@ pub fn init_state(settings: Settings) {
 
     // Update certified data with empty signature map
     update_certified_data();
+
+    Ok(())
 }
 
 /// Initialize only transient state after an upgrade where settings are already in stable memory

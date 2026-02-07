@@ -40,7 +40,9 @@ pub fn init(args: InitArgs) {
         ic_cdk::trap(&format!("Invalid settings: {}", e));
     }
 
-    init_state(settings);
+    if let Err(e) = init_state(settings) {
+        ic_cdk::trap(&format!("Failed to initialize state: {e}"));
+    }
 }
 
 /// Handle post-upgrade logic
