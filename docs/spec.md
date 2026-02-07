@@ -215,6 +215,12 @@ query reads.
 | `siwa_logout`     | update | Revoke a specific session by address and key    |
 | `siwa_revoke_all` | update | Revoke all sessions for an address (controller) |
 
+### Diagnostic Endpoints
+
+| Endpoint     | Type  | Description                                |
+| ------------ | ----- | ------------------------------------------ |
+| `debug_info` | query | Get canister diagnostics (controller-only) |
+
 ### Utility Endpoints
 
 | Endpoint             | Type  | Description                                 |
@@ -228,14 +234,23 @@ query reads.
 The canister must be initialized with:
 
 ```candid
+type RateLimitArgs = record {
+    max_logins_per_address: nat32;  // Max prepare_login calls per address per window
+    max_logins_total: nat32;        // Max total prepare_login calls per window
+    window_seconds: nat64;          // Time window duration in seconds
+};
+
 type InitArgs = record {
-    domain: text;           // Required: Domain for SIWA messages
-    uri: text;              // Required: Full URI including scheme
-    salt: text;             // Required: Secret salt for principal derivation
-    chain_id: nat64;        // Required: Avalanche chain ID (43113 or 43114)
-    session_expiration_time: nat64;  // Required: Session TTL in nanoseconds
-    allowed_domains: opt vec text;   // Optional: Whitelist of allowed domains
-    allowed_canisters: opt vec principal; // Optional: Canister whitelist
+    domain: text;                            // Required: Domain for SIWA messages
+    uri: text;                               // Required: Full URI including scheme
+    salt: text;                              // Required: Secret salt for principal derivation
+    chain_id: nat64;                         // Required: Avalanche chain ID (43113 or 43114)
+    session_expiration_time: nat64;          // Required: Session TTL in nanoseconds
+    allowed_domains: opt vec text;           // Optional: Domain whitelist for multi-tenant
+    allowed_canisters: opt vec principal;    // Optional: Caller canister whitelist
+    delegation_targets: opt vec principal;   // Optional: Canisters delegations are valid for
+    rate_limits: opt RateLimitArgs;          // Optional: Rate limiting configuration
+    debug: opt bool;                         // Optional: Enable debug endpoints (default: false)
 };
 ```
 
@@ -246,14 +261,47 @@ type InitArgs = record {
 When `allowed_domains` is configured:
 
 - Only requests from whitelisted domains are accepted
+- Supports wildcard patterns (e.g., `*.example.com`)
+- Validated during `siwa_prepare_login_with_options` and `siwa_login`
 - Prevents unauthorized third parties from using the canister
 
-### Canister Targeting
+### Caller Whitelisting (`allowed_canisters`)
 
 When `allowed_canisters` is configured:
 
-- Delegations are only valid for specified canisters
-- Prevents cross-canister delegation abuse
+- Only whitelisted canister principals can call the provider canister
+- Controls **who can invoke** the provider's endpoints (inter-canister call whitelist)
+- If empty, all authenticated callers are allowed
+
+### Delegation Targeting (`delegation_targets`)
+
+When `delegation_targets` is configured:
+
+- Delegations are restricted to the specified canister principals
+- Controls **where delegations are valid** (which canisters accept the delegation)
+- Included in the `Delegation` record and delegation hash computation
+- If empty, delegations are unrestricted and work for any canister
+
+> **Note**: `allowed_canisters` and `delegation_targets` serve different purposes.
+> `allowed_canisters` restricts who can **call** the provider, while
+> `delegation_targets` restricts which canisters the resulting **delegations work for**.
+
+### Rate Limiting
+
+Rate limiting protects the `siwa_prepare_login` endpoint from abuse:
+
+- **Per-address limit**: Maximum login attempts per address within a time window
+- **Global limit**: Maximum total login attempts across all addresses within a time window
+- **Sliding window**: Automatically resets when the window expires
+- **Cleanup**: Expired entries are periodically removed to prevent memory growth
+
+Default values (when `rate_limits` is not provided):
+
+| Parameter                | Default | Description                         |
+| ------------------------ | ------- | ----------------------------------- |
+| `max_logins_per_address` | 10      | Max attempts per address per window |
+| `max_logins_total`       | 1000    | Max total attempts per window       |
+| `window_seconds`         | 3600    | Window duration (1 hour)            |
 
 ### Salt Security
 
@@ -266,6 +314,19 @@ When `allowed_canisters` is configured:
 - Sessions MUST have a bounded expiration time
 - Login messages MUST expire within a reasonable window (default: 5 minutes)
 - Sessions MUST be cryptographically bound to the session key
+- Maximum 5 concurrent sessions per address (oldest evicted when exceeded)
+
+### Debug Mode
+
+When `debug` is enabled (`true`):
+
+- The `debug_info` query endpoint becomes available
+- Only callable by canister controllers for security
+- Exposes diagnostic information including:
+  - Configuration: domain, URI, chain ID, session expiration
+  - Security settings: allowed domains, delegation targets, rate limits
+  - State counts: login sessions, auth sessions, prepared delegations, signature map size
+- MUST be set to `false` in production deployments
 
 ## Cryptographic Specifications
 
@@ -295,35 +356,46 @@ principal = DER_encode(seed)
 
 ### YAML Configuration Files
 
+Configuration files are stored in `config/` with environment-specific settings.
 All configuration files follow this schema:
 
 ```yaml
-# Domain configuration
-domains:
-  allowed:
-    - "example.com"
-    - "*.example.com"
-
 # Avalanche network settings
 avalanche:
-  chain_id: 43113 # or 43114 for mainnet
+  chain_id: 43113 # 43113 for Fuji testnet, 43114 for mainnet
   rpc_url: "https://api.avax-test.network/ext/bc/C/rpc"
 
 # IC network settings
 ic:
-  network: "local" # or "ic" for mainnet
+  network: "local" # "local" for dfx replica, "ic" for mainnet
   canisters:
     ic_siwa_provider: null # Set after deployment
 
+# SIWA domain settings (for multi-tenant deployments)
+siwa:
+  domain: "app.example.com" # Domain for SIWA messages
+  uri: "https://app.example.com" # Full URI including scheme
+
 # Security settings
 security:
-  allowed_canisters: []
-  session_expiration_seconds: 1800 # 30 minutes
-  login_expiration_seconds: 300 # 5 minutes
+  allowed_domains: # Domain whitelist (supports wildcards)
+    - "example.com"
+    - "*.example.com"
+  allowed_canisters: [] # Caller canister whitelist
+  delegation_targets: [] # Canisters delegations are valid for
+  rate_limits:
+    max_logins_per_address: 5 # Per-address limit per window
+    max_logins_total: 100 # Global limit per window
+    window_seconds: 3600 # Window duration in seconds
+  session_expiration_seconds: 1800 # Session TTL (30 minutes)
+  login_expiration_seconds: 300 # Login message TTL (5 minutes)
 
 # Client library settings
 library:
-  timeout_ms: 30000
+  timeout_ms: 30000 # Request timeout in milliseconds
+
+# Debug mode (should be false in production)
+debug: false
 ```
 
 ## Error Handling
@@ -339,6 +411,7 @@ library:
 | `UnauthorizedDomain`   | Request from non-whitelisted domain |
 | `UnauthorizedCanister` | Delegation target not in whitelist  |
 | `NotAuthenticated`     | No valid session for caller         |
+| `RateLimited`          | Too many login attempts             |
 
 ### Error Response Format
 
