@@ -83,13 +83,17 @@ impl SignatureMap {
             });
         }
 
-        self.expiration_queue.push(SigExpiration {
-            seed_hash,
-            delegation_hash,
-            signature_expires_at,
-        });
-        self.expiration_index
-            .insert((seed_hash, delegation_hash), signature_expires_at);
+        // Only push to queue if this is a new entry (not an update) to avoid
+        // duplicate queue entries that cause overcounting and stale deletions
+        let key = (seed_hash, delegation_hash);
+        if !self.expiration_index.contains_key(&key) {
+            self.expiration_queue.push(SigExpiration {
+                seed_hash,
+                delegation_hash,
+                signature_expires_at,
+            });
+        }
+        self.expiration_index.insert(key, signature_expires_at);
     }
 
     /// Remove a delegation hash from the map
@@ -115,18 +119,25 @@ impl SignatureMap {
     /// Number of entries pruned
     pub fn prune_expired(&mut self, now: u64, max_to_prune: usize) -> usize {
         let mut num_pruned = 0;
-        let max_to_prune = std::cmp::min(max_to_prune, self.expiration_queue.len());
 
-        for _ in 0..max_to_prune {
-            if let Some(expiration) = self.expiration_queue.peek() {
-                if expiration.signature_expires_at > now {
-                    return num_pruned;
+        while num_pruned < max_to_prune {
+            match self.expiration_queue.peek() {
+                Some(entry) if entry.signature_expires_at <= now => {}
+                _ => break, // No more expired entries or queue empty
+            }
+
+            let entry = self.expiration_queue.pop().unwrap();
+            let key = (entry.seed_hash, entry.delegation_hash);
+
+            // Only delete if the stored expiration matches (entry wasn't renewed)
+            if let Some(&stored_exp) = self.expiration_index.get(&key) {
+                if stored_exp <= now {
+                    self.delete(entry.seed_hash, entry.delegation_hash);
+                    num_pruned += 1;
                 }
+                // If stored_exp > now, the entry was renewed; skip stale queue entry
             }
-            if let Some(expiration) = self.expiration_queue.pop() {
-                self.delete(expiration.seed_hash, expiration.delegation_hash);
-            }
-            num_pruned += 1;
+            // If not in index, already deleted; skip
         }
 
         num_pruned
@@ -193,12 +204,12 @@ impl SignatureMap {
 
     /// Check if the map is empty
     pub fn is_empty(&self) -> bool {
-        self.expiration_queue.is_empty()
+        self.expiration_index.is_empty()
     }
 
     /// Get the number of entries in the map
     pub fn len(&self) -> usize {
-        self.expiration_queue.len()
+        self.expiration_index.len()
     }
 }
 

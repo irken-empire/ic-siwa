@@ -324,6 +324,8 @@ fn compute_root_hash(signature_map: &SignatureMap) -> Hash {
 pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash) {
     let now = ic_cdk::api::time();
     with_state_mut(|state| {
+        // Prune up to 20 expired entries to bound memory growth
+        state.signature_map.prune_expired(now, 20);
         state.signature_map.put(seed_hash, delegation_hash, now);
         debug_log!(
             "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, now: {}, map_len: {}",

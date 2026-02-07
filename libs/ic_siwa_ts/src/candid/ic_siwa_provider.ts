@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Auto-generated Candid bindings for ic_siwa_provider canister
  * Generated from: canisters/ic_siwa_provider/ic_siwa_provider.did
@@ -6,8 +7,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Principal } from '@dfinity/principal';
-import type { ActorMethod } from '@dfinity/agent';
+import type { Principal } from '@icp-sdk/core/principal';
+import type { ActorMethod } from '@icp-sdk/core/agent';
+import { IDL } from '@icp-sdk/core/candid';
 
 export interface DebugInfo {
   'uri' : string,
@@ -85,7 +87,7 @@ export interface SignedDelegation {
 export interface _SERVICE {
   /**
    * Get debug diagnostics (restricted to canister controllers)
-   *
+   * 
    * Returns configuration and state information for debugging.
    * Only callable by canister controllers for security.
    */
@@ -104,16 +106,16 @@ export interface _SERVICE {
   'get_principal' : ActorMethod<[string], Result_2>,
   /**
    * Get delegation for authenticated principal
-   *
+   * 
    * This is a **query** call that retrieves the certified delegation.
    * You **must** call `siwa_prepare_delegation` first (an update call) and wait
    * for it to complete before calling this query.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
    * * `expiration` - Requested expiration timestamp (used for validation)
-   *
+   * 
    * # Returns
    * * `Ok(SignedDelegation)` - The signed delegation for the session
    * * `Err(String)` - Error if not authenticated, expired, or delegation not prepared
@@ -124,12 +126,12 @@ export interface _SERVICE {
   >,
   /**
    * Complete SIWA login with signed message
-   *
+   * 
    * # Arguments
    * * `signature` - Hex-encoded signature from the user's wallet
    * * `address` - The Avalanche address that signed the message
    * * `session_key` - The session public key to bind to this authentication
-   *
+   * 
    * # Returns
    * * `Ok(LoginResponse)` - The derived principal and session expiration
    * * `Err(String)` - Error if signature is invalid or session expired
@@ -137,15 +139,15 @@ export interface _SERVICE {
   'siwa_login' : ActorMethod<[string, string, Uint8Array | number[]], Result_4>,
   /**
    * Prepare a delegation for an authenticated session
-   *
+   * 
    * This must be called before `siwa_get_delegation` to store the delegation
    * in the signature map for certified responses.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address
    * * `session_key` - The session public key from login
    * * `expiration` - Requested expiration timestamp (may be capped)
-   *
+   * 
    * # Returns
    * * `Ok(())` - Delegation prepared successfully
    * * `Err(String)` - Error if not authenticated or expired
@@ -156,13 +158,13 @@ export interface _SERVICE {
   >,
   /**
    * Prepare a SIWA login message for signing (simple version)
-   *
+   * 
    * Uses the canister's default domain/uri from init args.
    * For multi-tenant "SIWA as a Service", use `siwa_prepare_login_with_options` instead.
-   *
+   * 
    * # Arguments
    * * `address` - The Avalanche address (0x-prefixed, EIP-55 checksummed)
-   *
+   * 
    * # Returns
    * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
    * * `Err(String)` - Error description if address is invalid
@@ -170,18 +172,18 @@ export interface _SERVICE {
   'siwa_prepare_login' : ActorMethod<[string], Result_6>,
   /**
    * Prepare a SIWA login message with custom domain/uri (multi-tenant version)
-   *
+   * 
    * This is the "SIWA as a Service" endpoint where each calling application
    * can specify its own domain/uri for the wallet signing prompt.
-   *
+   * 
    * The domain must be in the `allowed_domains` whitelist configured at init.
-   *
+   * 
    * # Arguments
    * * `request` - Login request containing:
    * - `address`: The Avalanche address (0x-prefixed)
    * - `domain`: Optional domain to show in wallet (must be whitelisted)
    * - `uri`: Optional URI to show in wallet
-   *
+   * 
    * # Returns
    * * `Ok(PrepareLoginResponse)` - The message to sign, nonce, and expiration
    * * `Err(String)` - Error if address invalid or domain not whitelisted
@@ -193,6 +195,23 @@ export interface _SERVICE {
 }
 
 export const idlFactory = ({ IDL }: { IDL: any }) => {
+  const RateLimitArgs = IDL.Record({
+    'max_logins_total' : IDL.Nat32,
+    'window_seconds' : IDL.Nat64,
+    'max_logins_per_address' : IDL.Nat32,
+  });
+  const InitArgs = IDL.Record({
+    'uri' : IDL.Text,
+    'domain' : IDL.Text,
+    'salt' : IDL.Text,
+    'chain_id' : IDL.Nat64,
+    'allowed_domains' : IDL.Opt(IDL.Vec(IDL.Text)),
+    'allowed_canisters' : IDL.Opt(IDL.Vec(IDL.Principal)),
+    'rate_limits' : IDL.Opt(RateLimitArgs),
+    'delegation_targets' : IDL.Opt(IDL.Vec(IDL.Principal)),
+    'debug' : IDL.Opt(IDL.Bool),
+    'session_expiration_time' : IDL.Nat64,
+  });
   const DebugInfo = IDL.Record({
     'uri' : IDL.Text,
     'signature_map_count' : IDL.Nat64,
