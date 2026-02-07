@@ -347,10 +347,37 @@ Avalanche C-Chain addresses are Ethereum-compatible:
 
 ### Principal Derivation
 
+The user's ICP principal is derived deterministically from their Avalanche address
+and the canister's salt using Keccak256:
+
 ```text
-seed = SHA256(salt || address || [uri])
-principal = DER_encode(seed)
+normalized_address = lowercase(address)
+hash = Keccak256(normalized_address || salt)
+principal = Principal::from_bytes(hash[0..28])
 ```
+
+The first 28 bytes of the hash are used as the principal data (IC principals are
+at most 29 bytes). This ensures the same wallet address always produces the same
+ICP principal for a given canister deployment.
+
+### Delegation Seed
+
+The delegation chain root key uses a separate derivation with SHA-256 and
+length-prefixed inputs:
+
+```text
+normalized_address = lowercase(address)
+seed = SHA256(len_prefix(salt) || len_prefix(normalized_address))
+```
+
+Where `len_prefix(x)` prepends a single byte containing the length of `x`.
+The seed is used to construct the DER-encoded canister public key for the
+delegation chain using IC's canister signature scheme (OID 1.3.6.1.4.1.56387.1.2).
+
+> **Note**: Principal derivation and delegation seed generation use different hash
+> algorithms (Keccak256 vs SHA-256) and different input formats (concatenation vs
+> length-prefixed). This is intentional: the principal derivation is
+> Ethereum-ecosystem-aligned while the delegation seed follows IC conventions.
 
 ## Configuration Schema
 
