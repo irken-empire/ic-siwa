@@ -17,7 +17,7 @@ use ic_stable_structures::{
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{BinaryHeap, HashMap};
 
 // --- Stable memory layout ---
 
@@ -165,6 +165,31 @@ pub struct PreparedDelegation {
 /// Key for looking up prepared delegations (seed_hash + session_key_hash)
 pub type PreparedDelegationKey = String;
 
+/// Entry in the prepared delegation expiration queue (min-heap by expiration)
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct PreparedDelegationExpiry {
+    expires_at: u64,
+    key: PreparedDelegationKey,
+}
+
+impl Ord for PreparedDelegationExpiry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Reverse so BinaryHeap (max-heap) yields earliest expiration first
+        other.expires_at.cmp(&self.expires_at)
+    }
+}
+
+impl PartialOrd for PreparedDelegationExpiry {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Counter for periodic drain of stale prepared delegation queue entries
+static PREPARED_DRAIN_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// Drain stale queue entries every N store calls
+const PREPARED_DRAIN_INTERVAL: u64 = 50;
+
 /// Transient canister state (lost on upgrade, that's acceptable)
 #[derive(Default)]
 pub struct TransientState {
@@ -181,6 +206,8 @@ pub struct TransientState {
     /// Prepared delegations for certified retrieval
     /// Key: "{seed_hash_hex}:{session_key_hash}"
     pub prepared_delegations: HashMap<PreparedDelegationKey, PreparedDelegation>,
+    /// Min-heap of prepared delegation expirations for O(k) cleanup
+    prepared_delegation_queue: BinaryHeap<PreparedDelegationExpiry>,
 }
 
 impl TransientState {
@@ -279,6 +306,7 @@ pub fn init_state(settings: Settings) {
         state.auth_sessions.clear();
         state.signature_map = SignatureMap::default();
         state.prepared_delegations.clear();
+        state.prepared_delegation_queue.clear();
     });
 
     // Update certified data with empty signature map
@@ -298,6 +326,7 @@ pub fn init_transient_state() {
         state.auth_sessions.clear();
         state.signature_map = SignatureMap::default();
         state.prepared_delegations.clear();
+        state.prepared_delegation_queue.clear();
     });
     update_certified_data();
 }
@@ -683,7 +712,8 @@ pub fn cleanup_rate_limits() {
 
 /// Store a prepared delegation for later retrieval
 ///
-/// Enforces capacity limit by cleaning up expired delegations first.
+/// Enforces capacity limit by pruning expired entries first (O(k) where k
+/// is the number of expired entries, not O(n) for the full map).
 /// Returns error if at capacity after cleanup.
 pub fn store_prepared_delegation(
     seed_hash: &[u8; 32],
@@ -692,18 +722,28 @@ pub fn store_prepared_delegation(
 ) -> Result<(), String> {
     let key = format!("{}:{}", hex::encode(seed_hash), session_key_hash);
     with_state_mut(|state| {
-        // Clean up expired entries first
         let now = ic_cdk::api::time();
-        state
-            .prepared_delegations
-            .retain(|_, v| v.final_expiration > now);
+
+        // Prune up to 20 expired entries from the front of the min-heap
+        prune_prepared_delegations(state, now, 20);
+
+        // Periodically drain orphaned queue entries to bound memory
+        let count = PREPARED_DRAIN_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        if count % PREPARED_DRAIN_INTERVAL == 0 {
+            drain_stale_prepared_delegations(state);
+        }
 
         if state.prepared_delegations.len() >= MAX_PREPARED_DELEGATIONS
             && !state.prepared_delegations.contains_key(&key)
         {
             return Err("Too many prepared delegations. Please try again later.".to_string());
         }
-        state.prepared_delegations.insert(key, delegation);
+
+        let expires_at = delegation.final_expiration;
+        state.prepared_delegations.insert(key.clone(), delegation);
+        state
+            .prepared_delegation_queue
+            .push(PreparedDelegationExpiry { expires_at, key });
         Ok(())
     })
 }
@@ -717,12 +757,41 @@ pub fn get_prepared_delegation(
     with_state(|state| state.prepared_delegations.get(&key).cloned())
 }
 
-/// Cleanup expired prepared delegations
+/// Cleanup expired prepared delegations (O(k) not O(n))
 pub fn cleanup_expired_prepared_delegations() {
     let now = ic_cdk::api::time();
     with_state_mut(|state| {
-        state
-            .prepared_delegations
-            .retain(|_, v| v.final_expiration > now);
+        prune_prepared_delegations(state, now, 20);
     });
+}
+
+/// Prune up to `max_to_prune` expired entries from the prepared delegation queue.
+fn prune_prepared_delegations(state: &mut TransientState, now: u64, max_to_prune: usize) {
+    let mut pruned = 0;
+    while pruned < max_to_prune {
+        match state.prepared_delegation_queue.peek() {
+            Some(entry) if entry.expires_at <= now => {}
+            _ => break,
+        }
+        let entry = state.prepared_delegation_queue.pop().unwrap();
+        // Only remove from the map if the entry is actually expired
+        // (it may have been overwritten with a newer expiration)
+        if let Some(stored) = state.prepared_delegations.get(&entry.key) {
+            if stored.final_expiration <= now {
+                state.prepared_delegations.remove(&entry.key);
+                pruned += 1;
+            }
+        }
+    }
+}
+
+/// Drain orphaned queue entries whose keys no longer exist in the map.
+/// This prevents the queue from growing unboundedly when delegations are
+/// overwritten (the old queue entry becomes orphaned).
+fn drain_stale_prepared_delegations(state: &mut TransientState) {
+    let old_queue = std::mem::take(&mut state.prepared_delegation_queue);
+    state.prepared_delegation_queue = old_queue
+        .into_iter()
+        .filter(|entry| state.prepared_delegations.contains_key(&entry.key))
+        .collect();
 }
