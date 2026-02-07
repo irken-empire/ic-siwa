@@ -254,6 +254,133 @@ type InitArgs = record {
 };
 ```
 
+## Multi-Tenant Mode ("SIWA as a Service")
+
+A single IC-SIWA provider canister can serve multiple frontend applications,
+each with its own domain and URI. This "SIWA as a Service" pattern allows
+different apps to share authentication infrastructure while maintaining
+distinct wallet signing prompts.
+
+### How It Works
+
+```text
+┌─────────────┐     ┌─────────────┐     ┌──────────────────┐
+│  App A      │     │  App B      │     │  IC-SIWA         │
+│  game.ex.co │     │  shop.ex.co │     │  Provider        │
+└──────┬──────┘     └──────┬──────┘     └────────┬─────────┘
+       │                   │                     │
+       │ prepare_login_    │                     │
+       │ with_options      │                     │
+       │ domain:"game..."  │                     │
+       │ ────────────────────────────────────────>
+       │                   │                     │
+       │    message with   │                     │
+       │    "game.ex.co"   │                     │
+       │ <────────────────────────────────────────
+       │                   │                     │
+       │                   │ prepare_login_      │
+       │                   │ with_options        │
+       │                   │ domain:"shop..."    │
+       │                   │ ────────────────────>
+       │                   │                     │
+       │                   │    message with     │
+       │                   │    "shop.ex.co"     │
+       │                   │ <────────────────────
+       │                   │                     │
+```
+
+Each application receives a SIWA message containing **its own domain**, so the
+user's wallet displays the correct origin. The provider canister validates all
+custom domains against the `allowed_domains` whitelist.
+
+### Endpoint: `siwa_prepare_login_with_options`
+
+This is the multi-tenant variant of `siwa_prepare_login`. It accepts a
+`PrepareLoginRequest` record with optional domain and URI overrides:
+
+```candid
+type PrepareLoginRequest = record {
+    address: text;          // Required: Avalanche address (0x-prefixed)
+    domain: opt text;       // Optional: Custom domain for wallet prompt
+    uri: opt text;          // Optional: Custom URI for wallet prompt
+};
+```
+
+**Behavior**:
+
+1. If `domain` is provided and `allowed_domains` is configured, validate the
+   domain against the whitelist. Reject if not whitelisted.
+2. If `domain` is provided and `allowed_domains` is empty, accept any domain
+   (not recommended for production).
+3. If `domain` is not provided, use the canister's default domain from `InitArgs`.
+4. Same fallback logic applies to `uri`.
+5. The rest of the flow (nonce generation, message construction, session storage)
+   is identical to `siwa_prepare_login`.
+
+### Domain Whitelist Rules
+
+The `allowed_domains` field in `InitArgs` controls which domains are accepted
+for multi-tenant login. It supports:
+
+- **Exact match**: `"example.com"` matches only `example.com`
+- **Wildcard match**: `"*.example.com"` matches `example.com`, `app.example.com`,
+  `a.b.example.com`, etc.
+- **Case-insensitive**: All comparisons are lowercased
+
+Domain validation occurs at two points:
+
+1. During `siwa_prepare_login_with_options` — the requested domain is checked
+2. During `siwa_login` — the domain in the stored message is re-validated
+
+This double-check prevents a race condition where `allowed_domains` is updated
+between prepare and login.
+
+### Fallback Behavior
+
+| `domain` provided? | `allowed_domains` configured? | Result                               |
+| ------------------ | ----------------------------- | ------------------------------------ |
+| Yes                | Yes                           | Validate against whitelist           |
+| Yes                | No (empty)                    | Accept any domain                    |
+| No                 | Yes or No                     | Use canister default from `InitArgs` |
+
+### Configuration
+
+Multi-tenant mode is configured via `InitArgs` at canister initialization:
+
+```candid
+InitArgs = record {
+    domain: text;                        // Default domain (used when none specified)
+    uri: text;                           // Default URI (used when none specified)
+    allowed_domains: opt vec text;       // Domain whitelist for multi-tenant
+    // ... other fields
+};
+```
+
+The corresponding YAML configuration section:
+
+```yaml
+# SIWA domain settings (for multi-tenant deployments)
+siwa:
+  domain: "app.example.com" # Default domain
+  uri: "https://app.example.com" # Default URI
+
+security:
+  allowed_domains: # Domain whitelist (supports wildcards)
+    - "example.com"
+    - "*.example.com"
+```
+
+### Security Considerations
+
+- Always configure `allowed_domains` in production to prevent unauthorized
+  third parties from using your provider canister
+- Each whitelisted domain should correspond to a known, trusted application
+- The user's wallet will display the domain from the SIWA message — ensure
+  only legitimate domains are whitelisted to prevent phishing
+- Principal derivation is based on the wallet address and salt, **not** the
+  domain — the same wallet produces the same principal regardless of which
+  whitelisted domain was used for login
+
 ## Security Requirements
 
 ### Domain Whitelisting
