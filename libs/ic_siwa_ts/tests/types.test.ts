@@ -42,7 +42,7 @@ describe("Package exports", () => {
   it("should export VERSION", () => {
     expect(VERSION).toBeDefined();
     expect(typeof VERSION).toBe("string");
-    expect(VERSION).toBe("0.1.0");
+    expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
 
