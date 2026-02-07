@@ -697,11 +697,15 @@ Must provide:
 
 ### Deviations from EIP-4361
 
-The following EIP-4361 fields are not implemented:
+The following EIP-4361 fields are supported structurally but not populated
+by the canister during message construction:
 
-- `not-before`: Not required for this use case
-- `request-id`: Not required for this use case
-- `resources`: Not required for this use case
+- `not-before`: Parsed if present in signed messages, but not set during `siwa_prepare_login`
+- `request-id`: Parsed if present in signed messages, but not set during `siwa_prepare_login`
+- `resources`: Parsed if present in signed messages, but not set during `siwa_prepare_login`
+
+These fields are `None` in all canister-generated messages. The parser preserves
+them during roundtrips if they were present in the original signed message.
 
 ### Avalanche-Specific Adaptations
 
