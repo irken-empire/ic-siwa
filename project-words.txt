@@ -1,0 +1,127 @@
+# Project
+tresr
+MAHD
+SECRETSPEC
+
+# Frameworks and libraries
+astro
+appkit
+bunx
+dfinity
+junobuild
+nanostore
+nanostores
+phaser
+Reown
+viem
+wagmi
+webauthn
+
+# Game terms
+anims
+cooldown
+cooldowns
+crossfade
+deadzone
+despawn
+despawned
+hadouken
+hitbox
+hitboxes
+knockback
+midground
+mult
+spritesheet
+synthwave
+tilemaps
+tweens
+WASD
+
+# Crypto and web3
+degen
+degens
+FOMO
+hodling
+decentralize
+decentralized
+decentralization
+decentralizing
+Lambos
+normie
+SIWA
+
+# Tools and infrastructure
+dedup
+devenv
+direnv
+prek
+prebuild
+precaching
+webp
+webps
+
+# Art and design
+Lizardcube
+Orbitron
+
+# People and brands
+Fiverr
+Gensler
+Rabby
+
+# Game names and characters
+Assasian
+Pickel
+
+# Word fragments from hyphenated compounds
+# cspell splits on hyphens and suffixes, producing these fragments
+ator
+cano
+compl
+configur
+develo
+enviro
+nged
+nment
+notific
+ntion
+priate
+prin
+subd
+tures
+
+# Slang and flavour text
+Waaaaaaa
+giga
+gify
+
+# Rust crates and tools
+cdylib
+clippy
+Clippy
+convco
+getrandom
+serde
+thiserror
+
+# Crypto and hashing
+CBOR
+cbor
+keccak
+prehash
+
+# IC ecosystem
+didc
+Irken
+
+# Networking and misc tools
+netcat
+
+# UI and wallet
+daisyui
+oisy
+
+# Code identifiers
+aabb
+relogin
+startswith

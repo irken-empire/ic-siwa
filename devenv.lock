@@ -24,10 +24,10 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1770447430,
+        "lastModified": 1770534122,
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "e1b28f6ca0d1722edceec1f2f3501558988d1aed",
+        "rev": "0c9a447b32ee7af5cd2ad73aaf1bcfa09287a619",
         "type": "github"
       },
       "original": {
@@ -76,10 +76,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1770448395,
+        "lastModified": 1770534947,
         "owner": "shazow",
         "repo": "foundry.nix",
-        "rev": "58654ade79049e8c40bcb8257577da1abd92564f",
+        "rev": "1069dcf234621da06d4960c4d4b9bb5735c635b8",
         "type": "github"
       },
       "original": {
@@ -196,10 +196,10 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1770290336,
+        "lastModified": 1770470239,
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "d2a00da09293267e5be2efb216698762929d7140",
+        "rev": "fc5544304143d4bfd10fbf8839b1010c15e1491e",
         "type": "github"
       },
       "original": {
@@ -216,10 +216,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1770433312,
+        "lastModified": 1770520253,
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "9922ff9f99a6436756cbe6f5d11f9c3630e58cf0",
+        "rev": "ebb8a141f60bb0ec33836333e0ca7928a072217f",
         "type": "github"
       },
       "original": {

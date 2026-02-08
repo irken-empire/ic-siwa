@@ -1,8 +1,4 @@
-/**
- * Tests for type exports and interfaces
- */
-
-import {describe, it, expect} from "bun:test";
+import {describe, expect, it} from "bun:test";
 import {
   SiwaClient,
   SiwaError,
@@ -11,8 +7,8 @@ import {
   MemoryStorageProvider,
   generateSessionKey,
   VERSION,
-} from "../src/index";
-import {idlFactory, init} from "../src/candid";
+} from "../index";
+import {idlFactory, init} from "../candid";
 
 describe("Package exports", () => {
   it("should export SiwaClient", () => {

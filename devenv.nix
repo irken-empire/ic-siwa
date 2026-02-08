@@ -371,7 +371,26 @@ in
         enable = true;
       };
       trufflehog.enable = true;
-      typos.enable = true;
+      cspell = {
+        enable = true;
+        excludes = [
+          "\\.webp$"
+          "\\.png$"
+          "\\.jpg$"
+          "\\.jpeg$"
+          "\\.gif$"
+          "\\.ico$"
+          "\\.svg$"
+          "\\.woff2?$"
+          "\\.ttf$"
+          "\\.eot$"
+          "\\.mp3$"
+          "\\.mp4$"
+          "\\.ogg$"
+          "\\.wav$"
+          "\\.wasm$"
+        ];
+      };
       yamllint = {
         enable = true;
         settings = {
@@ -427,7 +446,6 @@ in
             "pinage404.nix-extension-pack"
             "redhat.vscode-yaml"
             "streetsidesoftware.code-spell-checker"
-            "tekumura.typos-vscode"
             "timonwong.shellcheck"
             "tuxtina.json2yaml"
             "vscodevim.vim"

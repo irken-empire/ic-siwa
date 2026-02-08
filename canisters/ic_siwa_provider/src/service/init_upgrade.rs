@@ -37,11 +37,11 @@ pub fn init(args: InitArgs) {
 
     // Validate settings before storing
     if let Err(e) = settings.validate() {
-        ic_cdk::trap(&format!("Invalid settings: {}", e));
+        ic_cdk::trap(format!("Invalid settings: {}", e));
     }
 
     if let Err(e) = init_state(settings) {
-        ic_cdk::trap(&format!("Failed to initialize state: {e}"));
+        ic_cdk::trap(format!("Failed to initialize state: {e}"));
     }
 }
 

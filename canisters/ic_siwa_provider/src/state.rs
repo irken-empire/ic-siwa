@@ -84,15 +84,25 @@ thread_local! {
 
     /// Transient state (lost on upgrade -- sessions, rate limiter, signature map)
     static STATE: RefCell<TransientState> = RefCell::new(TransientState::default());
+
+    /// Separate debug flag to avoid re-entrant RefCell borrows when
+    /// `debug_log!` is used inside `with_state_mut` closures.
+    static DEBUG_ENABLED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// Label for the signature tree in certified data
 pub const LABEL_SIG: &[u8] = b"sig";
 
 /// Check if debug logging is enabled in settings.
-/// Returns false if settings are not yet loaded (during init).
+/// Uses a separate `Cell<bool>` so it never borrows `STATE`, avoiding
+/// re-entrant `RefCell` panics when called from inside `with_state_mut`.
 pub fn is_debug_enabled() -> bool {
-    with_state(|state| state.settings_cache.as_ref().is_some_and(|s| s.debug))
+    DEBUG_ENABLED.with(|flag| flag.get())
+}
+
+/// Update the cached debug flag. Call this whenever settings change.
+fn sync_debug_flag(settings: &ic_siwa::Settings) {
+    DEBUG_ENABLED.with(|flag| flag.set(settings.debug));
 }
 
 /// Debug logging macro that only emits output when `settings.debug` is true.
@@ -244,6 +254,8 @@ pub fn store_settings(settings: &Settings) -> Result<(), String> {
     SETTINGS_CELL.with(|cell| {
         cell.borrow_mut().set(bytes);
     });
+    // Update the debug flag before caching settings (avoids re-entrant borrow)
+    sync_debug_flag(settings);
     // Update the in-memory cache
     with_state_mut(|state| {
         state.settings_cache = Some(settings.clone());
@@ -269,7 +281,7 @@ pub fn has_settings() -> bool {
 /// Load settings from stable memory into the in-memory cache.
 /// Called during init/upgrade to populate the cache.
 fn load_settings_cache() {
-    let settings = SETTINGS_CELL.with(|cell| {
+    let settings: Option<Settings> = SETTINGS_CELL.with(|cell| {
         let bytes = cell.borrow().get().clone();
         if bytes.is_empty() {
             None
@@ -278,6 +290,7 @@ fn load_settings_cache() {
         }
     });
     if let Some(s) = settings {
+        sync_debug_flag(&s);
         with_state_mut(|state| {
             state.settings_cache = Some(s);
         });
@@ -369,7 +382,7 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash, delegation_expir
 
         // Periodically drain orphaned queue entries to bound memory
         let count = DELEGATION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        if count % DRAIN_STALE_INTERVAL == 0 {
+        if count.is_multiple_of(DRAIN_STALE_INTERVAL) {
             state.signature_map.drain_stale();
         }
 
@@ -686,7 +699,7 @@ pub fn check_rate_limit(address: &str) -> Result<(), String> {
 
     // Periodically cleanup expired entries to prevent memory growth
     let count = CLEANUP_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    if count % CLEANUP_INTERVAL == 0 {
+    if count.is_multiple_of(CLEANUP_INTERVAL) {
         cleanup_rate_limits();
         // Also clean up expired sessions periodically
         with_state_mut(|state| {

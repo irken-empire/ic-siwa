@@ -364,7 +364,7 @@ fn to_eip55_checksum(address_bytes: &[u8]) -> String {
     checksummed.push_str("0x");
 
     for (i, c) in address_hex.chars().enumerate() {
-        let hash_nibble = if i % 2 == 0 {
+        let hash_nibble = if i.is_multiple_of(2) {
             (address_hash[i / 2] >> 4) & 0x0f
         } else {
             address_hash[i / 2] & 0x0f
@@ -475,7 +475,7 @@ fn days_to_ymd(days: u64) -> (u64, u64, u64) {
 
 /// Check if a year is a leap year
 fn is_leap_year(year: u64) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
 }
 
 /// Parse an ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) into Unix seconds.
@@ -499,7 +499,11 @@ pub fn parse_timestamp(s: &str) -> Option<u64> {
     let minutes: u64 = s[14..16].parse().ok()?;
     let seconds: u64 = s[17..19].parse().ok()?;
 
-    if month < 1 || month > 12 || day < 1 || day > 31 || hours > 23 || minutes > 59 || seconds > 59
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || !(0..=23).contains(&hours)
+        || !(0..=59).contains(&minutes)
+        || !(0..=59).contains(&seconds)
     {
         return None;
     }
@@ -516,8 +520,8 @@ pub fn parse_timestamp(s: &str) -> Option<u64> {
     } else {
         [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     };
-    for m in 0..(month - 1) as usize {
-        days += days_in_months[m];
+    for &d in &days_in_months[..((month - 1) as usize)] {
+        days += d;
     }
     days += day - 1;
 

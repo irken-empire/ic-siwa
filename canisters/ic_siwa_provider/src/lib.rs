@@ -83,8 +83,9 @@ fn check_caller_allowed() -> Result<(), String> {
 #[init]
 fn init(args: InitArgs) {
     service::init_upgrade::init(args);
-    // Asynchronously seed the CSPRNG with entropy from raw_rand()
-    ic_cdk::spawn(random::seed_rng());
+    // Defer CSPRNG seeding to the first execution round after init,
+    // because inter-canister calls (raw_rand) are forbidden in init mode.
+    ic_cdk_timers::set_timer(std::time::Duration::ZERO, random::seed_rng());
     ic_cdk::println!("ic_siwa_provider initialized");
 }
 
@@ -92,8 +93,9 @@ fn init(args: InitArgs) {
 #[post_upgrade]
 fn post_upgrade(args: Option<InitArgs>) {
     service::init_upgrade::post_upgrade(args);
-    // Asynchronously seed the CSPRNG with entropy from raw_rand()
-    ic_cdk::spawn(random::seed_rng());
+    // Defer CSPRNG seeding to the first execution round after upgrade,
+    // because inter-canister calls (raw_rand) are forbidden in post_upgrade mode.
+    ic_cdk_timers::set_timer(std::time::Duration::ZERO, random::seed_rng());
     ic_cdk::println!("ic_siwa_provider upgraded");
 }
 

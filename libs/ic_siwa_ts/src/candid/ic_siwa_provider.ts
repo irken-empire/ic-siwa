@@ -108,14 +108,15 @@ export interface _SERVICE {
    */
   'get_principal' : ActorMethod<[string], Result_2>,
   /**
-   * Purge all identity mappings from stable memory (controller-only)
+   * Purge identity mappings from stable memory in bounded batches (controller-only)
    * 
-   * Removes all address-to-principal and principal-to-address mappings.
-   * Mappings will be re-populated on next login for each address.
-   * Use this after changing the salt to clear stale mappings.
+   * Removes up to 1000 address-to-principal and principal-to-address mappings
+   * per call to stay within IC instruction limits. Call repeatedly until the
+   * return value is 0 to purge all mappings. Mappings will be re-populated on
+   * next login for each address.
    * 
    * # Returns
-   * * `Ok(count)` - Number of mappings removed
+   * * `Ok(count)` - Number of mappings removed in this call (0 = done)
    * * `Err(String)` - Error if not a controller
    */
   'purge_identity_mappings' : ActorMethod<[], Result_3>,

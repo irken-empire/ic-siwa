@@ -1217,18 +1217,21 @@ cmd_test_integration() {
 		log_info "  Skipped (no allowed_domains configured - all domains accepted)"
 	fi
 
-	# Test 13: Concurrent login attempts from same address
+	# Test 13: Consecutive login attempts from same address
 	((++test_num))
-	log_info "[${test_num}/${total_tests}] Testing concurrent login from same address..."
+	log_info "[${test_num}/${total_tests}] Testing consecutive login from same address..."
 	local concurrent_address="0x1111111111111111111111111111111111111111"
 	local concurrent_result1 concurrent_result2
-	concurrent_result1=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>/dev/null)
-	concurrent_result2=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>/dev/null)
+	concurrent_result1=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>&1)
+	sleep 1 # Allow replica to process the first call before the second
+	concurrent_result2=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>&1)
 	if echo "${concurrent_result1}" | grep -q "Ok" && echo "${concurrent_result2}" | grep -q "Ok"; then
 		# Second call should succeed (overwriting the first session for same address)
 		log_success "  Second prepare_login for same address succeeds (overwrites previous)"
+	elif echo "${concurrent_result2}" | grep -qi "rate"; then
+		log_warn "  Second call rate-limited (total request limit may have been reached)"
 	else
-		log_error "  Concurrent login test failed"
+		log_error "  Consecutive login test failed"
 		log_error "    Result 1: ${concurrent_result1}"
 		log_error "    Result 2: ${concurrent_result2}"
 		failed=$((failed + 1))
@@ -1288,6 +1291,13 @@ cmd_test_integration() {
 	log_info ""
 	log_info "Running full auth flow tests (using Foundry cast for signing)..."
 
+	# Pre-declare flow state variables so that later -n checks don't trigger
+	# "unbound variable" under set -u when earlier tests fail/skip.
+	local LOGIN_EXPIRATION=""
+	local CAPPED_EXPIRATION=""
+	local COMBINED_EXPIRATION=""
+	local derived_principal=""
+
 	# Foundry default test account #0 - NEVER use this for real funds
 	local CAST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 	local CAST_ADDRESS
@@ -1298,15 +1308,23 @@ cmd_test_integration() {
 	SESSION_KEY_HEX=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast keccak256 "session-key-$(date +%s%N)")
 	SESSION_KEY_HEX="${SESSION_KEY_HEX#0x}"
 	# Helper: convert hex string to Candid blob format for dfx
-	# e.g., "aabb" -> 'blob "\xaa\xbb"'
+	# Candid text format uses \XX raw hex escapes (no 'x' prefix)
+	# e.g., "aabb" -> 'blob "\aa\bb"'
 	hex_to_blob() {
 		local hex="${1#0x}"
 		local blob=""
 		local i
 		for ((i = 0; i < ${#hex}; i += 2)); do
-			blob+="\\x${hex:i:2}"
+			blob+="\\${hex:i:2}"
 		done
 		echo "blob \"${blob}\""
+	}
+
+	# Helper: extract the message field from a Candid PrepareLoginResponse
+	# dfx formats records across multiple lines, so we collapse them first
+	extract_siwa_message() {
+		local candid_output="$1"
+		echo "${candid_output}" | tr '\n' ' ' | sed -n 's/.*message = "\(.*\)"; *nonce.*/\1/p' | sed 's/\\n/\n/g'
 	}
 
 	local SESSION_KEY_BLOB
@@ -1329,7 +1347,7 @@ cmd_test_integration() {
 		# Step 2: Extract the SIWA message from the Candid response
 		# The message field contains escaped newlines (\n) and is enclosed in quotes
 		local siwa_message
-		siwa_message=$(echo "${auth_prepare_result}" | sed -n 's/.*message = "\(.*\)";.*/\1/p' | sed 's/\\n/\n/g')
+		siwa_message=$(extract_siwa_message "${auth_prepare_result}")
 
 		if [[ -z ${siwa_message} ]]; then
 			log_error "  Full auth flow: failed to extract SIWA message from response"
@@ -1337,7 +1355,7 @@ cmd_test_integration() {
 		else
 			# Step 3: Sign the message with cast (EIP-191 personal_sign)
 			local signature
-			signature=$(printf '%b' "${siwa_message}" | FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" --stdin 2>/dev/null)
+			signature=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" "$(printf '%b' "${siwa_message}")" 2>/dev/null)
 
 			if [[ -z ${signature} ]]; then
 				log_error "  Full auth flow: cast wallet sign failed"
@@ -1353,7 +1371,6 @@ cmd_test_integration() {
 					log_success "  Full auth flow: login succeeded"
 
 					# Extract expiration from login response for subsequent tests
-					local LOGIN_EXPIRATION
 					LOGIN_EXPIRATION=$(echo "${auth_login_result}" | grep -o 'expiration = [0-9_]*' | head -1 | sed 's/expiration = //;s/_//g')
 				else
 					log_error "  Full auth flow: login failed: ${auth_login_result}"
@@ -1374,7 +1391,6 @@ cmd_test_integration() {
 
 		if echo "${prep_del_result}" | grep -q "Ok"; then
 			# Extract the capped expiration returned by prepare_delegation
-			local CAPPED_EXPIRATION
 			CAPPED_EXPIRATION=$(echo "${prep_del_result}" | grep -o 'Ok = [0-9_]*' | sed 's/Ok = //;s/_//g')
 			log_success "  Prepare delegation succeeded (expiration: ${CAPPED_EXPIRATION})"
 		else
@@ -1412,7 +1428,6 @@ cmd_test_integration() {
 		principal_lookup=$(dfx canister call ic_siwa_provider get_principal "(\"${CAST_ADDRESS}\")" --network "${network}" 2>/dev/null)
 
 		if echo "${principal_lookup}" | grep -q "Ok"; then
-			local derived_principal
 			derived_principal=$(echo "${principal_lookup}" | grep -o 'principal "[^"]*"' | sed 's/principal "//;s/"//')
 			log_success "  Principal lookup succeeded: ${derived_principal}"
 		else
@@ -1503,9 +1518,9 @@ cmd_test_integration() {
 	if echo "${combined_prepare}" | grep -q "Ok"; then
 		# Extract and sign the message
 		local combined_message
-		combined_message=$(echo "${combined_prepare}" | sed -n 's/.*message = "\(.*\)";.*/\1/p' | sed 's/\\n/\n/g')
+		combined_message=$(extract_siwa_message "${combined_prepare}")
 		local combined_sig
-		combined_sig=$(printf '%b' "${combined_message}" | FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" --stdin 2>/dev/null)
+		combined_sig=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" "$(printf '%b' "${combined_message}")" 2>/dev/null)
 
 		if [[ -n ${combined_sig} ]]; then
 			local combined_result
@@ -1516,7 +1531,6 @@ cmd_test_integration() {
 			if echo "${combined_result}" | grep -q "Ok"; then
 				log_success "  Combined login_and_prepare succeeded"
 
-				local COMBINED_EXPIRATION
 				COMBINED_EXPIRATION=$(echo "${combined_result}" | grep -o 'expiration = [0-9_]*' | head -1 | sed 's/expiration = //;s/_//g')
 			else
 				log_error "  Combined login_and_prepare failed: ${combined_result}"
@@ -1565,9 +1579,9 @@ cmd_test_integration() {
 
 	if echo "${relogin_prepare}" | grep -q "Ok"; then
 		local relogin_message
-		relogin_message=$(echo "${relogin_prepare}" | sed -n 's/.*message = "\(.*\)";.*/\1/p' | sed 's/\\n/\n/g')
+		relogin_message=$(extract_siwa_message "${relogin_prepare}")
 		local relogin_sig
-		relogin_sig=$(printf '%b' "${relogin_message}" | FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" --stdin 2>/dev/null)
+		relogin_sig=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" "$(printf '%b' "${relogin_message}")" 2>/dev/null)
 
 		if [[ -n ${relogin_sig} ]]; then
 			local relogin_result

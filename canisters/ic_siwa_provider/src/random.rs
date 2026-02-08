@@ -65,7 +65,7 @@ impl CsprngState {
     fn reseed(&mut self, entropy: &[u8]) {
         let mut hasher = Sha256::new();
         hasher.update(b"ic-siwa-csprng-reseed");
-        hasher.update(&self.key);
+        hasher.update(self.key);
         hasher.update(self.counter.to_le_bytes());
         hasher.update(entropy);
         self.key = hasher.finalize().into();
@@ -80,7 +80,7 @@ impl CsprngState {
             self.counter = self.counter.wrapping_add(1);
 
             let mut hasher = Sha256::new();
-            hasher.update(&self.key);
+            hasher.update(self.key);
             hasher.update(self.counter.to_le_bytes());
             hasher.update(time.to_le_bytes());
             let output: [u8; 32] = hasher.finalize().into();
@@ -91,8 +91,8 @@ impl CsprngState {
             // Re-key: derive new key from a separate hash to avoid output == key
             let mut rekey_hasher = Sha256::new();
             rekey_hasher.update(b"ic-siwa-csprng-rekey");
-            rekey_hasher.update(&output);
-            rekey_hasher.update(&self.key);
+            rekey_hasher.update(output);
+            rekey_hasher.update(self.key);
             self.key = rekey_hasher.finalize().into();
         }
     }
