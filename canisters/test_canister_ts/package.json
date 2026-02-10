@@ -12,10 +12,10 @@
   "dependencies": {
     "@reown/appkit": "1.8.17",
     "@reown/appkit-adapter-wagmi": "1.8.17",
-    "@wagmi/core": "3.3.2",
+    "@wagmi/core": "3.3.3",
     "astro": "5.17.1",
     "ic-siwa": "file:../../libs/ic_siwa_ts",
-    "viem": "2.45.1"
+    "viem": "2.45.2"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.6",
@@ -26,6 +26,6 @@
     "globals": "17.3.0",
     "tailwindcss": "4.1.18",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.54.0"
+    "typescript-eslint": "8.55.0"
   }
 }
