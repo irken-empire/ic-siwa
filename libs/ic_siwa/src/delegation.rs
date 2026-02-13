@@ -5,51 +5,12 @@
 
 use crate::error::SiwaError;
 use crate::hash::{hash_of_map, hash_with_domain, sha256, Value};
-use crate::types::SignedDelegation;
 use candid::Principal;
 use ic_certified_map::{Hash, HashTree};
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use simple_asn1::{oid, ASN1Block};
 use std::collections::HashMap;
-
-/// Delegation manager
-pub struct Delegation {
-    // TODO: Add delegation state
-}
-
-impl Delegation {
-    /// Create a new delegation manager
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    /// Create a delegation for a principal
-    pub fn create(
-        &self,
-        _user_principal: Principal,
-        _session_key: &[u8],
-        _expiration: u64,
-    ) -> Result<SignedDelegation, SiwaError> {
-        // TODO: Implement delegation creation
-        // 1. Create delegation with session key and expiration
-        // 2. Sign delegation with canister key
-        // 3. Return signed delegation
-        Err(SiwaError::DelegationError("Not implemented".to_string()))
-    }
-
-    /// Verify a delegation
-    pub fn verify(&self, _delegation: &SignedDelegation) -> Result<bool, SiwaError> {
-        // TODO: Implement delegation verification
-        Err(SiwaError::DelegationError("Not implemented".to_string()))
-    }
-}
-
-impl Default for Delegation {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 /// Information about a delegation for hashing
 ///
@@ -94,7 +55,7 @@ pub fn create_delegation_hash(delegation: &DelegationInfo<'_>) -> Hash {
     hash_with_domain(b"ic-request-auth-delegation", &delegation_map_hash)
 }
 
-/// Generate a seed for principal derivation from the salt and address.
+/// Generate a seed for principal derivation from the salt, address, and optional origin.
 ///
 /// This seed is used both for deriving the user's principal and for
 /// creating the canister's public key that signs delegations.
@@ -108,13 +69,24 @@ pub fn create_delegation_hash(delegation: &DelegationInfo<'_>) -> Hash {
 pub fn generate_seed(salt: &str, address: &str) -> [u8; 32] {
     let mut seed_input: Vec<u8> = vec![];
 
-    // Add salt with length prefix
+    // Add salt with length prefix.
+    // Settings validation (ticket #035) enforces salt <= 255 bytes at init,
+    // so the `as u8` cast is safe. Assert in debug builds as defense-in-depth.
     let salt_bytes = salt.as_bytes();
+    debug_assert!(
+        salt_bytes.len() <= 255,
+        "Salt exceeds 255 bytes; length prefix would truncate"
+    );
     seed_input.push(salt_bytes.len() as u8);
     seed_input.extend_from_slice(salt_bytes);
 
-    // Add address with length prefix (lowercase for consistency)
+    // Add address with length prefix (lowercase for consistency).
+    // Avalanche addresses are always 42 bytes ("0x" + 40 hex chars).
     let address_bytes = address.to_lowercase().as_bytes().to_vec();
+    debug_assert!(
+        address_bytes.len() <= 255,
+        "Address exceeds 255 bytes; length prefix would truncate"
+    );
     seed_input.push(address_bytes.len() as u8);
     seed_input.extend_from_slice(&address_bytes);
 

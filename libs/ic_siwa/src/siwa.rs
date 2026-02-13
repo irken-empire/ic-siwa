@@ -128,6 +128,134 @@ impl SiwaMessage {
         msg
     }
 
+    /// Parse a SIWA message from its EIP-4361 format string representation
+    ///
+    /// This is the inverse of `to_message()`. It parses the stored message string
+    /// back into a `SiwaMessage` struct, preserving the exact domain, URI, and
+    /// other fields that were present when the message was originally created.
+    ///
+    /// # Arguments
+    /// * `text` - The EIP-4361 format message string
+    ///
+    /// # Returns
+    /// * `Ok(SiwaMessage)` - The parsed message
+    /// * `Err(SiwaError)` - If the message format is invalid
+    pub fn from_message(text: &str) -> Result<Self, SiwaError> {
+        let lines: Vec<&str> = text.lines().collect();
+
+        // First line: "{domain} wants you to sign in with your Avalanche account:"
+        let first_line = lines
+            .first()
+            .ok_or_else(|| SiwaError::InvalidMessage("Empty message".to_string()))?;
+        let suffix = " wants you to sign in with your Avalanche account:";
+        let domain = first_line
+            .strip_suffix(suffix)
+            .ok_or_else(|| SiwaError::InvalidMessage("Invalid first line format".to_string()))?
+            .to_string();
+
+        // Second line: address
+        let address = lines
+            .get(1)
+            .ok_or_else(|| SiwaError::InvalidMessage("Missing address line".to_string()))?
+            .to_string();
+
+        // Parse statement: lines between address and the first field line (starting with "URI:")
+        // The format is: empty line, statement text, empty line, then fields
+        let mut statement = None;
+        let mut field_start = 2;
+        for (i, line) in lines.iter().enumerate().skip(2) {
+            if line.starts_with("URI: ") {
+                // Check if there's a non-empty statement between address and URI
+                // Skip leading/trailing empty lines in the statement region
+                let statement_lines: Vec<&str> = lines[2..i]
+                    .iter()
+                    .copied()
+                    .filter(|l| !l.is_empty())
+                    .collect();
+                if !statement_lines.is_empty() {
+                    statement = Some(statement_lines.join("\n"));
+                }
+                field_start = i;
+                break;
+            }
+        }
+
+        // Parse key-value fields
+        let mut uri = None;
+        let mut version = "1".to_string();
+        let mut chain_id = 0u64;
+        let mut nonce = String::new();
+        let mut issued_at = String::new();
+        let mut expiration_time = None;
+        let mut not_before = None;
+        let mut request_id = None;
+        let mut resources = None;
+
+        let mut i = field_start;
+        while i < lines.len() {
+            let line = lines[i];
+            if let Some(val) = line.strip_prefix("URI: ") {
+                uri = Some(val.to_string());
+            } else if let Some(val) = line.strip_prefix("Version: ") {
+                version = val.to_string();
+            } else if let Some(val) = line.strip_prefix("Chain ID: ") {
+                chain_id = val
+                    .parse::<u64>()
+                    .map_err(|_| SiwaError::InvalidMessage("Invalid chain ID".to_string()))?;
+            } else if let Some(val) = line.strip_prefix("Nonce: ") {
+                nonce = val.to_string();
+            } else if let Some(val) = line.strip_prefix("Issued At: ") {
+                issued_at = val.to_string();
+            } else if let Some(val) = line.strip_prefix("Expiration Time: ") {
+                expiration_time = Some(val.to_string());
+            } else if let Some(val) = line.strip_prefix("Not Before: ") {
+                not_before = Some(val.to_string());
+            } else if let Some(val) = line.strip_prefix("Request ID: ") {
+                request_id = Some(val.to_string());
+            } else if line == "Resources:" {
+                let mut res = Vec::new();
+                i += 1;
+                while i < lines.len() {
+                    if let Some(val) = lines[i].strip_prefix("- ") {
+                        res.push(val.to_string());
+                    } else {
+                        break;
+                    }
+                    i += 1;
+                }
+                resources = Some(res);
+                continue;
+            }
+            i += 1;
+        }
+
+        let uri = uri.ok_or_else(|| SiwaError::InvalidMessage("Missing URI field".to_string()))?;
+
+        if nonce.is_empty() {
+            return Err(SiwaError::InvalidMessage("Missing Nonce field".to_string()));
+        }
+        if issued_at.is_empty() {
+            return Err(SiwaError::InvalidMessage(
+                "Missing Issued At field".to_string(),
+            ));
+        }
+
+        Ok(Self {
+            domain,
+            address,
+            statement,
+            uri,
+            version,
+            chain_id,
+            nonce,
+            issued_at,
+            expiration_time,
+            not_before,
+            request_id,
+            resources,
+        })
+    }
+
     /// Verify message signature and recover the signer's address
     ///
     /// # Arguments
@@ -236,7 +364,7 @@ fn to_eip55_checksum(address_bytes: &[u8]) -> String {
     checksummed.push_str("0x");
 
     for (i, c) in address_hex.chars().enumerate() {
-        let hash_nibble = if i % 2 == 0 {
+        let hash_nibble = if i.is_multiple_of(2) {
             (address_hash[i / 2] >> 4) & 0x0f
         } else {
             address_hash[i / 2] & 0x0f
@@ -350,6 +478,56 @@ fn is_leap_year(year: u64) -> bool {
     (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
 }
 
+/// Parse an ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) into Unix seconds.
+///
+/// This is the inverse of [`format_timestamp`] and only supports the exact
+/// format produced by this crate. Returns `None` on malformed input.
+pub fn parse_timestamp(s: &str) -> Option<u64> {
+    // Expected: "YYYY-MM-DDTHH:MM:SSZ" (20 chars)
+    if s.len() != 20 || !s.ends_with('Z') {
+        return None;
+    }
+    let b = s.as_bytes();
+    if b[4] != b'-' || b[7] != b'-' || b[10] != b'T' || b[13] != b':' || b[16] != b':' {
+        return None;
+    }
+
+    let year: u64 = s[0..4].parse().ok()?;
+    let month: u64 = s[5..7].parse().ok()?;
+    let day: u64 = s[8..10].parse().ok()?;
+    let hours: u64 = s[11..13].parse().ok()?;
+    let minutes: u64 = s[14..16].parse().ok()?;
+    let seconds: u64 = s[17..19].parse().ok()?;
+
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || !(0..=23).contains(&hours)
+        || !(0..=59).contains(&minutes)
+        || !(0..=59).contains(&seconds)
+    {
+        return None;
+    }
+
+    // Days from epoch to start of year
+    let mut days = 0u64;
+    for y in 1970..year {
+        days += if is_leap_year(y) { 366 } else { 365 };
+    }
+
+    // Days from start of year to start of month
+    let days_in_months: [u64; 12] = if is_leap_year(year) {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+    for &d in &days_in_months[..((month - 1) as usize)] {
+        days += d;
+    }
+    days += day - 1;
+
+    Some(days * 86400 + hours * 3600 + minutes * 60 + seconds)
+}
+
 /// Generate a random nonce using IC randomness
 pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
     // Use IC management canister for randomness
@@ -362,20 +540,10 @@ pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
     Ok(hex::encode(nonce_bytes))
 }
 
-/// Generate a nonce synchronously (for testing or when async isn't available)
-/// Uses a combination of time and caller principal for uniqueness
-pub fn generate_nonce_sync() -> Nonce {
-    let time = ic_cdk::api::time();
-    let caller = ic_cdk::api::msg_caller();
-    let data = format!("{}{}", time, caller);
-    let hash = keccak256(data.as_bytes());
-    hex::encode(&hash[..16])
-}
-
 /// Derive an ICP principal from an Avalanche address and salt
 ///
-/// This creates a self-authenticating principal based on the wallet address.
 /// The derivation is deterministic: same address + salt = same principal.
+/// The resulting principal is opaque (not self-authenticating).
 pub fn derive_principal(address: &str, salt: &str) -> Result<candid::Principal, SiwaError> {
     // Normalize the address to lowercase
     let normalized_address = address.to_lowercase();
@@ -384,7 +552,7 @@ pub fn derive_principal(address: &str, salt: &str) -> Result<candid::Principal, 
     let seed_input = format!("{}{}", normalized_address, salt);
     let seed = keccak256(seed_input.as_bytes());
 
-    // Create a self-authenticating principal from the seed
+    // Create an opaque principal from the seed
     // IC principals can be at most 29 bytes
     // We use the first 28 bytes of the hash for the principal data
     let principal_bytes = &seed[..28];
@@ -441,6 +609,27 @@ mod tests {
         let ts = format_timestamp(1705322245);
         assert!(ts.starts_with("2024-01-15T"));
         assert!(ts.ends_with("Z"));
+    }
+
+    #[test]
+    fn test_parse_timestamp_roundtrip() {
+        // Verify parse_timestamp is the inverse of format_timestamp
+        for &secs in &[0u64, 1705322245, 86400, 1_700_000_000] {
+            let formatted = format_timestamp(secs);
+            assert_eq!(
+                parse_timestamp(&formatted),
+                Some(secs),
+                "roundtrip failed for {secs}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_timestamp_invalid() {
+        assert_eq!(parse_timestamp(""), None);
+        assert_eq!(parse_timestamp("not-a-timestamp-here"), None);
+        assert_eq!(parse_timestamp("2024-01-15T12:00:00"), None); // missing Z
+        assert_eq!(parse_timestamp("2024-13-15T12:00:00Z"), None); // month 13
     }
 
     #[test]
@@ -529,6 +718,152 @@ mod tests {
         assert!(!message.contains("Not Before:"));
         assert!(!message.contains("Request ID:"));
         assert!(!message.contains("Resources:"));
+    }
+
+    #[test]
+    fn test_from_message_roundtrip() {
+        let msg = SiwaMessage {
+            domain: "example.com".to_string(),
+            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            statement: Some("Sign in with Avalanche to the app.".to_string()),
+            uri: "https://example.com".to_string(),
+            version: "1".to_string(),
+            chain_id: 43114,
+            nonce: "abc123".to_string(),
+            issued_at: "2024-01-15T12:00:00Z".to_string(),
+            expiration_time: Some("2024-01-15T12:05:00Z".to_string()),
+            not_before: None,
+            request_id: None,
+            resources: None,
+        };
+
+        let message_string = msg.to_message();
+        let parsed = SiwaMessage::from_message(&message_string).unwrap();
+
+        assert_eq!(parsed.domain, "example.com");
+        assert_eq!(parsed.address, "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed");
+        assert_eq!(
+            parsed.statement,
+            Some("Sign in with Avalanche to the app.".to_string())
+        );
+        assert_eq!(parsed.uri, "https://example.com");
+        assert_eq!(parsed.version, "1");
+        assert_eq!(parsed.chain_id, 43114);
+        assert_eq!(parsed.nonce, "abc123");
+        assert_eq!(parsed.issued_at, "2024-01-15T12:00:00Z");
+        assert_eq!(
+            parsed.expiration_time,
+            Some("2024-01-15T12:05:00Z".to_string())
+        );
+        assert_eq!(parsed.not_before, None);
+        assert_eq!(parsed.request_id, None);
+        assert_eq!(parsed.resources, None);
+
+        // Verify roundtrip produces identical message string
+        assert_eq!(parsed.to_message(), message_string);
+    }
+
+    #[test]
+    fn test_from_message_roundtrip_all_fields() {
+        let msg = SiwaMessage {
+            domain: "app.example.com".to_string(),
+            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            statement: Some("Custom statement".to_string()),
+            uri: "https://app.example.com".to_string(),
+            version: "1".to_string(),
+            chain_id: 43113,
+            nonce: "unique-nonce-123".to_string(),
+            issued_at: "2024-01-15T12:00:00Z".to_string(),
+            expiration_time: Some("2024-01-15T12:30:00Z".to_string()),
+            not_before: Some("2024-01-15T11:55:00Z".to_string()),
+            request_id: Some("req-456".to_string()),
+            resources: Some(vec!["https://api.example.com".to_string()]),
+        };
+
+        let message_string = msg.to_message();
+        let parsed = SiwaMessage::from_message(&message_string).unwrap();
+
+        assert_eq!(parsed.domain, "app.example.com");
+        assert_eq!(parsed.statement, Some("Custom statement".to_string()));
+        assert_eq!(parsed.chain_id, 43113);
+        assert_eq!(parsed.not_before, Some("2024-01-15T11:55:00Z".to_string()));
+        assert_eq!(parsed.request_id, Some("req-456".to_string()));
+        assert_eq!(
+            parsed.resources,
+            Some(vec!["https://api.example.com".to_string()])
+        );
+
+        // Verify roundtrip produces identical message string
+        assert_eq!(parsed.to_message(), message_string);
+    }
+
+    #[test]
+    fn test_from_message_without_optional_fields() {
+        let msg = SiwaMessage {
+            domain: "example.com".to_string(),
+            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            statement: None,
+            uri: "https://example.com".to_string(),
+            version: "1".to_string(),
+            chain_id: 43114,
+            nonce: "abc".to_string(),
+            issued_at: "2024-01-15T12:00:00Z".to_string(),
+            expiration_time: None,
+            not_before: None,
+            request_id: None,
+            resources: None,
+        };
+
+        let message_string = msg.to_message();
+        let parsed = SiwaMessage::from_message(&message_string).unwrap();
+
+        assert_eq!(parsed.statement, None);
+        assert_eq!(parsed.expiration_time, None);
+        assert_eq!(parsed.to_message(), message_string);
+    }
+
+    #[test]
+    fn test_from_message_multi_tenant_domain() {
+        // Simulates the multi-tenant case: message created with a custom domain/URI
+        // that differs from the canister's default settings
+        let msg = SiwaMessage {
+            domain: "game.tresr.community".to_string(),
+            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            statement: Some("Sign in with Avalanche to the app.".to_string()),
+            uri: "https://game.tresr.community".to_string(),
+            version: "1".to_string(),
+            chain_id: 43114,
+            nonce: "tenant-nonce-789".to_string(),
+            issued_at: "2024-01-15T12:00:00Z".to_string(),
+            expiration_time: Some("2024-01-15T12:05:00Z".to_string()),
+            not_before: None,
+            request_id: None,
+            resources: None,
+        };
+
+        let message_string = msg.to_message();
+        let parsed = SiwaMessage::from_message(&message_string).unwrap();
+
+        // The parsed message must preserve the original domain/URI, not canister defaults
+        assert_eq!(parsed.domain, "game.tresr.community");
+        assert_eq!(parsed.uri, "https://game.tresr.community");
+        assert_eq!(parsed.to_message(), message_string);
+    }
+
+    #[test]
+    fn test_from_message_invalid_empty() {
+        assert!(SiwaMessage::from_message("").is_err());
+    }
+
+    #[test]
+    fn test_from_message_invalid_first_line() {
+        assert!(SiwaMessage::from_message("not a valid SIWA message").is_err());
+    }
+
+    #[test]
+    fn test_from_message_missing_uri() {
+        let msg = "example.com wants you to sign in with your Avalanche account:\n0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed\n\nVersion: 1\nChain ID: 43114\nNonce: abc\nIssued At: 2024-01-15T12:00:00Z";
+        assert!(SiwaMessage::from_message(msg).is_err());
     }
 
     #[test]

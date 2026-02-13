@@ -258,8 +258,11 @@ show_help() {
 		  IC_SIWA_SALT_DEVELOPMENT    Salt for development deployments
 		  IC_SIWA_SALT_TESTNET        Salt for testnet deployments
 		  IC_SIWA_SALT_MAINNET        Salt for mainnet deployments
-		  IC_SIWA_DOMAIN              Domain for SIWA messages
-		  IC_SIWA_URI                 URI for SIWA messages
+
+		Config Files (domain/uri read from YAML):
+		  config/development.yaml     Local dev (siwa.domain, siwa.uri)
+		  config/testnet.yaml         IC testnet (siwa.domain, siwa.uri)
+		  config/mainnet.yaml         IC mainnet (siwa.domain, siwa.uri)
 	EOF
 }
 
@@ -273,12 +276,12 @@ declare -A CMD_DEPS=(
 	["build"]="cargo"
 	["candid"]="cargo,candid-extractor,didc"
 	["test"]="cargo"
-	["test-integration"]="dfx"
+	["test-integration"]="dfx,cast,yq"
 	["fmt"]="cargo"
 	["lint"]="cargo"
 	["deploy"]="dfx,cargo,bun,yq"
 	["upgrade"]="dfx,cargo,bun,yq"
-	["loop"]="dfx,cargo,bun,yq,candid-extractor,didc"
+	["loop"]="dfx,cargo,bun,yq,candid-extractor,didc,cast"
 	["start"]="dfx"
 	["stop"]="dfx"
 	["logs"]="dfx"
@@ -345,6 +348,9 @@ check_deps() {
 				;;
 			convco)
 				echo -e "  ${RED}✗${NC} convco - Install: cargo install convco"
+				;;
+			cast)
+				echo -e "  ${RED}✗${NC} cast (Foundry) - Install: curl -L https://foundry.paradigm.xyz | bash"
 				;;
 			jq)
 				echo -e "  ${RED}✗${NC} jq - Install via package manager (apt/brew/nix)"
@@ -618,6 +624,19 @@ cmd_version_check() {
 		fi
 	done
 
+	# Check TypeScript VERSION constant
+	local ts_index="${PROJECT_ROOT}/libs/ic_siwa_ts/src/index.ts"
+	if [[ -f ${ts_index} ]]; then
+		local ts_version
+		ts_version=$(grep -oP 'export const VERSION = "\K[^"]+' "${ts_index}" || echo "unknown")
+		if [[ ${cargo_version} == "${ts_version}" ]]; then
+			echo "  libs/ic_siwa_ts/src/index.ts (VERSION): ${ts_version} ✓"
+		else
+			echo "  libs/ic_siwa_ts/src/index.ts (VERSION): ${ts_version} ✗ (mismatch!)"
+			has_error=true
+		fi
+	fi
+
 	if [[ ${has_error} == "true" ]]; then
 		log_error "Version mismatch detected! Run 'ic-siwa version --sync' to fix."
 		return 1
@@ -643,6 +662,13 @@ cmd_version_sync() {
 			log_info "Updated ${npm_package}"
 		fi
 	done
+
+	# Update hardcoded VERSION constant in TypeScript source
+	local ts_index="${PROJECT_ROOT}/libs/ic_siwa_ts/src/index.ts"
+	if [[ -f ${ts_index} ]]; then
+		sed -i "s/export const VERSION = \".*\"/export const VERSION = \"${cargo_version}\"/" "${ts_index}"
+		log_info "Updated TypeScript VERSION constant"
+	fi
 
 	log_success "Versions synced to ${cargo_version}"
 }
@@ -840,7 +866,6 @@ cmd_candid() {
 	# Step 2: Generate TypeScript from .did using didc
 	log_info "Generating TypeScript module..."
 	{
-		echo '// @ts-nocheck'
 		echo '/**'
 		echo ' * Auto-generated Candid bindings for ic_siwa_provider canister'
 		echo ' * Generated from: canisters/ic_siwa_provider/ic_siwa_provider.did'
@@ -859,6 +884,32 @@ cmd_candid() {
 		log_error "Failed to generate TypeScript module"
 		return 1
 	}
+
+	# Step 3: Post-process the generated TypeScript for compatibility
+	log_info "Fixing Candid TypeScript imports and unused variables..."
+
+	# Fix imports from @icp-sdk/core to @dfinity/* (didc generates new SDK paths)
+	sed -i \
+		-e "s|@icp-sdk/core/principal|@dfinity/principal|g" \
+		-e "s|@icp-sdk/core/agent|@dfinity/agent|g" \
+		-e "s|@icp-sdk/core/candid|@dfinity/candid|g" \
+		"${ts_file}"
+
+	# Remove unused top-level IDL import (IDL is passed as parameter to factory functions)
+	sed -i "/^import { IDL } from '@dfinity\/candid';$/d" "${ts_file}"
+
+	# Remove init-only type declarations (RateLimitArgs, InitArgs) from idlFactory.
+	# didc emits these at the top of idlFactory but they're only needed in init().
+	# They cause noUnusedLocals errors since idlFactory's IDL.Service doesn't reference them.
+	# Use awk to precisely remove only these blocks within idlFactory.
+	awk '
+		/^export const idlFactory/ { in_factory=1 }
+		/^};/ && in_factory { in_factory=0 }
+		in_factory && /^  const RateLimitArgs = IDL\.Record/ { skip=1 }
+		in_factory && /^  const InitArgs = IDL\.Record/ { skip=1 }
+		skip && /^  \}\);/ { skip=0; next }
+		!skip { print }
+	' "${ts_file}" >"${ts_file}.tmp" && mv "${ts_file}.tmp" "${ts_file}"
 
 	# Update index.ts to re-export
 	cat <<-EOF >"${ts_output_dir}/index.ts"
@@ -916,7 +967,7 @@ cmd_test_integration() {
 
 	local failed=0
 	local test_num=0
-	local total_tests=11
+	local total_tests=27
 
 	# Test 1: Health check on test canister
 	((++test_num))
@@ -1101,7 +1152,462 @@ cmd_test_integration() {
 		log_warn "  NOTE: You can't run this test with 'loop' as it resets the login counter. You must use 'test-integration' directly."
 	fi
 
-	# Test 11: Rate limiting - rapid requests should eventually be blocked
+	# ==========================================
+	# Multi-Tenant and Domain Tests
+	# ==========================================
+	log_info ""
+	log_info "Running multi-tenant and domain tests..."
+
+	# Test 11: Multi-tenant prepare_login_with_options (whitelisted domain)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing multi-tenant prepare_login_with_options..."
+
+	# Read allowed_domains from config to find a whitelisted domain
+	local config_file_mt
+	case "${network}" in
+	dfx | juno) config_file_mt="${PROJECT_ROOT}/config/development.yaml" ;;
+	testnet) config_file_mt="${PROJECT_ROOT}/config/testnet.yaml" ;;
+	ic) config_file_mt="${PROJECT_ROOT}/config/mainnet.yaml" ;;
+	*) config_file_mt="${PROJECT_ROOT}/config/development.yaml" ;;
+	esac
+
+	local first_allowed_domain=""
+	if [[ -f ${config_file_mt} ]] && command -v yq &>/dev/null; then
+		first_allowed_domain=$(yq -r '.security.allowed_domains[0] // ""' "${config_file_mt}")
+		# Strip wildcard prefix if present (*.example.com -> example.com)
+		first_allowed_domain="${first_allowed_domain#\*.}"
+	fi
+
+	if [[ -n ${first_allowed_domain} ]]; then
+		local mt_test_address="0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
+		local mt_result
+		mt_result=$(dfx canister call ic_siwa_provider siwa_prepare_login_with_options \
+			"(record { address = \"${mt_test_address}\"; domain = opt \"${first_allowed_domain}\"; uri = opt \"https://${first_allowed_domain}\" })" \
+			--network "${network}" 2>/dev/null)
+		if echo "${mt_result}" | grep -q "Ok"; then
+			# Verify the returned message contains the custom domain
+			if echo "${mt_result}" | grep -q "${first_allowed_domain}"; then
+				log_success "  Multi-tenant login returned message with domain '${first_allowed_domain}'"
+			else
+				log_warn "  Multi-tenant login returned Ok but domain not found in message"
+			fi
+		else
+			log_error "  Multi-tenant prepare_login_with_options failed: ${mt_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_info "  Skipped (no allowed_domains configured)"
+	fi
+
+	# Test 12: Domain whitelisting rejection (non-whitelisted domain)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing domain whitelisting rejection..."
+
+	if [[ -n ${first_allowed_domain} ]]; then
+		local reject_address="0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"
+		local reject_result
+		reject_result=$(dfx canister call ic_siwa_provider siwa_prepare_login_with_options \
+			"(record { address = \"${reject_address}\"; domain = opt \"evil-domain.example.net\"; uri = opt \"https://evil-domain.example.net\" })" \
+			--network "${network}" 2>/dev/null)
+		if echo "${reject_result}" | grep -qi "Err\|not.*allowed\|not in"; then
+			log_success "  Non-whitelisted domain correctly rejected"
+		else
+			log_error "  Non-whitelisted domain should have been rejected: ${reject_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		# No allowed_domains means any domain is accepted
+		log_info "  Skipped (no allowed_domains configured - all domains accepted)"
+	fi
+
+	# Test 13: Consecutive login attempts from same address
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing consecutive login from same address..."
+	local concurrent_address="0x1111111111111111111111111111111111111111"
+	local concurrent_result1 concurrent_result2
+	concurrent_result1=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>&1)
+	sleep 1 # Allow replica to process the first call before the second
+	concurrent_result2=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${concurrent_address}\")" --network "${network}" 2>&1)
+	if echo "${concurrent_result1}" | grep -q "Ok" && echo "${concurrent_result2}" | grep -q "Ok"; then
+		# Second call should succeed (overwriting the first session for same address)
+		log_success "  Second prepare_login for same address succeeds (overwrites previous)"
+	elif echo "${concurrent_result2}" | grep -qi "rate"; then
+		log_warn "  Second call rate-limited (total request limit may have been reached)"
+	else
+		log_error "  Consecutive login test failed"
+		log_error "    Result 1: ${concurrent_result1}"
+		log_error "    Result 2: ${concurrent_result2}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 14: Login with invalid signature (simulates wrong wallet)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing login with invalid signature..."
+	local bad_sig_address="0x2222222222222222222222222222222222222222"
+	# First prepare a login
+	dfx canister call ic_siwa_provider siwa_prepare_login "(\"${bad_sig_address}\")" --network "${network}" >/dev/null 2>&1
+	# Then try to login with a garbage signature
+	local fake_sig
+	fake_sig="0x$(printf 'ab%.0s' {1..64})1b"
+	local bad_sig_result
+	bad_sig_result=$(dfx canister call ic_siwa_provider siwa_login "(\"${fake_sig}\", \"${bad_sig_address}\", blob \"\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\")" --network "${network}" 2>/dev/null)
+	if echo "${bad_sig_result}" | grep -qi "Err"; then
+		log_success "  Invalid signature correctly rejected"
+	else
+		log_error "  Invalid signature should have been rejected: ${bad_sig_result}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 15: Prepare delegation without authenticated session
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing prepare_delegation without session..."
+	local no_session_result
+	no_session_result=$(dfx canister call ic_siwa_provider siwa_prepare_delegation \
+		'("0x3333333333333333333333333333333333333333", blob "\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f", 3600000000000 : nat64)' \
+		--network "${network}" 2>/dev/null)
+	if echo "${no_session_result}" | grep -qi "Err"; then
+		log_success "  Prepare delegation correctly requires authenticated session"
+	else
+		log_error "  Prepare delegation should fail without valid session"
+		failed=$((failed + 1))
+	fi
+
+	# Test 16: Logout without valid session (should fail gracefully)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing logout without session..."
+	local logout_result
+	logout_result=$(dfx canister call ic_siwa_provider siwa_logout \
+		'("0x4444444444444444444444444444444444444444", blob "\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f")' \
+		--network "${network}" 2>&1)
+	if echo "${logout_result}" | grep -qi "Err\|not found\|Session not found"; then
+		log_success "  Logout correctly fails for non-existent session"
+	elif echo "${logout_result}" | grep -qi "has no method\|is not defined"; then
+		log_warn "  Skipped (siwa_logout not in Candid interface - regenerate with 'ic-siwa candid')"
+	else
+		log_error "  Logout should fail for non-existent session: ${logout_result}"
+		failed=$((failed + 1))
+	fi
+
+	# ==========================================
+	# Full Auth Flow Tests (require Foundry cast)
+	# ==========================================
+	log_info ""
+	log_info "Running full auth flow tests (using Foundry cast for signing)..."
+
+	# Pre-declare flow state variables so that later -n checks don't trigger
+	# "unbound variable" under set -u when earlier tests fail/skip.
+	local LOGIN_EXPIRATION=""
+	local CAPPED_EXPIRATION=""
+	local COMBINED_EXPIRATION=""
+	local derived_principal=""
+
+	# Foundry default test account #0 - NEVER use this for real funds
+	local CAST_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+	local CAST_ADDRESS
+	CAST_ADDRESS=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast to-check-sum-address "$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet address "${CAST_PRIVATE_KEY}")")
+
+	# Generate a 32-byte session key for testing
+	local SESSION_KEY_HEX
+	SESSION_KEY_HEX=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast keccak256 "session-key-$(date +%s%N)")
+	SESSION_KEY_HEX="${SESSION_KEY_HEX#0x}"
+	# Helper: convert hex string to Candid blob format for dfx
+	# Candid text format uses \XX raw hex escapes (no 'x' prefix)
+	# e.g., "aabb" -> 'blob "\aa\bb"'
+	hex_to_blob() {
+		local hex="${1#0x}"
+		local blob=""
+		local i
+		for ((i = 0; i < ${#hex}; i += 2)); do
+			blob+="\\${hex:i:2}"
+		done
+		echo "blob \"${blob}\""
+	}
+
+	# Helper: extract the message field from a Candid PrepareLoginResponse
+	# dfx formats records across multiple lines, so we collapse them first
+	extract_siwa_message() {
+		local candid_output="$1"
+		echo "${candid_output}" | tr '\n' ' ' | sed -n 's/.*message = "\(.*\)"; *nonce.*/\1/p' | sed 's/\\n/\n/g'
+	}
+
+	local SESSION_KEY_BLOB
+	SESSION_KEY_BLOB=$(hex_to_blob "${SESSION_KEY_HEX}")
+
+	log_info "  Test address: ${CAST_ADDRESS}"
+
+	# Test 17: Full auth flow - prepare_login -> cast sign -> siwa_login
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing full auth flow (prepare -> sign -> login)..."
+
+	# Step 1: Prepare login
+	local auth_prepare_result
+	auth_prepare_result=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${CAST_ADDRESS}\")" --network "${network}" 2>/dev/null)
+
+	if ! echo "${auth_prepare_result}" | grep -q "Ok"; then
+		log_error "  Full auth flow: prepare_login failed: ${auth_prepare_result}"
+		failed=$((failed + 1))
+	else
+		# Step 2: Extract the SIWA message from the Candid response
+		# The message field contains escaped newlines (\n) and is enclosed in quotes
+		local siwa_message
+		siwa_message=$(extract_siwa_message "${auth_prepare_result}")
+
+		if [[ -z ${siwa_message} ]]; then
+			log_error "  Full auth flow: failed to extract SIWA message from response"
+			failed=$((failed + 1))
+		else
+			# Step 3: Sign the message with cast (EIP-191 personal_sign)
+			local signature
+			signature=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" "$(printf '%b' "${siwa_message}")" 2>/dev/null)
+
+			if [[ -z ${signature} ]]; then
+				log_error "  Full auth flow: cast wallet sign failed"
+				failed=$((failed + 1))
+			else
+				# Step 4: Login with signature
+				local auth_login_result
+				auth_login_result=$(dfx canister call ic_siwa_provider siwa_login \
+					"(\"${signature}\", \"${CAST_ADDRESS}\", ${SESSION_KEY_BLOB})" \
+					--network "${network}" 2>/dev/null)
+
+				if echo "${auth_login_result}" | grep -q "Ok"; then
+					log_success "  Full auth flow: login succeeded"
+
+					# Extract expiration from login response for subsequent tests
+					LOGIN_EXPIRATION=$(echo "${auth_login_result}" | grep -o 'expiration = [0-9_]*' | head -1 | sed 's/expiration = //;s/_//g')
+				else
+					log_error "  Full auth flow: login failed: ${auth_login_result}"
+					failed=$((failed + 1))
+				fi
+			fi
+		fi
+	fi
+
+	# Test 18: Prepare delegation after login
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing prepare_delegation after login..."
+	if [[ -n ${LOGIN_EXPIRATION} ]]; then
+		local prep_del_result
+		prep_del_result=$(dfx canister call ic_siwa_provider siwa_prepare_delegation \
+			"(\"${CAST_ADDRESS}\", ${SESSION_KEY_BLOB}, ${LOGIN_EXPIRATION} : nat64)" \
+			--network "${network}" 2>/dev/null)
+
+		if echo "${prep_del_result}" | grep -q "Ok"; then
+			# Extract the capped expiration returned by prepare_delegation
+			CAPPED_EXPIRATION=$(echo "${prep_del_result}" | grep -o 'Ok = [0-9_]*' | sed 's/Ok = //;s/_//g')
+			log_success "  Prepare delegation succeeded (expiration: ${CAPPED_EXPIRATION})"
+		else
+			log_error "  Prepare delegation failed: ${prep_del_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (no login expiration from previous test)"
+	fi
+
+	# Test 19: Get delegation (certified query)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing get_delegation after prepare..."
+	if [[ -n ${CAPPED_EXPIRATION} ]]; then
+		local get_del_result
+		get_del_result=$(dfx canister call ic_siwa_provider siwa_get_delegation \
+			"(\"${CAST_ADDRESS}\", ${SESSION_KEY_BLOB}, ${CAPPED_EXPIRATION} : nat64)" \
+			--network "${network}" 2>/dev/null)
+
+		if echo "${get_del_result}" | grep -q "Ok"; then
+			log_success "  Get delegation succeeded (signed delegation returned)"
+		else
+			log_error "  Get delegation failed: ${get_del_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (no capped expiration from previous test)"
+	fi
+
+	# Test 20: Principal lookup after login
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing get_principal after login..."
+	if [[ -n ${LOGIN_EXPIRATION} ]]; then
+		local principal_lookup
+		principal_lookup=$(dfx canister call ic_siwa_provider get_principal "(\"${CAST_ADDRESS}\")" --network "${network}" 2>/dev/null)
+
+		if echo "${principal_lookup}" | grep -q "Ok"; then
+			derived_principal=$(echo "${principal_lookup}" | grep -o 'principal "[^"]*"' | sed 's/principal "//;s/"//')
+			log_success "  Principal lookup succeeded: ${derived_principal}"
+		else
+			log_error "  Principal lookup failed: ${principal_lookup}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (login did not succeed)"
+	fi
+
+	# Test 21: Address lookup (reverse mapping)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing get_address for derived principal..."
+	if [[ -n ${derived_principal} ]]; then
+		local address_lookup
+		address_lookup=$(dfx canister call ic_siwa_provider get_address "(principal \"${derived_principal}\")" --network "${network}" 2>/dev/null)
+
+		if echo "${address_lookup}" | grep -q "Ok"; then
+			local returned_address
+			returned_address=$(echo "${address_lookup}" | sed -n 's/.*Ok = "\([^"]*\)".*/\1/p')
+			if [[ ${returned_address,,} == "${CAST_ADDRESS,,}" ]]; then
+				log_success "  Address lookup matches: ${returned_address}"
+			else
+				log_error "  Address mismatch: expected ${CAST_ADDRESS}, got ${returned_address}"
+				failed=$((failed + 1))
+			fi
+		else
+			log_error "  Address lookup failed: ${address_lookup}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (no derived principal from previous test)"
+	fi
+
+	# Test 22: Logout real session
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing logout of authenticated session..."
+	if [[ -n ${LOGIN_EXPIRATION} ]]; then
+		local auth_logout_result
+		auth_logout_result=$(dfx canister call ic_siwa_provider siwa_logout \
+			"(\"${CAST_ADDRESS}\", ${SESSION_KEY_BLOB})" \
+			--network "${network}" 2>/dev/null)
+
+		if echo "${auth_logout_result}" | grep -q "Ok"; then
+			log_success "  Logout succeeded"
+		else
+			log_error "  Logout failed: ${auth_logout_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (no active session)"
+	fi
+
+	# Test 23: Post-logout delegation should fail
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing delegation fails after logout..."
+	if [[ -n ${CAPPED_EXPIRATION} ]]; then
+		local post_logout_del
+		post_logout_del=$(dfx canister call ic_siwa_provider siwa_get_delegation \
+			"(\"${CAST_ADDRESS}\", ${SESSION_KEY_BLOB}, ${CAPPED_EXPIRATION} : nat64)" \
+			--network "${network}" 2>/dev/null)
+
+		if echo "${post_logout_del}" | grep -qi "Err"; then
+			log_success "  Delegation correctly fails after logout"
+		else
+			log_error "  Delegation should fail after logout: ${post_logout_del}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (no session to verify)"
+	fi
+
+	# Test 24: Combined endpoint (login_and_prepare)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing combined siwa_login_and_prepare..."
+
+	# Need a fresh session key for combined endpoint
+	local SESSION_KEY2_HEX
+	SESSION_KEY2_HEX=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast keccak256 "session-key-combined-$(date +%s%N)")
+	SESSION_KEY2_HEX="${SESSION_KEY2_HEX#0x}"
+	local SESSION_KEY2_BLOB
+	SESSION_KEY2_BLOB=$(hex_to_blob "${SESSION_KEY2_HEX}")
+
+	# Prepare login first
+	local combined_prepare
+	combined_prepare=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${CAST_ADDRESS}\")" --network "${network}" 2>/dev/null)
+
+	if echo "${combined_prepare}" | grep -q "Ok"; then
+		# Extract and sign the message
+		local combined_message
+		combined_message=$(extract_siwa_message "${combined_prepare}")
+		local combined_sig
+		combined_sig=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" "$(printf '%b' "${combined_message}")" 2>/dev/null)
+
+		if [[ -n ${combined_sig} ]]; then
+			local combined_result
+			combined_result=$(dfx canister call ic_siwa_provider siwa_login_and_prepare \
+				"(\"${combined_sig}\", \"${CAST_ADDRESS}\", ${SESSION_KEY2_BLOB})" \
+				--network "${network}" 2>/dev/null)
+
+			if echo "${combined_result}" | grep -q "Ok"; then
+				log_success "  Combined login_and_prepare succeeded"
+
+				COMBINED_EXPIRATION=$(echo "${combined_result}" | grep -o 'expiration = [0-9_]*' | head -1 | sed 's/expiration = //;s/_//g')
+			else
+				log_error "  Combined login_and_prepare failed: ${combined_result}"
+				failed=$((failed + 1))
+			fi
+		else
+			log_error "  Failed to sign message for combined endpoint"
+			failed=$((failed + 1))
+		fi
+	else
+		log_error "  Prepare login for combined endpoint failed: ${combined_prepare}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 25: Get delegation after combined endpoint
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing get_delegation after combined endpoint..."
+	if [[ -n ${COMBINED_EXPIRATION} ]]; then
+		local combined_del_result
+		combined_del_result=$(dfx canister call ic_siwa_provider siwa_get_delegation \
+			"(\"${CAST_ADDRESS}\", ${SESSION_KEY2_BLOB}, ${COMBINED_EXPIRATION} : nat64)" \
+			--network "${network}" 2>/dev/null)
+
+		if echo "${combined_del_result}" | grep -q "Ok"; then
+			log_success "  Get delegation after combined endpoint succeeded"
+		else
+			log_error "  Get delegation after combined endpoint failed: ${combined_del_result}"
+			failed=$((failed + 1))
+		fi
+	else
+		log_warn "  Skipped (combined endpoint did not succeed)"
+	fi
+
+	# Test 26: Re-login after logout (full flow again)
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing re-login after logout..."
+
+	local SESSION_KEY3_HEX
+	SESSION_KEY3_HEX=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast keccak256 "session-key-relogin-$(date +%s%N)")
+	SESSION_KEY3_HEX="${SESSION_KEY3_HEX#0x}"
+	local SESSION_KEY3_BLOB
+	SESSION_KEY3_BLOB=$(hex_to_blob "${SESSION_KEY3_HEX}")
+
+	local relogin_prepare
+	relogin_prepare=$(dfx canister call ic_siwa_provider siwa_prepare_login "(\"${CAST_ADDRESS}\")" --network "${network}" 2>/dev/null)
+
+	if echo "${relogin_prepare}" | grep -q "Ok"; then
+		local relogin_message
+		relogin_message=$(extract_siwa_message "${relogin_prepare}")
+		local relogin_sig
+		relogin_sig=$(FOUNDRY_DISABLE_NIGHTLY_WARNING=1 cast wallet sign --private-key "${CAST_PRIVATE_KEY}" "$(printf '%b' "${relogin_message}")" 2>/dev/null)
+
+		if [[ -n ${relogin_sig} ]]; then
+			local relogin_result
+			relogin_result=$(dfx canister call ic_siwa_provider siwa_login \
+				"(\"${relogin_sig}\", \"${CAST_ADDRESS}\", ${SESSION_KEY3_BLOB})" \
+				--network "${network}" 2>/dev/null)
+
+			if echo "${relogin_result}" | grep -q "Ok"; then
+				log_success "  Re-login after logout succeeded"
+			else
+				log_error "  Re-login failed: ${relogin_result}"
+				failed=$((failed + 1))
+			fi
+		else
+			log_error "  Failed to sign message for re-login"
+			failed=$((failed + 1))
+		fi
+	else
+		log_error "  Prepare login for re-login failed: ${relogin_prepare}"
+		failed=$((failed + 1))
+	fi
+
+	# Test 27: Rate limiting - rapid requests should eventually be blocked
 	# NOTE: This test MUST be last - it triggers rate limits that block requests for 60 seconds
 	((++test_num))
 	log_info "[${test_num}/${total_tests}] Testing rate limiting..."
@@ -1324,9 +1830,11 @@ build_init_arg() {
 	# Log to stderr so it doesn't get captured in the return value
 	echo -e "${BLUE}[INFO]${NC} Reading config from: ${config_file}" >&2
 
-	# Get configuration from environment or use defaults
-	local domain="${IC_SIWA_DOMAIN:-localhost}"
-	local uri="${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
+	# Read domain/uri from config file (consistent with CI read-config action)
+	local domain
+	domain=$(yq -r '.siwa.domain' "${config_file}")
+	local uri
+	uri=$(yq -r '.siwa.uri' "${config_file}")
 	local salt="${IC_SIWA_SALT_DEVELOPMENT:-development-salt-change-me}"
 
 	# Read values from config file
@@ -1423,9 +1931,7 @@ cmd_deploy() {
 	init_arg=$(build_init_arg "${network}") || return 1
 
 	# Deploy ic_siwa_provider
-	log_debug "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
-	log_debug "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
-	log_debug "  Chain ID: $([[ ${network} == "ic" ]] && echo "43114" || echo "43113")"
+	log_debug "  Init arg: ${init_arg}"
 
 	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" --yes || {
 		log_error "Failed to deploy ic_siwa_provider"
@@ -1546,8 +2052,7 @@ cmd_upgrade() {
 	init_arg=$(build_init_arg "${network}") || return 1
 
 	log_info "Upgrading with config:"
-	log_info "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
-	log_info "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
+	log_debug "  Init arg: ${init_arg}"
 
 	# Upgrade ic_siwa_provider
 	# Use --upgrade-unchanged to force upgrade even if WASM hash is the same

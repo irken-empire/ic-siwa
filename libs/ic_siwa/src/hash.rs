@@ -119,6 +119,10 @@ pub fn hash_of_map<S: AsRef<str>>(map: HashMap<S, Value<'_>>) -> Hash {
 
 /// Compute a hash with a domain separator (IC standard)
 pub fn hash_with_domain(sep: &[u8], bytes: &[u8]) -> Hash {
+    debug_assert!(
+        sep.len() <= 255,
+        "Domain separator exceeds 255 bytes; length prefix would truncate"
+    );
     let mut hasher = Sha256::new();
     hasher.update([sep.len() as u8]);
     hasher.update(sep);

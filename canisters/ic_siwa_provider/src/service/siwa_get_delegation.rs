@@ -3,7 +3,7 @@
 //! Returns a signed delegation for authenticated principals.
 
 use crate::service::delegation_utils::{
-    compute_seed_hash, get_prepared_delegation, validate_session,
+    compute_seed_hash, get_prepared_delegation, validate_session_data,
 };
 use crate::state::create_certified_delegation_signature;
 use candid::{CandidType, Principal};
@@ -55,8 +55,12 @@ pub fn get_delegation(
     session_key: Vec<u8>,
     _expiration: u64,
 ) -> Result<SignedDelegation, String> {
-    // Validate the session (this also checks expiration)
-    let (_key_hash, _session_expires_at) = validate_session(&address, &session_key)?;
+    // Validate session data (address, key, expiration) without caller check.
+    // Query calls cannot verify the caller principal (not consensus-verified),
+    // so caller-based authorization is omitted here. The signed delegation is
+    // only useful when paired with the private session key, which never leaves
+    // the client — that is the real security guarantee.
+    let (_key_hash, _session_expires_at) = validate_session_data(&address, &session_key)?;
 
     // Compute the seed hash for this address
     let seed_hash = compute_seed_hash(&address);
@@ -64,7 +68,7 @@ pub fn get_delegation(
     // Get the session key hash for looking up the prepared delegation
     let session_key_hash = hash_session_key(&session_key);
 
-    ic_cdk::println!(
+    crate::state::debug_log!(
         "[GET_DELEGATION] address: {}, seed_hash: {}, session_key_hash: {}, session_key_len: {}",
         address,
         hex::encode(seed_hash),
@@ -88,7 +92,7 @@ pub fn get_delegation(
     let delegation_hash = prepared.delegation_hash;
     let targets = prepared.targets;
 
-    ic_cdk::println!(
+    crate::state::debug_log!(
         "[GET_DELEGATION] Found prepared delegation. delegation_hash: {}, final_expiration: {}",
         hex::encode(delegation_hash),
         final_expiration

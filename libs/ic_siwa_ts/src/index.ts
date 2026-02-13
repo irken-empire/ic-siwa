@@ -34,6 +34,7 @@ export {
 export {
   type StorageProvider,
   LocalStorageProvider,
+  SessionStorageProvider,
   MemoryStorageProvider,
 } from "./storage";
 export type {
@@ -53,4 +54,4 @@ export {
 } from "./candid";
 
 // Version
-export const VERSION = "0.1.0";
+export const VERSION = "0.2.0";

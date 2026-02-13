@@ -6,13 +6,13 @@
   ...
 }:
 let
-  ic-nix-release = "20251223";
+  ic-nix-release = "20260203";
 
   ic-nix =
     import
       (fetchTarball {
         url = "https://github.com/ninegua/ic-nix/archive/refs/tags/${ic-nix-release}.tar.gz";
-        sha256 = "0vv46lcl0128p2kw7ml0qi8dhaqgkiw4hzws2jlp1k7v210h6ipp";
+        sha256 = "0vydcs3m46rwm3z6d4mqvxsa8s26rl5qw3apy5lpvg8146h2y54g";
       })
       {
         pkgs = pkgs.appendOverlays [
@@ -338,7 +338,7 @@ in
         };
       };
       mixed-line-endings.enable = true;
-      nixfmt-rfc-style.enable = true;
+      nixfmt.enable = true;
       prettier = {
         enable = true;
         settings = {
@@ -371,7 +371,26 @@ in
         enable = true;
       };
       trufflehog.enable = true;
-      typos.enable = true;
+      cspell = {
+        enable = true;
+        excludes = [
+          "\\.webp$"
+          "\\.png$"
+          "\\.jpg$"
+          "\\.jpeg$"
+          "\\.gif$"
+          "\\.ico$"
+          "\\.svg$"
+          "\\.woff2?$"
+          "\\.ttf$"
+          "\\.eot$"
+          "\\.mp3$"
+          "\\.mp4$"
+          "\\.ogg$"
+          "\\.wav$"
+          "\\.wasm$"
+        ];
+      };
       yamllint = {
         enable = true;
         settings = {
@@ -427,7 +446,6 @@ in
             "pinage404.nix-extension-pack"
             "redhat.vscode-yaml"
             "streetsidesoftware.code-spell-checker"
-            "tekumura.typos-vscode"
             "timonwong.shellcheck"
             "tuxtina.json2yaml"
             "vscodevim.vim"

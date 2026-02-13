@@ -12,9 +12,9 @@ import {Principal} from "@dfinity/principal";
 import {
   idlFactory,
   type _SERVICE,
-  type Result_3,
   type Result_4,
-  type Result_6,
+  type Result_5,
+  type Result_7,
   type Delegation as CandidDelegation,
 } from "./candid";
 import {SiwaError, SiwaErrorCode} from "./errors";
@@ -24,7 +24,7 @@ import {
   type SiwaIdentity,
   type SerializedIdentity,
 } from "./identity";
-import {LocalStorageProvider, type StorageProvider} from "./storage";
+import {SessionStorageProvider, type StorageProvider} from "./storage";
 import type {PreparedLogin, LoginResult, PrepareLoginOptions} from "./types";
 
 /**
@@ -60,9 +60,16 @@ export class SiwaClient {
   constructor(options: SiwaClientOptions) {
     this.canisterId = Principal.fromText(options.canisterId);
     this.host = options.host ?? "https://ic0.app";
-    this.storage = options.storage ?? new LocalStorageProvider();
+    this.storage = options.storage ?? new SessionStorageProvider();
     this.autoRefresh = options.autoRefresh ?? true;
     this.refreshThreshold = options.refreshThreshold ?? 5 * 60 * 1000; // 5 minutes
+  }
+
+  /**
+   * Get a canister-namespaced storage key to prevent cross-canister conflicts
+   */
+  private storageKey(key: string): string {
+    return `${this.canisterId.toText()}_${key}`;
   }
 
   /**
@@ -82,15 +89,20 @@ export class SiwaClient {
     }
 
     // Try to restore from storage
-    const stored = await this.storage.get("siwa_identity");
+    const stored = await this.storage.get(this.storageKey("identity"));
     if (stored) {
       try {
         const data = JSON.parse(stored) as SerializedIdentity;
         this.identity = await createSiwaIdentity(data);
 
-        if (!this.identity.isExpired()) {
+        // Use a 30-second buffer so we don't return a nearly-expired
+        // identity that would fail on the first canister call.
+        const RESTORE_BUFFER_MS = 30_000;
+        if (Date.now() + RESTORE_BUFFER_MS < this.identity.getExpiration()) {
           // Restore session key if stored
-          const storedKey = await this.storage.get("siwa_session_key");
+          const storedKey = await this.storage.get(
+            this.storageKey("session_key")
+          );
           if (storedKey) {
             this.sessionKey = Ed25519KeyIdentity.fromJSON(storedKey);
           }
@@ -105,8 +117,8 @@ export class SiwaClient {
       } catch {
         // Invalid stored identity, clean up
       }
-      await this.storage.remove("siwa_identity");
-      await this.storage.remove("siwa_session_key");
+      await this.storage.remove(this.storageKey("identity"));
+      await this.storage.remove(this.storageKey("session_key"));
     }
 
     return null;
@@ -129,6 +141,50 @@ export class SiwaClient {
   }
 
   /**
+   * Check if the host is a local development environment.
+   * Uses strict hostname matching to avoid false positives
+   * (e.g. "localhost.evil.com" would NOT match).
+   */
+  private isLocalEnvironment(): boolean {
+    try {
+      const url = new URL(this.host);
+      const hostname = url.hostname;
+      return (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "::1" ||
+        hostname.endsWith(".localhost")
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Validate an Avalanche address format (0x-prefixed, 42 hex chars)
+   */
+  private static validateAddress(address: string): void {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+      throw new SiwaError(
+        SiwaErrorCode.InvalidAddress,
+        "Address must be 0x-prefixed followed by 40 hex characters"
+      );
+    }
+  }
+
+  /**
+   * Validate a hex-encoded signature format (0x-prefixed, 130 hex chars = 65 bytes)
+   */
+  private static validateSignature(signature: string): void {
+    if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) {
+      throw new SiwaError(
+        SiwaErrorCode.InvalidSignature,
+        "Signature must be 0x-prefixed followed by 130 hex characters (65 bytes)"
+      );
+    }
+  }
+
+  /**
    * Create an anonymous agent for canister calls
    */
   private async createAnonymousAgent(): Promise<HttpAgent> {
@@ -136,12 +192,7 @@ export class SiwaClient {
       host: this.host,
     });
 
-    // Fetch root key in non-production environments
-    if (
-      this.host.includes("localhost") ||
-      this.host.includes("127.0.0.1") ||
-      this.host.includes(".local")
-    ) {
+    if (this.isLocalEnvironment()) {
       await agent.fetchRootKey();
     }
 
@@ -194,11 +245,12 @@ export class SiwaClient {
   async prepareLoginWithOptions(
     options: PrepareLoginOptions
   ): Promise<PreparedLogin> {
+    SiwaClient.validateAddress(options.address);
     try {
       const actor = await this.createProviderActor();
 
       // Use the new multi-tenant endpoint if domain/uri provided
-      const response: Result_6 = await actor.siwa_prepare_login_with_options({
+      const response: Result_7 = await actor.siwa_prepare_login_with_options({
         address: options.address,
         domain: options.domain ? [options.domain] : [],
         uri: options.uri ? [options.uri] : [],
@@ -240,6 +292,8 @@ export class SiwaClient {
     address: string,
     sessionKey?: Ed25519KeyIdentity
   ): Promise<LoginResult> {
+    SiwaClient.validateAddress(address);
+    SiwaClient.validateSignature(signature);
     try {
       // Generate session key if not provided
       this.sessionKey = sessionKey ?? generateSessionKey();
@@ -247,9 +301,10 @@ export class SiwaClient {
       // Convert to number[] for Candid encoding (blob = vec nat8)
       const sessionKeyBytes = Array.from(new Uint8Array(sessionKeyDer));
 
-      // Call siwa_login
+      // Combined login + prepare_delegation in a single update call
+      // This saves ~2 seconds by eliminating one consensus round-trip
       const actor = await this.createProviderActor();
-      const loginResponse: Result_4 = await actor.siwa_login(
+      const loginResponse: Result_5 = await actor.siwa_login_and_prepare(
         signature,
         address,
         sessionKeyBytes
@@ -277,40 +332,18 @@ export class SiwaClient {
           ? userCanisterPubkey
           : new Uint8Array(userCanisterPubkey);
 
-      // Use the expiration from login response, or default to 30 minutes
-      const expirationNs =
-        loginExpiration ??
-        BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
+      // Use the expiration from login response (always present in LoginResponse)
+      const expirationNs = loginExpiration;
 
-      // Prepare delegation first (stores in signature map for certified response)
-      const prepareResult = await actor.siwa_prepare_delegation(
+      // Get the certified delegation with retry logic to handle the IC
+      // certified data propagation race (query may hit a replica that hasn't
+      // yet processed the update call's state tree commit).
+      const delegationResponse = await this.getDelegationWithRetry(
+        actor,
         address,
         sessionKeyBytes,
         expirationNs
       );
-
-      if ("Err" in prepareResult) {
-        throw new SiwaError(
-          SiwaErrorCode.CanisterError,
-          prepareResult.Err,
-          prepareResult
-        );
-      }
-
-      // Now get the certified delegation
-      const delegationResponse: Result_3 = await actor.siwa_get_delegation(
-        address,
-        sessionKeyBytes,
-        expirationNs
-      );
-
-      if ("Err" in delegationResponse) {
-        throw new SiwaError(
-          SiwaErrorCode.CanisterError,
-          delegationResponse.Err,
-          delegationResponse
-        );
-      }
 
       // Create delegation chain from canister response
       const {delegation: candidDelegation, signature: delegationSignature} =
@@ -352,11 +385,11 @@ export class SiwaClient {
 
       // Store identity and session key
       await this.storage.set(
-        "siwa_identity",
+        this.storageKey("identity"),
         JSON.stringify(serializedIdentity)
       );
       await this.storage.set(
-        "siwa_session_key",
+        this.storageKey("session_key"),
         JSON.stringify(this.sessionKey.toJSON())
       );
 
@@ -379,6 +412,42 @@ export class SiwaClient {
       }
       throw SiwaError.fromCanisterError(error);
     }
+  }
+
+  /**
+   * Get delegation with retry logic to handle IC certified data propagation delay.
+   *
+   * After an update call modifies certified data, a subsequent query may hit a
+   * replica that hasn't yet processed the new block. This retries with backoff.
+   */
+  private async getDelegationWithRetry(
+    actor: _SERVICE,
+    address: string,
+    sessionKeyBytes: number[],
+    expirationNs: bigint,
+    maxRetries = 3,
+    baseDelayMs = 500
+  ): Promise<Extract<Result_4, {Ok: unknown}>> {
+    let lastError: string | undefined;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const response: Result_4 = await actor.siwa_get_delegation(
+        address,
+        sessionKeyBytes,
+        expirationNs
+      );
+      if ("Ok" in response) {
+        return response as Extract<Result_4, {Ok: unknown}>;
+      }
+      lastError = response.Err;
+      // Wait with linear backoff before retrying
+      await new Promise((resolve) =>
+        setTimeout(resolve, baseDelayMs * (attempt + 1))
+      );
+    }
+    throw new SiwaError(
+      SiwaErrorCode.CanisterError,
+      lastError ?? "Failed to get delegation after retries"
+    );
   }
 
   /**
@@ -469,15 +538,17 @@ export class SiwaClient {
     try {
       const actor = await this.createProviderActor();
 
-      // Get new delegation
-      const expirationNs =
-        BigInt(Date.now() + 30 * 60 * 1000) * BigInt(1_000_000);
+      // Request the maximum possible expiration and let the canister cap it
+      // to its configured session_expiration_time. Using the old (nearly expired)
+      // delegation's timestamp would produce an immediately-expiring delegation.
+      const requestedExpirationNs =
+        BigInt(Number.MAX_SAFE_INTEGER) * BigInt(1_000_000);
 
       // Prepare delegation first (stores in signature map for certified response)
       const prepareResult = await actor.siwa_prepare_delegation(
         address,
         sessionKeyBytes,
-        expirationNs
+        requestedExpirationNs
       );
 
       if ("Err" in prepareResult) {
@@ -486,15 +557,22 @@ export class SiwaClient {
         return null;
       }
 
-      // Now get the certified delegation
-      const delegationResponse: Result_3 = await actor.siwa_get_delegation(
-        address,
-        sessionKeyBytes,
-        expirationNs
-      );
+      // Use the canister's capped expiration (not the uncapped requested value)
+      // to ensure the expiration passed to siwa_get_delegation matches what was
+      // actually stored during prepare_delegation.
+      const cappedExpirationNs = prepareResult.Ok;
 
-      if ("Err" in delegationResponse) {
-        // Session may have expired, need to re-login
+      // Get the certified delegation with retry logic
+      let delegationResponse;
+      try {
+        delegationResponse = await this.getDelegationWithRetry(
+          actor,
+          address,
+          sessionKeyBytes,
+          cappedExpirationNs
+        );
+      } catch {
+        // Session may have expired or delegation unavailable, need to re-login
         await this.logout();
         return null;
       }
@@ -513,7 +591,10 @@ export class SiwaClient {
         canisterPubkeyBytes
       );
 
-      const expirationMs = Number(expirationNs / BigInt(1_000_000));
+      // Use the canister's actual expiration from the delegation response
+      const expirationMs = Number(
+        candidDelegation.expiration / BigInt(1_000_000)
+      );
 
       const serializedIdentity: SerializedIdentity = {
         baseKey: JSON.stringify(this.sessionKey.toJSON()),
@@ -525,7 +606,7 @@ export class SiwaClient {
 
       this.identity = await createSiwaIdentity(serializedIdentity);
       await this.storage.set(
-        "siwa_identity",
+        this.storageKey("identity"),
         JSON.stringify(serializedIdentity)
       );
 
@@ -622,6 +703,10 @@ export class SiwaClient {
 
   /**
    * Logout and clear stored identity
+   *
+   * Revokes the session on the canister (best-effort) before clearing
+   * local state. If the canister is unreachable, local logout still
+   * succeeds and the server-side session will expire naturally.
    */
   async logout(): Promise<void> {
     // Clear refresh timer
@@ -630,12 +715,30 @@ export class SiwaClient {
       this.refreshTimer = null;
     }
 
+    // Revoke session on the canister (best-effort, don't block on failure).
+    // Uses the authenticated agent so the caller principal matches the session
+    // owner, which is required by the canister's authorization check.
+    if (this.identity && this.sessionKey) {
+      try {
+        const address = this.identity.getAddress();
+        const sessionKeyBytes = Array.from(
+          new Uint8Array(this.sessionKey.getPublicKey().toDer())
+        );
+        const agent = await this.getAgent();
+        const actor = await this.createProviderActor(agent);
+        await actor.siwa_logout(address, sessionKeyBytes);
+      } catch {
+        // Best-effort: canister may be unreachable or delegation already expired,
+        // session will expire naturally on the canister side
+      }
+    }
+
     this.identity = null;
     this.agent = null;
     this.sessionKey = null;
 
-    await this.storage.remove("siwa_identity");
-    await this.storage.remove("siwa_session_key");
+    await this.storage.remove(this.storageKey("identity"));
+    await this.storage.remove(this.storageKey("session_key"));
   }
 
   /**
@@ -653,12 +756,7 @@ export class SiwaClient {
         identity: identity.getDelegationIdentity() as unknown as Identity,
       });
 
-      // Fetch root key in non-production environments
-      if (
-        this.host.includes("localhost") ||
-        this.host.includes("127.0.0.1") ||
-        this.host.includes(".local")
-      ) {
+      if (this.isLocalEnvironment()) {
         await this.agent.fetchRootKey();
       }
     }

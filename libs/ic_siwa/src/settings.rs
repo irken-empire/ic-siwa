@@ -106,6 +106,58 @@ impl Settings {
         self
     }
 
+    /// Validate settings values
+    ///
+    /// Checks that all critical fields are within acceptable bounds.
+    /// Should be called during canister init/post_upgrade.
+    pub fn validate(&self) -> Result<(), String> {
+        // Salt must be non-empty and within length prefix bounds
+        if self.salt.is_empty() {
+            return Err("Salt must not be empty".to_string());
+        }
+        if self.salt.len() > 255 {
+            return Err("Salt must not exceed 255 bytes".to_string());
+        }
+
+        // Domain and URI must be non-empty
+        if self.domain.is_empty() {
+            return Err("Domain must not be empty".to_string());
+        }
+        if self.uri.is_empty() {
+            return Err("URI must not be empty".to_string());
+        }
+
+        // Chain ID must be a known Avalanche chain
+        if self.chain_id != 43113 && self.chain_id != 43114 {
+            return Err(format!(
+                "Chain ID must be 43113 (Fuji) or 43114 (Mainnet), got {}",
+                self.chain_id
+            ));
+        }
+
+        // Session expiration: at least 1 minute, at most 30 days
+        let one_minute_ns = 60 * 1_000_000_000u64;
+        let thirty_days_ns = 30 * 24 * 60 * 60 * 1_000_000_000u64;
+        if self.session_expiration_time < one_minute_ns {
+            return Err("Session expiration must be at least 1 minute".to_string());
+        }
+        if self.session_expiration_time > thirty_days_ns {
+            return Err("Session expiration must not exceed 30 days".to_string());
+        }
+
+        // Login expiration: at least 30 seconds, at most 10 minutes
+        let thirty_secs_ns = 30 * 1_000_000_000u64;
+        let ten_mins_ns = 10 * 60 * 1_000_000_000u64;
+        if self.login_expiration_time < thirty_secs_ns {
+            return Err("Login expiration must be at least 30 seconds".to_string());
+        }
+        if self.login_expiration_time > ten_mins_ns {
+            return Err("Login expiration must not exceed 10 minutes".to_string());
+        }
+
+        Ok(())
+    }
+
     /// Check if delegation targets are configured
     pub fn has_delegation_targets(&self) -> bool {
         !self.delegation_targets.is_empty()
@@ -127,17 +179,10 @@ impl Default for Settings {
     }
 }
 
-/// Avalanche chain IDs
-pub mod chain_ids {
-    /// Avalanche C-Chain Mainnet
-    pub const AVALANCHE_MAINNET: u64 = 43114;
-    /// Avalanche Fuji Testnet
-    pub const AVALANCHE_FUJI: u64 = 43113;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chain_ids;
 
     #[test]
     fn test_settings_new() {
@@ -259,5 +304,112 @@ mod tests {
         assert_eq!(rate_limits.max_logins_per_address, 10);
         assert_eq!(rate_limits.max_logins_total, 1000);
         assert_eq!(rate_limits.window_seconds, 3600);
+    }
+
+    // --- Validation tests ---
+
+    #[test]
+    fn test_validate_valid_settings() {
+        let settings = Settings::new("example.com", "https://example.com", "my-secret-salt");
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_fuji_settings() {
+        let settings = Settings::new("example.com", "https://example.com", "salt")
+            .with_chain_id(chain_ids::AVALANCHE_FUJI);
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_empty_salt() {
+        let settings = Settings::new("example.com", "https://example.com", "");
+        assert_eq!(
+            settings.validate(),
+            Err("Salt must not be empty".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_salt_too_long() {
+        let long_salt = "a".repeat(256);
+        let settings = Settings::new("example.com", "https://example.com", &long_salt);
+        assert_eq!(
+            settings.validate(),
+            Err("Salt must not exceed 255 bytes".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_salt_max_length() {
+        let max_salt = "a".repeat(255);
+        let settings = Settings::new("example.com", "https://example.com", &max_salt);
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_empty_domain() {
+        let mut settings = Settings::new("example.com", "https://example.com", "salt");
+        settings.domain = String::new();
+        assert_eq!(
+            settings.validate(),
+            Err("Domain must not be empty".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_empty_uri() {
+        let mut settings = Settings::new("example.com", "https://example.com", "salt");
+        settings.uri = String::new();
+        assert_eq!(
+            settings.validate(),
+            Err("URI must not be empty".to_string())
+        );
+    }
+
+    #[test]
+    fn test_validate_invalid_chain_id() {
+        let settings = Settings::new("example.com", "https://example.com", "salt").with_chain_id(1); // Ethereum mainnet
+        assert!(settings
+            .validate()
+            .unwrap_err()
+            .contains("Chain ID must be"));
+    }
+
+    #[test]
+    fn test_validate_zero_session_expiration() {
+        let settings =
+            Settings::new("example.com", "https://example.com", "salt").with_session_expiration(0);
+        assert!(settings
+            .validate()
+            .unwrap_err()
+            .contains("at least 1 minute"));
+    }
+
+    #[test]
+    fn test_validate_excessive_session_expiration() {
+        let one_year_ns = 365 * 24 * 60 * 60 * 1_000_000_000u64;
+        let settings = Settings::new("example.com", "https://example.com", "salt")
+            .with_session_expiration(one_year_ns);
+        assert!(settings
+            .validate()
+            .unwrap_err()
+            .contains("must not exceed 30 days"));
+    }
+
+    #[test]
+    fn test_validate_min_session_expiration() {
+        let one_minute_ns = 60 * 1_000_000_000u64;
+        let settings = Settings::new("example.com", "https://example.com", "salt")
+            .with_session_expiration(one_minute_ns);
+        assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_validate_max_session_expiration() {
+        let thirty_days_ns = 30 * 24 * 60 * 60 * 1_000_000_000u64;
+        let settings = Settings::new("example.com", "https://example.com", "salt")
+            .with_session_expiration(thirty_days_ns);
+        assert!(settings.validate().is_ok());
     }
 }

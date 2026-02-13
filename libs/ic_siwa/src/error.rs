@@ -13,6 +13,10 @@ pub enum SiwaError {
     #[error("Invalid signature: {0}")]
     InvalidSignature(String),
 
+    /// Invalid SIWA message format
+    #[error("Invalid message: {0}")]
+    InvalidMessage(String),
+
     /// Message has expired
     #[error("Message expired")]
     MessageExpired,
@@ -70,6 +74,12 @@ mod tests {
     fn test_error_display_invalid_signature() {
         let err = SiwaError::InvalidSignature("wrong length".to_string());
         assert_eq!(err.to_string(), "Invalid signature: wrong length");
+    }
+
+    #[test]
+    fn test_error_display_invalid_message() {
+        let err = SiwaError::InvalidMessage("missing URI".to_string());
+        assert_eq!(err.to_string(), "Invalid message: missing URI");
     }
 
     #[test]

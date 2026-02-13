@@ -111,7 +111,7 @@ pub mod types;
 pub use config::Config;
 pub use delegation::{
     cbor_serialize, create_certified_signature, create_delegation_hash,
-    create_user_canister_pubkey, generate_seed, Delegation, DelegationInfo,
+    create_user_canister_pubkey, generate_seed, DelegationInfo,
 };
 pub use error::SiwaError;
 pub use rate_limit::RateLimiter;

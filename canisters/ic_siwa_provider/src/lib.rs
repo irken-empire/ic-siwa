@@ -50,14 +50,42 @@ pub struct InitArgs {
     pub delegation_targets: Option<Vec<Principal>>,
     /// Optional rate limiting configuration
     pub rate_limits: Option<RateLimitArgs>,
+    /// Optional login message expiration in nanoseconds (default: 5 minutes)
+    pub login_expiration_time: Option<u64>,
     /// Enable debug endpoints (should be false in production)
     pub debug: Option<bool>,
+}
+
+/// Check if the caller is allowed by the `allowed_canisters` whitelist.
+///
+/// When `allowed_canisters` is empty, all callers are allowed (backward compatible).
+/// When configured, only whitelisted canister principals may call the endpoint.
+fn check_caller_allowed() -> Result<(), String> {
+    state::with_settings(|settings| {
+        if settings.allowed_canisters.is_empty() {
+            return Ok(());
+        }
+        let caller = ic_cdk::api::msg_caller();
+        if caller == Principal::anonymous() {
+            return Err("Anonymous callers are not allowed".to_string());
+        }
+        if !settings.allowed_canisters.contains(&caller) {
+            return Err(format!(
+                "Caller {} is not in the allowed_canisters whitelist",
+                caller
+            ));
+        }
+        Ok(())
+    })
 }
 
 /// Initialize the canister
 #[init]
 fn init(args: InitArgs) {
     service::init_upgrade::init(args);
+    // Defer CSPRNG seeding to the first execution round after init,
+    // because inter-canister calls (raw_rand) are forbidden in init mode.
+    ic_cdk_timers::set_timer(std::time::Duration::ZERO, random::seed_rng());
     ic_cdk::println!("ic_siwa_provider initialized");
 }
 
@@ -65,6 +93,9 @@ fn init(args: InitArgs) {
 #[post_upgrade]
 fn post_upgrade(args: Option<InitArgs>) {
     service::init_upgrade::post_upgrade(args);
+    // Defer CSPRNG seeding to the first execution round after upgrade,
+    // because inter-canister calls (raw_rand) are forbidden in post_upgrade mode.
+    ic_cdk_timers::set_timer(std::time::Duration::ZERO, random::seed_rng());
     ic_cdk::println!("ic_siwa_provider upgraded");
 }
 
@@ -81,6 +112,7 @@ fn post_upgrade(args: Option<InitArgs>) {
 /// * `Err(String)` - Error description if address is invalid
 #[update]
 async fn siwa_prepare_login(address: String) -> Result<PrepareLoginResponse, String> {
+    check_caller_allowed()?;
     service::siwa_prepare_login::prepare_login(address).await
 }
 
@@ -104,6 +136,7 @@ async fn siwa_prepare_login(address: String) -> Result<PrepareLoginResponse, Str
 async fn siwa_prepare_login_with_options(
     request: PrepareLoginRequest,
 ) -> Result<PrepareLoginResponse, String> {
+    check_caller_allowed()?;
     service::siwa_prepare_login::prepare_login_with_options(request).await
 }
 
@@ -123,7 +156,38 @@ fn siwa_login(
     address: String,
     session_key: Vec<u8>,
 ) -> Result<LoginResponse, String> {
+    check_caller_allowed()?;
     service::siwa_login::login(signature, address, session_key)
+}
+
+/// Combined login and prepare_delegation in a single update call
+///
+/// This reduces the login flow from 2 update calls + 1 query to
+/// 1 update call + 1 query, saving ~2 seconds of consensus latency.
+///
+/// # Arguments
+/// * `signature` - Hex-encoded signature from the user's wallet
+/// * `address` - The Avalanche address that signed the message
+/// * `session_key` - The session public key to bind to this authentication
+///
+/// # Returns
+/// * `Ok(LoginResponse)` - The derived principal and session expiration
+/// * `Err(String)` - Error if signature is invalid or session expired
+#[update]
+fn siwa_login_and_prepare(
+    signature: String,
+    address: String,
+    session_key: Vec<u8>,
+) -> Result<LoginResponse, String> {
+    check_caller_allowed()?;
+    let login_response =
+        service::siwa_login::login(signature, address.clone(), session_key.clone())?;
+    service::siwa_prepare_delegation::prepare_delegation(
+        address,
+        session_key,
+        login_response.expiration,
+    )?;
+    Ok(login_response)
 }
 
 /// Prepare a delegation for an authenticated session
@@ -137,14 +201,15 @@ fn siwa_login(
 /// * `expiration` - Requested expiration timestamp (may be capped)
 ///
 /// # Returns
-/// * `Ok(())` - Delegation prepared successfully
+/// * `Ok(u64)` - The final capped expiration timestamp in nanoseconds
 /// * `Err(String)` - Error if not authenticated or expired
 #[update]
 fn siwa_prepare_delegation(
     address: String,
     session_key: Vec<u8>,
     expiration: u64,
-) -> Result<(), String> {
+) -> Result<u64, String> {
+    check_caller_allowed()?;
     service::siwa_prepare_delegation::prepare_delegation(address, session_key, expiration)
 }
 
@@ -168,6 +233,11 @@ fn siwa_get_delegation(
     session_key: Vec<u8>,
     expiration: u64,
 ) -> Result<SignedDelegation, String> {
+    // No caller authorization here: query calls cannot verify caller identity
+    // (not consensus-verified). Session data (address, key, expiration) is
+    // validated, but not the caller principal. The signed delegation is only
+    // useful when paired with the private session key, which never leaves the
+    // client — that is the real security guarantee.
     service::siwa_get_delegation::get_delegation(address, session_key, expiration)
 }
 
@@ -191,6 +261,84 @@ fn get_caller_address() -> Result<String, String> {
     let caller = ic_cdk::api::msg_caller();
     state::get_address_for_principal(&caller)
         .ok_or_else(|| "No address found for caller".to_string())
+}
+
+/// Logout - revoke a specific session
+///
+/// The caller must be the session owner (matching derived principal) or a
+/// canister controller. This prevents unauthenticated third parties from
+/// revoking other users' sessions.
+///
+/// # Arguments
+/// * `address` - The Avalanche address
+/// * `session_key` - The session public key from login
+///
+/// # Returns
+/// * `Ok(())` - Session revoked
+/// * `Err(String)` - Error if session not found or caller unauthorized
+#[update]
+fn siwa_logout(address: String, session_key: Vec<u8>) -> Result<(), String> {
+    let caller = ic_cdk::api::msg_caller();
+    let key_hash = ic_siwa::siwa::hash_session_key(&session_key);
+
+    // Verify the session belongs to this address
+    let session =
+        state::get_auth_session(&key_hash).ok_or_else(|| "Session not found".to_string())?;
+
+    if session.address.to_lowercase() != address.to_lowercase() {
+        return Err("Address does not match session".to_string());
+    }
+
+    // Verify the caller is the session owner or a canister controller
+    if caller != session.principal && !ic_cdk::api::is_controller(&caller) {
+        return Err("Caller is not the session owner or a controller".to_string());
+    }
+
+    state::remove_auth_session(&key_hash);
+    Ok(())
+}
+
+/// Revoke all sessions for an address (controller-only)
+///
+/// Emergency endpoint to revoke all active sessions for a given address.
+/// Only callable by canister controllers.
+///
+/// # Arguments
+/// * `address` - The Avalanche address to revoke sessions for
+///
+/// # Returns
+/// * `Ok(count)` - Number of sessions revoked
+/// * `Err(String)` - Error if not a controller
+#[update]
+fn siwa_revoke_all(address: String) -> Result<u64, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only canister controllers can revoke sessions".to_string());
+    }
+
+    let removed = state::remove_all_sessions_for_address(&address);
+    Ok(removed as u64)
+}
+
+/// Purge identity mappings from stable memory in bounded batches (controller-only)
+///
+/// Removes up to 1000 address-to-principal and principal-to-address mappings
+/// per call to stay within IC instruction limits. Call repeatedly until the
+/// return value is 0 to purge all mappings. Mappings will be re-populated on
+/// next login for each address.
+///
+/// # Returns
+/// * `Ok(count)` - Number of mappings removed in this call (0 = done)
+/// * `Err(String)` - Error if not a controller
+#[update]
+fn purge_identity_mappings() -> Result<u64, String> {
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only canister controllers can purge identity mappings".to_string());
+    }
+
+    let count = state::purge_identity_mappings();
+    Ok(count)
 }
 
 /// Debug diagnostics response
@@ -220,21 +368,48 @@ pub struct DebugInfo {
     pub rate_limit_window_seconds: u64,
     /// Debug mode enabled
     pub debug_enabled: bool,
+    /// Number of active login sessions
+    pub login_sessions_count: u64,
+    /// Number of active auth sessions
+    pub auth_sessions_count: u64,
+    /// Number of prepared delegations
+    pub prepared_delegations_count: u64,
+    /// Number of entries in signature map
+    pub signature_map_count: u64,
 }
 
-/// Get debug diagnostics (only available when debug=true in init args)
+/// Get debug diagnostics (restricted to canister controllers)
 ///
 /// Returns configuration and state information for debugging.
-/// This endpoint is disabled in production (when debug=false).
-#[query]
+/// Only callable by canister controllers for security.
+/// This is an update call so that caller identity is consensus-verified
+/// (query calls cannot reliably enforce access control on the IC).
+#[update]
 fn debug_info() -> Result<DebugInfo, String> {
-    let settings = state::get_settings();
-
-    if !settings.debug {
-        return Err("Debug endpoint disabled. Set debug=true in init args to enable.".to_string());
+    let caller = ic_cdk::api::msg_caller();
+    if !ic_cdk::api::is_controller(&caller) {
+        return Err("Only canister controllers can access debug info".to_string());
     }
 
-    Ok(DebugInfo {
+    if !state::is_debug_enabled() {
+        return Err("Debug mode is not enabled. Set debug: true in InitArgs.".to_string());
+    }
+
+    let (
+        login_sessions_count,
+        auth_sessions_count,
+        prepared_delegations_count,
+        signature_map_count,
+    ) = state::with_state(|s| {
+        (
+            s.login_sessions.len() as u64,
+            s.auth_sessions.len() as u64,
+            s.prepared_delegations.len() as u64,
+            s.signature_map.len() as u64,
+        )
+    });
+
+    Ok(state::with_settings(|settings| DebugInfo {
         domain: settings.domain.clone(),
         uri: settings.uri.clone(),
         chain_id: settings.chain_id,
@@ -247,7 +422,11 @@ fn debug_info() -> Result<DebugInfo, String> {
         rate_limit_total: settings.rate_limits.max_logins_total,
         rate_limit_window_seconds: settings.rate_limits.window_seconds,
         debug_enabled: settings.debug,
-    })
+        login_sessions_count,
+        auth_sessions_count,
+        prepared_delegations_count,
+        signature_map_count,
+    }))
 }
 
 // Export Candid interface

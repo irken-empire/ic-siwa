@@ -5,10 +5,12 @@
 
 use ic_certified_map::{leaf_hash, AsHashTree, Hash, HashTree, RbTree};
 use std::borrow::Cow;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
 
-/// Default expiration time for delegation signatures (1 minute in nanoseconds)
-pub const DELEGATION_SIGNATURE_EXPIRES_AT: u64 = 60 * 1_000_000_000;
+/// Minimum buffer added to delegation expiration for signature map entries (5 minutes in nanoseconds).
+/// This ensures the signature remains available slightly beyond the delegation's lifetime,
+/// accounting for clock skew and query latency.
+pub const SIGNATURE_EXPIRATION_BUFFER_NS: u64 = 5 * 60 * 1_000_000_000;
 
 /// Unit type for the inner tree values
 #[derive(Default)]
@@ -54,6 +56,8 @@ impl PartialOrd for SigExpiration {
 pub struct SignatureMap {
     certified_map: RbTree<Hash, RbTree<Hash, Unit>>,
     expiration_queue: BinaryHeap<SigExpiration>,
+    /// O(1) lookup index: (seed_hash, delegation_hash) -> expiration timestamp
+    expiration_index: HashMap<(Hash, Hash), u64>,
 }
 
 impl SignatureMap {
@@ -67,9 +71,11 @@ impl SignatureMap {
     /// # Arguments
     /// * `seed_hash` - Hash of the seed (derived from address + salt)
     /// * `delegation_hash` - Hash of the delegation
-    /// * `now` - Current timestamp in nanoseconds
-    pub fn put(&mut self, seed_hash: Hash, delegation_hash: Hash, now: u64) {
-        let signature_expires_at = now.saturating_add(DELEGATION_SIGNATURE_EXPIRES_AT);
+    /// * `delegation_expires_at` - When the delegation itself expires (nanoseconds).
+    ///   A buffer is added so the signature outlives the delegation.
+    pub fn put(&mut self, seed_hash: Hash, delegation_hash: Hash, delegation_expires_at: u64) {
+        let signature_expires_at =
+            delegation_expires_at.saturating_add(SIGNATURE_EXPIRATION_BUFFER_NS);
 
         if self.certified_map.get(&seed_hash[..]).is_none() {
             let mut submap = RbTree::new();
@@ -81,11 +87,17 @@ impl SignatureMap {
             });
         }
 
-        self.expiration_queue.push(SigExpiration {
-            seed_hash,
-            delegation_hash,
-            signature_expires_at,
-        });
+        // Only push to queue if this is a new entry (not an update) to avoid
+        // duplicate queue entries that cause overcounting and stale deletions
+        let key = (seed_hash, delegation_hash);
+        if !self.expiration_index.contains_key(&key) {
+            self.expiration_queue.push(SigExpiration {
+                seed_hash,
+                delegation_hash,
+                signature_expires_at,
+            });
+        }
+        self.expiration_index.insert(key, signature_expires_at);
     }
 
     /// Remove a delegation hash from the map
@@ -98,6 +110,7 @@ impl SignatureMap {
         if is_empty {
             self.certified_map.delete(&seed_hash[..]);
         }
+        self.expiration_index.remove(&(seed_hash, delegation_hash));
     }
 
     /// Prune expired entries from the map
@@ -110,18 +123,25 @@ impl SignatureMap {
     /// Number of entries pruned
     pub fn prune_expired(&mut self, now: u64, max_to_prune: usize) -> usize {
         let mut num_pruned = 0;
-        let max_to_prune = std::cmp::min(max_to_prune, self.expiration_queue.len());
 
-        for _ in 0..max_to_prune {
-            if let Some(expiration) = self.expiration_queue.peek() {
-                if expiration.signature_expires_at > now {
-                    return num_pruned;
+        while num_pruned < max_to_prune {
+            match self.expiration_queue.peek() {
+                Some(entry) if entry.signature_expires_at <= now => {}
+                _ => break, // No more expired entries or queue empty
+            }
+
+            let entry = self.expiration_queue.pop().unwrap();
+            let key = (entry.seed_hash, entry.delegation_hash);
+
+            // Only delete if the stored expiration matches (entry wasn't renewed)
+            if let Some(&stored_exp) = self.expiration_index.get(&key) {
+                if stored_exp <= now {
+                    self.delete(entry.seed_hash, entry.delegation_hash);
+                    num_pruned += 1;
                 }
+                // If stored_exp > now, the entry was renewed; skip stale queue entry
             }
-            if let Some(expiration) = self.expiration_queue.pop() {
-                self.delete(expiration.seed_hash, expiration.delegation_hash);
-            }
-            num_pruned += 1;
+            // If not in index, already deleted; skip
         }
 
         num_pruned
@@ -147,17 +167,12 @@ impl SignatureMap {
             return true;
         }
 
-        // Check the expiration queue for the actual expiration time
-        let expiration = self
-            .expiration_queue
-            .iter()
-            .find(|e| e.seed_hash == seed_hash && e.delegation_hash == delegation_hash);
-
-        if let Some(expiration) = expiration {
-            return now > expiration.signature_expires_at;
+        // O(1) lookup of expiration time via index
+        if let Some(&expires_at) = self.expiration_index.get(&(seed_hash, delegation_hash)) {
+            return now > expires_at;
         }
 
-        // Exists in certified map but not in expiration queue - consider valid
+        // Exists in certified map but not in expiration index - consider valid
         // (This shouldn't happen normally, but better to allow than block)
         false
     }
@@ -193,12 +208,34 @@ impl SignatureMap {
 
     /// Check if the map is empty
     pub fn is_empty(&self) -> bool {
-        self.expiration_queue.is_empty()
+        self.expiration_index.is_empty()
     }
 
     /// Get the number of entries in the map
     pub fn len(&self) -> usize {
+        self.expiration_index.len()
+    }
+
+    /// Get the number of entries in the expiration queue (including stale entries)
+    pub fn queue_len(&self) -> usize {
         self.expiration_queue.len()
+    }
+
+    /// Remove orphaned entries from the expiration queue.
+    ///
+    /// When `delete()` is called, entries are removed from the certified map and
+    /// expiration index but not from the `BinaryHeap` (which doesn't support
+    /// arbitrary removal). This method rebuilds the queue, discarding entries
+    /// that are no longer in the index.
+    pub fn drain_stale(&mut self) {
+        let mut new_queue = BinaryHeap::new();
+        for entry in self.expiration_queue.drain() {
+            let key = (entry.seed_hash, entry.delegation_hash);
+            if self.expiration_index.contains_key(&key) {
+                new_queue.push(entry);
+            }
+        }
+        self.expiration_queue = new_queue;
     }
 }
 
@@ -216,9 +253,9 @@ mod tests {
         let mut map = SignatureMap::new();
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
-        let now = 1_000_000_000u64;
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000; // 30 min from "now"
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, expires_at);
 
         let witness = map.witness(seed_hash, delegation_hash);
         assert!(witness.is_some());
@@ -239,9 +276,9 @@ mod tests {
         let mut map = SignatureMap::new();
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
-        let now = 1_000_000_000u64;
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, expires_at);
         assert!(map.witness(seed_hash, delegation_hash).is_some());
 
         map.delete(seed_hash, delegation_hash);
@@ -254,20 +291,53 @@ mod tests {
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
         let now = 1_000_000_000u64;
+        // Delegation expires 30 minutes from now
+        let delegation_expires_at = now + 30 * 60 * 1_000_000_000;
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, delegation_expires_at);
         assert_eq!(map.len(), 1);
 
-        // Prune with current time - should not prune
+        // Prune at current time - should not prune (delegation hasn't expired)
         let pruned = map.prune_expired(now, 10);
         assert_eq!(pruned, 0);
         assert_eq!(map.len(), 1);
 
-        // Prune after expiration
-        let expired_time = now + DELEGATION_SIGNATURE_EXPIRES_AT + 1;
+        // Prune at delegation expiration - should not prune (buffer not yet elapsed)
+        let pruned = map.prune_expired(delegation_expires_at, 10);
+        assert_eq!(pruned, 0);
+        assert_eq!(map.len(), 1);
+
+        // Prune after delegation expiration + buffer
+        let expired_time = delegation_expires_at + SIGNATURE_EXPIRATION_BUFFER_NS + 1;
         let pruned = map.prune_expired(expired_time, 10);
         assert_eq!(pruned, 1);
         assert_eq!(map.len(), 0);
+    }
+
+    #[test]
+    fn test_drain_stale_removes_orphaned_queue_entries() {
+        let mut map = SignatureMap::new();
+        let seed1 = make_hash(b"seed1");
+        let del1 = make_hash(b"del1");
+        let seed2 = make_hash(b"seed2");
+        let del2 = make_hash(b"del2");
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
+
+        map.put(seed1, del1, expires_at);
+        map.put(seed2, del2, expires_at);
+        assert_eq!(map.len(), 2);
+        assert_eq!(map.queue_len(), 2);
+
+        // Delete one entry — removes from index/map but not from queue
+        map.delete(seed1, del1);
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.queue_len(), 2); // orphaned entry still in queue
+
+        // Drain stale entries
+        map.drain_stale();
+        assert_eq!(map.queue_len(), 1); // orphaned entry removed
+        assert_eq!(map.len(), 1); // active entry still present
+        assert!(map.witness(seed2, del2).is_some());
     }
 
     #[test]
@@ -277,9 +347,9 @@ mod tests {
 
         let seed_hash = make_hash(b"seed1");
         let delegation_hash = make_hash(b"delegation1");
-        let now = 1_000_000_000u64;
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
 
-        map.put(seed_hash, delegation_hash, now);
+        map.put(seed_hash, delegation_hash, expires_at);
         let after_put_hash = map.root_hash();
 
         assert_ne!(initial_hash, after_put_hash);

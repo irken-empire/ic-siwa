@@ -3,7 +3,7 @@
 //! Verifies a signed SIWA message and creates an authenticated session.
 
 use crate::state::{
-    get_login_session, get_settings, remove_login_session, store_auth_session, AuthSession,
+    get_login_session, remove_login_session, store_auth_session, with_settings, AuthSession,
 };
 use candid::Principal;
 use ic_siwa::siwa::{derive_principal, hash_session_key, validate_address};
@@ -51,46 +51,78 @@ pub fn login(
         return Err("Login session has expired".to_string());
     }
 
-    // Get settings for principal derivation and domain validation
-    let settings = get_settings();
-
-    // Validate domain if allowed_domains is configured
-    if !settings.allowed_domains.is_empty() {
-        // Extract domain from the stored message (first line contains "domain wants you to sign in")
-        let message_domain = extract_domain_from_message(&login_session.message)
-            .ok_or("Failed to extract domain from SIWA message")?;
-
-        // Validate the domain against the whitelist
-        let validator = DomainValidator::new(&settings.allowed_domains);
-        if !validator.is_allowed(&message_domain) {
-            ic_cdk::println!(
-                "[SECURITY] Domain rejected: '{}' not in allowed list for address {}",
-                message_domain,
-                address
-            );
-            return Err(format!(
-                "Domain '{}' is not allowed. This canister only accepts logins from configured domains.",
-                message_domain
-            ));
-        }
+    // In multi-tenant mode (allowed_canisters configured), verify the caller
+    // is the same principal that initiated the login via prepare_login.
+    // This prevents one whitelisted canister from completing a login flow
+    // initiated by another. Controllers are always allowed.
+    let caller = ic_cdk::api::msg_caller();
+    let has_allowed_canisters = with_settings(|s| !s.allowed_canisters.is_empty());
+    if has_allowed_canisters
+        && caller != login_session.initiator
+        && !ic_cdk::api::is_controller(&caller)
+    {
+        return Err("Login must be completed by the same caller that initiated it".to_string());
     }
 
-    // Reconstruct the SIWA message and verify the signature
-    let siwa_message = SiwaMessage {
-        domain: settings.domain.clone(),
-        address: address.clone(),
-        statement: Some("Sign in with Avalanche to the app.".to_string()),
-        uri: settings.uri.clone(),
-        version: "1".to_string(),
-        chain_id: settings.chain_id,
-        nonce: login_session.nonce.clone(),
-        issued_at: extract_timestamp(&login_session.message, "Issued At: ")
-            .ok_or("Failed to parse issued_at from stored message")?,
-        expiration_time: extract_timestamp(&login_session.message, "Expiration Time: "),
-        not_before: None,
-        request_id: None,
-        resources: None,
-    };
+    // Validate domain against settings whitelist (zero-copy access)
+    with_settings(|settings| {
+        if !settings.allowed_domains.is_empty() {
+            let message_domain = extract_domain_from_message(&login_session.message)
+                .ok_or("Failed to extract domain from SIWA message")?;
+
+            let validator = DomainValidator::new(&settings.allowed_domains);
+            if !validator.is_allowed(&message_domain) {
+                crate::state::debug_log!(
+                    "[SECURITY] Domain rejected: '{}' not in allowed list for address {}",
+                    message_domain,
+                    address
+                );
+                return Err(format!(
+                    "Domain '{}' is not allowed. This canister only accepts logins from configured domains.",
+                    message_domain
+                ));
+            }
+        }
+        Ok(())
+    })?;
+
+    // Parse the stored SIWA message directly instead of reconstructing from settings.
+    // This ensures we verify the signature against the exact message the user signed,
+    // even if canister settings (domain, URI, etc.) changed between prepare_login and login,
+    // or if a multi-tenant domain/URI was used during prepare_login.
+    let siwa_message = SiwaMessage::from_message(&login_session.message)
+        .map_err(|e| format!("Failed to parse stored SIWA message: {}", e))?;
+
+    // Validate chain ID matches settings (defense-in-depth against settings changes between prepare and login)
+    let chain_id = with_settings(|s| s.chain_id);
+    if siwa_message.chain_id != chain_id {
+        return Err(format!(
+            "Chain ID mismatch: message has {} but settings require {}",
+            siwa_message.chain_id, chain_id
+        ));
+    }
+
+    // Validate SIWA version
+    if siwa_message.version != "1" {
+        return Err(format!(
+            "Unsupported SIWA version: {}",
+            siwa_message.version
+        ));
+    }
+
+    // Validate message expiration time (defense-in-depth, per EIP-4361).
+    // The login session expiration (checked above) is derived from the same
+    // login_expiration_time setting, so in practice they are equivalent.
+    // This explicit check guards against any future divergence.
+    if let Some(ref exp_time) = siwa_message.expiration_time {
+        if let Some(exp_secs) = ic_siwa::siwa::parse_timestamp(exp_time) {
+            let now_secs = now / 1_000_000_000;
+            if now_secs > exp_secs {
+                remove_login_session(&address);
+                return Err("SIWA message has expired".to_string());
+            }
+        }
+    }
 
     // Verify the signature and recover the address
     let recovered_address = siwa_message
@@ -105,18 +137,26 @@ pub fn login(
         ));
     }
 
-    // Derive the ICP principal from the address and salt
-    let principal = derive_principal(&address, &settings.salt)
-        .map_err(|e| format!("Failed to derive principal: {}", e))?;
+    // Derive the ICP principal and canister pubkey using settings (zero-copy access)
+    let (principal, user_canister_pubkey, session_expiration_time) =
+        with_settings(|settings| -> Result<_, String> {
+            let principal = derive_principal(&address, &settings.salt)
+                .map_err(|e| format!("Failed to derive principal: {}", e))?;
 
-    // Generate the seed and user canister public key for the delegation chain
-    let seed = generate_seed(&settings.salt, &address);
-    let canister_id = ic_cdk::api::canister_self();
-    let user_canister_pubkey = create_user_canister_pubkey(&canister_id, &seed)
-        .map_err(|e| format!("Failed to create user canister pubkey: {}", e))?;
+            let seed = generate_seed(&settings.salt, &address);
+            let canister_id = ic_cdk::api::canister_self();
+            let user_canister_pubkey = create_user_canister_pubkey(&canister_id, &seed)
+                .map_err(|e| format!("Failed to create user canister pubkey: {}", e))?;
+
+            Ok((
+                principal,
+                user_canister_pubkey,
+                settings.session_expiration_time,
+            ))
+        })?;
 
     // Calculate session expiration
-    let session_expiration = now + settings.session_expiration_time;
+    let session_expiration = now + session_expiration_time;
 
     // Remove the used login session (prevent replay)
     remove_login_session(&address);
@@ -126,11 +166,10 @@ pub fn login(
     let auth_session = AuthSession {
         address: address.clone(),
         principal,
-        session_key,
         created_at: now,
         expires_at: session_expiration,
     };
-    store_auth_session(key_hash, auth_session);
+    store_auth_session(key_hash, auth_session)?;
 
     // Note: The delegation is stored in the signature map when get_delegation is called,
     // not here. This allows flexible expiration times in the delegation.
@@ -140,14 +179,6 @@ pub fn login(
         expiration: session_expiration,
         user_canister_pubkey: ByteBuf::from(user_canister_pubkey),
     })
-}
-
-/// Extract a timestamp field from a SIWA message string
-fn extract_timestamp(message: &str, prefix: &str) -> Option<String> {
-    message
-        .lines()
-        .find(|line| line.starts_with(prefix))
-        .map(|line| line.strip_prefix(prefix).unwrap_or(line).to_string())
 }
 
 /// Extract the domain from a SIWA message
@@ -191,20 +222,5 @@ mod tests {
     fn test_extract_domain_from_message_invalid() {
         let message = "invalid message format";
         assert_eq!(extract_domain_from_message(message), None);
-    }
-
-    #[test]
-    fn test_extract_timestamp() {
-        let message = "Some text\nIssued At: 2024-01-15T12:00:00Z\nMore text";
-        assert_eq!(
-            extract_timestamp(message, "Issued At: "),
-            Some("2024-01-15T12:00:00Z".to_string())
-        );
-    }
-
-    #[test]
-    fn test_extract_timestamp_not_found() {
-        let message = "Some text without timestamp";
-        assert_eq!(extract_timestamp(message, "Issued At: "), None);
     }
 }

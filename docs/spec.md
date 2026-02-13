@@ -30,7 +30,7 @@ for Avalanche C-Chain wallets. Users can authenticate with their Avalanche walle
 
 ## Authentication Flow
 
-### Three-Step Login Process
+### Four-Step Login Process
 
 ```text
 ┌─────────┐          ┌──────────────────┐          ┌─────────────┐
@@ -39,9 +39,11 @@ for Avalanche C-Chain wallets. Users can authenticate with their Avalanche walle
 └────┬────┘          └────────┬─────────┘          └──────┬──────┘
      │                        │                           │
      │ 1. siwa_prepare_login  │                           │
+     │    (update)            │                           │
      │ ─────────────────────> │                           │
      │                        │                           │
-     │    SIWA message        │                           │
+     │    SIWA message,       │                           │
+     │    nonce, expiration   │                           │
      │ <───────────────────── │                           │
      │                        │                           │
      │ Sign message           │                           │
@@ -51,12 +53,23 @@ for Avalanche C-Chain wallets. Users can authenticate with their Avalanche walle
      │ <───────────────────────────────────────────────────
      │                        │                           │
      │ 2. siwa_login          │                           │
+     │    (update)            │                           │
      │ ─────────────────────> │                           │
      │                        │                           │
-     │    delegation info     │                           │
+     │    principal,          │                           │
+     │    expiration,         │                           │
+     │    canister_pubkey     │                           │
      │ <───────────────────── │                           │
      │                        │                           │
-     │ 3. siwa_get_delegation │                           │
+     │ 3. siwa_prepare_       │                           │
+     │    delegation (update) │                           │
+     │ ─────────────────────> │                           │
+     │                        │                           │
+     │    success             │                           │
+     │ <───────────────────── │                           │
+     │                        │                           │
+     │ 4. siwa_get_delegation │                           │
+     │    (query, certified)  │                           │
      │ ─────────────────────> │                           │
      │                        │                           │
      │    signed delegation   │                           │
@@ -68,23 +81,31 @@ for Avalanche C-Chain wallets. Users can authenticate with their Avalanche walle
 
 **Input**: Avalanche C-Chain address (string)
 
-**Output**: SIWA message and nonce
+**Output**: SIWA message, nonce, and expiration timestamp
 
 **Behavior**:
 
-1. Validate the address format (0x-prefixed, 40 hex characters)
-2. Generate a cryptographically secure nonce
-3. Construct the SIWA message with:
-   - Domain from canister settings
-   - URI from canister settings
+1. Validate the address format (0x-prefixed, 40 hex characters, EIP-55 checksum)
+2. Enforce rate limits (per-address and global login attempt limits)
+3. Generate a cryptographically secure nonce (via IC randomness)
+4. Construct the SIWA message with:
+   - Domain from canister settings (or request, for multi-tenant)
+   - URI from canister settings (or request, for multi-tenant)
    - Avalanche address
    - Chain ID (43113 for Fuji, 43114 for Mainnet)
    - Nonce
    - Issued At timestamp
    - Expiration Time (based on settings)
-   - Statement (optional, from settings)
-4. Store the message temporarily for verification
-5. Return the message and nonce to the caller
+   - Statement
+5. Store the message temporarily for verification
+6. Return the message, nonce, and expiration to the caller
+
+**Multi-Tenant Variant** (`siwa_prepare_login_with_options`):
+
+Accepts a `PrepareLoginRequest` with optional `domain` and `uri` fields, allowing
+different frontends to share a single provider canister. When `allowed_domains` is
+configured, the provided domain is validated against the whitelist. If not provided,
+the canister's default domain and URI are used.
 
 **SIWA Message Format**:
 
@@ -110,23 +131,26 @@ Expiration Time: {expiration_time}
 - Avalanche address (string)
 - Session public key (bytes)
 
-**Output**: Canister public key and delegation expiration
+**Output**: User principal, delegation expiration, and canister public key
 
 **Behavior**:
 
-1. Retrieve the stored SIWA message for the address
-2. Verify the message has not expired
-3. Recover the signer address from the signature using ECDSA recovery
-4. Verify the recovered address matches the provided address
-5. Generate a deterministic seed from:
-   - Salt (secret)
-   - Avalanche address
-   - (Optionally) URI if configured
-6. Create a delegation for the session key
-7. Store the address-to-principal mapping
-8. Return the canister public key and delegation expiration
+1. Validate the address format
+2. Retrieve the stored SIWA message for the address
+3. Verify the message has not expired
+4. Recover the signer address from the signature using ECDSA recovery
+5. Verify the recovered address matches the provided address (case-insensitive)
+6. Validate domain against whitelist (if configured)
+7. Derive a deterministic ICP principal from the address and salt
+8. Generate a seed for the delegation chain
+9. Create a DER-encoded canister public key for the delegation
+10. Calculate session expiration
+11. Remove the login session (prevents replay)
+12. Store the authenticated session
+13. Store the address-to-principal mapping
+14. Return the user principal, expiration, and canister public key
 
-### Step 3: Get Delegation (`siwa_get_delegation`)
+### Step 3: Prepare Delegation (`siwa_prepare_delegation`)
 
 **Input**:
 
@@ -134,24 +158,91 @@ Expiration Time: {expiration_time}
 - Session public key (bytes)
 - Expiration timestamp (u64)
 
-**Output**: Signed delegation
+**Output**: Final capped expiration timestamp (u64, nanoseconds) or error
 
 **Behavior**:
 
-1. Verify a valid login exists for the address and session key
-2. Create the delegation chain
-3. Generate certified data for the delegation
-4. Return the signed delegation
+1. Clean up any expired prepared delegations
+2. Validate the session (verify address, session key, and expiration match a stored session)
+3. Cap the requested expiration to the configured session maximum
+4. Compute the delegation hash from the session key, expiration, and optional targets
+5. Store the delegation hash in the certified data signature map
+6. Cache the prepared delegation metadata for retrieval in Step 4
+7. Return the final capped expiration timestamp
+
+This step is an **update call** because only update calls can modify the canister's
+certified data. The certified data is required for the subsequent query call to
+return a verifiable delegation. The returned expiration value is the actual capped
+timestamp that should be passed to `siwa_get_delegation` in Step 4.
+
+### Step 4: Get Delegation (`siwa_get_delegation`)
+
+**Input**:
+
+- Avalanche address (string)
+- Session public key (bytes)
+- Expiration timestamp (u64)
+
+**Output**: Signed delegation (delegation + IC certificate signature)
+
+**Behavior**:
+
+1. Validate the session (same checks as Step 3)
+2. Look up the prepared delegation metadata from Step 3
+3. Obtain the IC system certificate for the certified data
+4. Create a hash tree witness proving the delegation is in the certified data
+5. CBOR-encode the certificate and witness into the delegation signature
+6. Return the signed delegation with the session key, expiration, and optional targets
+
+This step is a **query call** that returns certified data. It must be preceded by
+`siwa_prepare_delegation` (Step 3) which sets up the certified data that this
+query reads.
+
+### Optimized Flow (Combined Endpoint)
+
+For reduced latency, the client can use `siwa_login_and_prepare` which combines
+Steps 2 and 3 into a single update call:
+
+1. `siwa_prepare_login` (update) - Generate SIWA message
+2. `siwa_login_and_prepare` (update) - Verify signature + prepare delegation
+3. `siwa_get_delegation` (query) - Retrieve signed delegation
+
+This reduces the login flow from 3 update calls + 1 query to 2 update calls + 1
+query, saving ~2 seconds of consensus latency. The combined endpoint accepts the
+same arguments as `siwa_login` and internally calls `siwa_prepare_delegation`
+with the login response's expiration.
 
 ## Canister Interface
 
 ### Core Endpoints
 
-| Endpoint              | Type   | Description                            |
-| --------------------- | ------ | -------------------------------------- |
-| `siwa_prepare_login`  | update | Generate SIWA message for signing      |
-| `siwa_login`          | update | Verify signature and create delegation |
-| `siwa_get_delegation` | query  | Retrieve signed delegation             |
+| Endpoint                          | Type   | Description                                     |
+| --------------------------------- | ------ | ----------------------------------------------- |
+| `siwa_prepare_login`              | update | Generate SIWA message for signing               |
+| `siwa_prepare_login_with_options` | update | Generate SIWA message with multi-tenant options |
+| `siwa_login`                      | update | Verify signature and create session             |
+| `siwa_prepare_delegation`         | update | Prepare certified data for delegation query     |
+| `siwa_login_and_prepare`          | update | Combined login + prepare delegation (optimized) |
+| `siwa_get_delegation`             | query  | Retrieve signed delegation (certified)          |
+
+### Session Management Endpoints
+
+| Endpoint          | Type   | Description                                     |
+| ----------------- | ------ | ----------------------------------------------- |
+| `siwa_logout`     | update | Revoke a specific session by address and key    |
+| `siwa_revoke_all` | update | Revoke all sessions for an address (controller) |
+
+### Diagnostic Endpoints
+
+| Endpoint     | Type   | Description                                |
+| ------------ | ------ | ------------------------------------------ |
+| `debug_info` | update | Get canister diagnostics (controller-only) |
+
+### Administrative Endpoints
+
+| Endpoint                  | Type   | Description                                            |
+| ------------------------- | ------ | ------------------------------------------------------ |
+| `purge_identity_mappings` | update | Clear all address-principal mappings (controller-only) |
 
 ### Utility Endpoints
 
@@ -166,16 +257,153 @@ Expiration Time: {expiration_time}
 The canister must be initialized with:
 
 ```candid
+type RateLimitArgs = record {
+    max_logins_per_address: nat32;  // Max prepare_login calls per address per window
+    max_logins_total: nat32;        // Max total prepare_login calls per window
+    window_seconds: nat64;          // Time window duration in seconds
+};
+
 type InitArgs = record {
-    domain: text;           // Required: Domain for SIWA messages
-    uri: text;              // Required: Full URI including scheme
-    salt: text;             // Required: Secret salt for principal derivation
-    chain_id: nat64;        // Required: Avalanche chain ID (43113 or 43114)
-    session_expiration_time: nat64;  // Required: Session TTL in nanoseconds
-    allowed_domains: opt vec text;   // Optional: Whitelist of allowed domains
-    allowed_canisters: opt vec principal; // Optional: Canister whitelist
+    domain: text;                            // Required: Domain for SIWA messages
+    uri: text;                               // Required: Full URI including scheme
+    salt: text;                              // Required: Secret salt for principal derivation
+    chain_id: nat64;                         // Required: Avalanche chain ID (43113 or 43114)
+    session_expiration_time: nat64;          // Required: Session TTL in nanoseconds
+    allowed_domains: opt vec text;           // Optional: Domain whitelist for multi-tenant
+    allowed_canisters: opt vec principal;    // Optional: Caller canister whitelist
+    delegation_targets: opt vec principal;   // Optional: Canisters delegations are valid for
+    rate_limits: opt RateLimitArgs;          // Optional: Rate limiting configuration
+    login_expiration_time: opt nat64;        // Optional: Login message TTL in nanoseconds (default: 5 min, range: 30s–10min)
+    debug: opt bool;                         // Optional: Enable debug endpoints (default: false)
 };
 ```
+
+## Multi-Tenant Mode ("SIWA as a Service")
+
+A single IC-SIWA provider canister can serve multiple frontend applications,
+each with its own domain and URI. This "SIWA as a Service" pattern allows
+different apps to share authentication infrastructure while maintaining
+distinct wallet signing prompts.
+
+### How It Works
+
+```text
+┌─────────────┐     ┌─────────────┐     ┌──────────────────┐
+│  App A      │     │  App B      │     │  IC-SIWA         │
+│  game.ex.co │     │  shop.ex.co │     │  Provider        │
+└──────┬──────┘     └──────┬──────┘     └────────┬─────────┘
+       │                   │                     │
+       │ prepare_login_    │                     │
+       │ with_options      │                     │
+       │ domain:"game..."  │                     │
+       │ ────────────────────────────────────────>
+       │                   │                     │
+       │    message with   │                     │
+       │    "game.ex.co"   │                     │
+       │ <────────────────────────────────────────
+       │                   │                     │
+       │                   │ prepare_login_      │
+       │                   │ with_options        │
+       │                   │ domain:"shop..."    │
+       │                   │ ────────────────────>
+       │                   │                     │
+       │                   │    message with     │
+       │                   │    "shop.ex.co"     │
+       │                   │ <────────────────────
+       │                   │                     │
+```
+
+Each application receives a SIWA message containing **its own domain**, so the
+user's wallet displays the correct origin. The provider canister validates all
+custom domains against the `allowed_domains` whitelist.
+
+### Endpoint: `siwa_prepare_login_with_options`
+
+This is the multi-tenant variant of `siwa_prepare_login`. It accepts a
+`PrepareLoginRequest` record with optional domain and URI overrides:
+
+```candid
+type PrepareLoginRequest = record {
+    address: text;          // Required: Avalanche address (0x-prefixed)
+    domain: opt text;       // Optional: Custom domain for wallet prompt
+    uri: opt text;          // Optional: Custom URI for wallet prompt
+};
+```
+
+**Behavior**:
+
+1. If `domain` is provided and `allowed_domains` is configured, validate the
+   domain against the whitelist. Reject if not whitelisted.
+2. If `domain` is provided and `allowed_domains` is empty, accept any domain
+   (not recommended for production).
+3. If `domain` is not provided, use the canister's default domain from `InitArgs`.
+4. Same fallback logic applies to `uri`.
+5. The rest of the flow (nonce generation, message construction, session storage)
+   is identical to `siwa_prepare_login`.
+
+### Domain Whitelist Rules
+
+The `allowed_domains` field in `InitArgs` controls which domains are accepted
+for multi-tenant login. It supports:
+
+- **Exact match**: `"example.com"` matches only `example.com`
+- **Wildcard match**: `"*.example.com"` matches `example.com`, `app.example.com`,
+  `a.b.example.com`, etc.
+- **Case-insensitive**: All comparisons are lowercased
+
+Domain validation occurs at two points:
+
+1. During `siwa_prepare_login_with_options` — the requested domain is checked
+2. During `siwa_login` — the domain in the stored message is re-validated
+
+This double-check prevents a race condition where `allowed_domains` is updated
+between prepare and login.
+
+### Fallback Behavior
+
+| `domain` provided? | `allowed_domains` configured? | Result                                    |
+| ------------------ | ----------------------------- | ----------------------------------------- |
+| Yes                | Yes                           | Validate against whitelist                |
+| Yes                | No (empty)                    | Reject (custom domains require whitelist) |
+| No                 | Yes or No                     | Use canister default from `InitArgs`      |
+
+### Configuration
+
+Multi-tenant mode is configured via `InitArgs` at canister initialization:
+
+```candid
+InitArgs = record {
+    domain: text;                        // Default domain (used when none specified)
+    uri: text;                           // Default URI (used when none specified)
+    allowed_domains: opt vec text;       // Domain whitelist for multi-tenant
+    // ... other fields
+};
+```
+
+The corresponding YAML configuration section:
+
+```yaml
+# SIWA domain settings (for multi-tenant deployments)
+siwa:
+  domain: "app.example.com" # Default domain
+  uri: "https://app.example.com" # Default URI
+
+security:
+  allowed_domains: # Domain whitelist (supports wildcards)
+    - "example.com"
+    - "*.example.com"
+```
+
+### Security Considerations
+
+- Always configure `allowed_domains` in production to prevent unauthorized
+  third parties from using your provider canister
+- Each whitelisted domain should correspond to a known, trusted application
+- The user's wallet will display the domain from the SIWA message — ensure
+  only legitimate domains are whitelisted to prevent phishing
+- Principal derivation is based on the wallet address and salt, **not** the
+  domain — the same wallet produces the same principal regardless of which
+  whitelisted domain was used for login
 
 ## Security Requirements
 
@@ -184,26 +412,156 @@ type InitArgs = record {
 When `allowed_domains` is configured:
 
 - Only requests from whitelisted domains are accepted
+- Supports wildcard patterns (e.g., `*.example.com`)
+- Validated during `siwa_prepare_login_with_options` and `siwa_login`
 - Prevents unauthorized third parties from using the canister
 
-### Canister Targeting
+### Caller Whitelisting (`allowed_canisters`)
 
 When `allowed_canisters` is configured:
 
-- Delegations are only valid for specified canisters
-- Prevents cross-canister delegation abuse
+- Only whitelisted canister principals can call the provider canister
+- Controls **who can invoke** the provider's endpoints (inter-canister call whitelist)
+- If empty, all authenticated callers are allowed
+
+### Delegation Targeting (`delegation_targets`)
+
+When `delegation_targets` is configured:
+
+- Delegations are restricted to the specified canister principals
+- Controls **where delegations are valid** (which canisters accept the delegation)
+- Included in the `Delegation` record and delegation hash computation
+- If empty, delegations are unrestricted and work for any canister
+
+> **Note**: `allowed_canisters` and `delegation_targets` serve different purposes.
+> `allowed_canisters` restricts who can **call** the provider, while
+> `delegation_targets` restricts which canisters the resulting **delegations work for**.
+
+### Rate Limiting
+
+Rate limiting protects the `siwa_prepare_login` endpoint from abuse:
+
+- **Per-address limit**: Maximum login attempts per address within a time window
+- **Global limit**: Maximum total login attempts across all addresses within a time window
+- **Sliding window**: Automatically resets when the window expires
+- **Cleanup**: Expired entries are periodically removed to prevent memory growth
+
+Default values (when `rate_limits` is not provided):
+
+| Parameter                | Default | Description                         |
+| ------------------------ | ------- | ----------------------------------- |
+| `max_logins_per_address` | 10      | Max attempts per address per window |
+| `max_logins_total`       | 1000    | Max total attempts per window       |
+| `window_seconds`         | 3600    | Window duration (1 hour)            |
+
+### Login Session Overwrite Protection
+
+Only one pending login session is stored per address at a time. If
+`siwa_prepare_login` is called while an unexpired session already exists for
+the same address, the existing session is replaced with the new one. This
+allows users to retry login immediately after cancelling or failing a wallet
+signing prompt, while rate limiting prevents abuse from repeated calls.
+
+The overwrite is logged (when debug mode is enabled) for security monitoring.
 
 ### Salt Security
 
+The salt is a critical secret used in both principal derivation and delegation
+seed generation. Its confidentiality determines the security of the identity
+mapping.
+
+**Core Requirements**:
+
 - The salt MUST be kept secret
 - The salt MUST be different for each deployment
-- The salt determines principal derivation - changing it invalidates all existing identities
+- The salt determines principal derivation -- changing it invalidates all existing identities
+- The salt cannot be rotated at runtime; changing it requires a canister upgrade
+
+**Visibility Properties**:
+
+The salt is passed as plaintext in the Candid `InitArgs` during canister
+installation. On the Internet Computer:
+
+- Init args are **NOT** stored in the canister history (only module hash and mode are recorded)
+- Init args are **NOT** queryable via any public IC API (`canister_info`, `canister_status`, `read_state`)
+- Init args **ARE** visible to all subnet replica nodes during ingress message processing
+- The salt stored in canister stable memory is also readable by node operators
+
+This means the salt has no public API exposure, but is not cryptographically
+protected from IC infrastructure operators (subnet node operators and boundary
+nodes).
+
+**Best Practices**:
+
+- Use a cryptographically random salt of sufficient length (32+ characters)
+- Generate a unique salt per deployment environment (development, testnet, mainnet)
+- Store salts in a secrets manager, not in source control
+- Accept that IC node operators have theoretical access to the salt (this is an inherent property of the IC's trust model, not specific to SIWA)
+- If the salt is compromised, an attacker could predict which principal maps to any address, but cannot impersonate users without their wallet private key
 
 ### Session Management
 
 - Sessions MUST have a bounded expiration time
 - Login messages MUST expire within a reasonable window (default: 5 minutes)
 - Sessions MUST be cryptographically bound to the session key
+- Maximum 5 concurrent sessions per address (oldest evicted when exceeded)
+
+### Debug Mode
+
+When `debug` is enabled (`true`):
+
+- The `debug_info` update endpoint becomes available
+- Only callable by canister controllers for security
+- Exposes diagnostic information including:
+  - Configuration: domain, URI, chain ID, session expiration
+  - Security settings: allowed domains, delegation targets, rate limits
+  - State counts: login sessions, auth sessions, prepared delegations, signature map size
+- MUST be set to `false` in production deployments
+
+## Canister Upgrade Behavior
+
+The canister uses **stable memory** for data that must persist across upgrades and
+**heap memory** for transient data that can be safely lost.
+
+### Persistent Data (Stable Memory)
+
+The following data is stored in stable memory using `ic-stable-structures` and
+survives canister upgrades:
+
+| Data                     | Storage Type     | Description                              |
+| ------------------------ | ---------------- | ---------------------------------------- |
+| Address-to-principal map | `StableBTreeMap` | Identity mappings (address -> principal) |
+| Principal-to-address map | `StableBTreeMap` | Reverse identity mappings                |
+| Settings                 | `StableCell`     | Candid-encoded canister configuration    |
+
+### Transient Data (Heap Memory)
+
+The following data is stored in heap memory and is **reset on every upgrade**.
+This is acceptable because users simply need to re-authenticate:
+
+| Data                 | Description                                   |
+| -------------------- | --------------------------------------------- |
+| Login sessions       | Pending signature verifications               |
+| Auth sessions        | Active authenticated sessions                 |
+| Prepared delegations | Delegations awaiting query retrieval          |
+| Signature map        | Certified data for delegation queries         |
+| Rate limiter state   | Per-address and global login attempt counters |
+
+### Upgrade Modes
+
+The `post_upgrade` hook supports two modes:
+
+1. **With `InitArgs`**: Settings are updated in stable memory; transient state is
+   reset. Identity mappings are preserved.
+2. **Without `InitArgs`**: Settings are loaded from stable memory; transient state
+   is reset. Identity mappings are preserved. The canister traps if no settings
+   exist in stable memory (i.e., it was never initialized).
+
+> **Note**: Changing the `salt` in `InitArgs` during an upgrade will cause all
+> future principal derivations to differ from existing identity mappings. The
+> existing mappings in stable memory will become stale. After changing the salt,
+> call `purge_identity_mappings` to remove stale mappings. New mappings will be
+> created automatically on next login for each address.
 
 ## Cryptographic Specifications
 
@@ -219,68 +577,217 @@ Avalanche C-Chain addresses are Ethereum-compatible:
 
 - Algorithm: ECDSA on secp256k1
 - Hash function: Keccak256
-- Message prefix: "\x19Avalanche Signed Message:\n" + length + message
+- Message prefix: "\x19Ethereum Signed Message:\n" + length + message (Avalanche C-Chain uses the standard Ethereum personal sign prefix for EVM compatibility)
 - Recovery: Use recovery ID (v) to recover public key
 
 ### Principal Derivation
 
+The user's ICP principal is derived deterministically from their Avalanche address
+and the canister's salt using Keccak256:
+
 ```text
-seed = SHA256(salt || address || [uri])
-principal = DER_encode(seed)
+normalized_address = lowercase(address)
+hash = Keccak256(normalized_address || salt)
+principal = Principal::from_bytes(hash[0..28])
 ```
+
+The first 28 bytes of the hash are used as the principal data (IC principals are
+at most 29 bytes). This produces an **opaque** principal (not self-authenticating).
+The same wallet address always produces the same ICP principal for a given
+canister deployment.
+
+### Delegation Seed
+
+The delegation chain root key uses a separate derivation with SHA-256 and
+length-prefixed inputs:
+
+```text
+normalized_address = lowercase(address)
+seed = SHA256(len_prefix(salt) || len_prefix(normalized_address))
+```
+
+Where `len_prefix(x)` prepends a single byte containing the length of `x`.
+The seed is used to construct the DER-encoded canister public key for the
+delegation chain using IC's canister signature scheme (OID 1.3.6.1.4.1.56387.1.2).
+
+> **Note**: Principal derivation and delegation seed generation use different hash
+> algorithms (Keccak256 vs SHA-256) and different input formats (concatenation vs
+> length-prefixed). This is intentional: the principal derivation is
+> Ethereum-ecosystem-aligned while the delegation seed follows IC conventions.
 
 ## Configuration Schema
 
 ### YAML Configuration Files
 
+Configuration files are stored in `config/` with environment-specific settings.
 All configuration files follow this schema:
 
 ```yaml
-# Domain configuration
-domains:
-  allowed:
-    - "example.com"
-    - "*.example.com"
-
 # Avalanche network settings
 avalanche:
-  chain_id: 43113 # or 43114 for mainnet
+  chain_id: 43113 # 43113 for Fuji testnet, 43114 for mainnet
   rpc_url: "https://api.avax-test.network/ext/bc/C/rpc"
 
 # IC network settings
 ic:
-  network: "local" # or "ic" for mainnet
+  network: "local" # "local" for dfx replica, "ic" for mainnet
   canisters:
     ic_siwa_provider: null # Set after deployment
 
+# SIWA domain settings (for multi-tenant deployments)
+siwa:
+  domain: "app.example.com" # Domain for SIWA messages
+  uri: "https://app.example.com" # Full URI including scheme
+
 # Security settings
 security:
-  allowed_canisters: []
-  session_expiration_seconds: 1800 # 30 minutes
-  login_expiration_seconds: 300 # 5 minutes
+  allowed_domains: # Domain whitelist (supports wildcards)
+    - "example.com"
+    - "*.example.com"
+  allowed_canisters: [] # Caller canister whitelist
+  delegation_targets: [] # Canisters delegations are valid for
+  rate_limits:
+    max_logins_per_address: 5 # Per-address limit per window
+    max_logins_total: 100 # Global limit per window
+    window_seconds: 3600 # Window duration in seconds
+  session_expiration_seconds: 1800 # Session TTL (30 minutes)
+  login_expiration_seconds: 300 # Login message TTL (5 minutes)
 
 # Client library settings
 library:
-  timeout_ms: 30000
+  timeout_ms: 30000 # Request timeout in milliseconds
+
+# Debug mode (should be false in production)
+debug: false
 ```
 
-## Error Handling
+## Error Reference
 
-### Error Types
+All canister endpoints return errors as `Err(String)` with a descriptive message.
+This section documents every error that the SIWA library and provider canister can
+produce, along with the endpoints that return them and the corresponding TypeScript
+client error code.
 
-| Error Code             | Description                         |
-| ---------------------- | ----------------------------------- |
-| `InvalidAddress`       | Malformed Avalanche address         |
-| `InvalidSignature`     | Signature verification failed       |
-| `SignatureExpired`     | SIWA message has expired            |
-| `SessionExpired`       | Session delegation has expired      |
-| `UnauthorizedDomain`   | Request from non-whitelisted domain |
-| `UnauthorizedCanister` | Delegation target not in whitelist  |
-| `NotAuthenticated`     | No valid session for caller         |
+### Library Errors (`ic_siwa::SiwaError`)
 
-### Error Response Format
+These errors originate from the core SIWA Rust library and are converted to strings
+via `Display`.
 
-All errors are returned as `Err(String)` with a descriptive message.
+| Variant              | String Format                     | Endpoints                                                       | Description                                                                     |
+| -------------------- | --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `InvalidAddress`     | `"Invalid address: {detail}"`     | `siwa_prepare_login`, `siwa_login`                              | Address fails EIP-55 validation (missing 0x prefix, wrong length, bad checksum) |
+| `InvalidSignature`   | `"Invalid signature: {detail}"`   | `siwa_login`, `siwa_login_and_prepare`                          | Signature format invalid or ECDSA recovery failed                               |
+| `InvalidMessage`     | `"Invalid message: {detail}"`     | `siwa_login`, `siwa_login_and_prepare`                          | SIWA message cannot be parsed or has invalid structure                          |
+| `MessageExpired`     | `"Message expired"`               | `siwa_login`, `siwa_login_and_prepare`                          | SIWA message past its `expiration_time`                                         |
+| `InvalidNonce`       | `"Invalid nonce: {detail}"`       | `siwa_login`, `siwa_login_and_prepare`                          | Nonce mismatch or already consumed                                              |
+| `DomainNotAllowed`   | `"Domain not allowed: {domain}"`  | `siwa_prepare_login_with_options`, `siwa_login`                 | Domain not in `allowed_domains` whitelist                                       |
+| `CanisterNotAllowed` | `"Canister not allowed: {id}"`    | all update endpoints                                            | Caller not in `allowed_canisters` whitelist                                     |
+| `SessionNotFound`    | `"Session not found"`             | `siwa_prepare_delegation`, `siwa_get_delegation`, `siwa_logout` | No authenticated session for the given address and key                          |
+| `DelegationError`    | `"Delegation error: {detail}"`    | `siwa_prepare_delegation`, `siwa_get_delegation`                | Delegation preparation or retrieval failed                                      |
+| `ConfigError`        | `"Configuration error: {detail}"` | `init`, `post_upgrade`                                          | Invalid canister settings                                                       |
+| `InternalError`      | `"Internal error: {detail}"`      | any                                                             | Unexpected internal state                                                       |
+| `RateLimited`        | `"Rate limit exceeded: {detail}"` | `siwa_prepare_login`                                            | Per-address or global rate limit exceeded                                       |
+
+### Provider Canister Errors
+
+These errors are produced directly by the provider canister's endpoint
+implementations.
+
+#### Authentication and Authorization
+
+| Error String                                                             | Endpoints                                        | Description                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------- |
+| `"Anonymous callers are not allowed"`                                    | all update endpoints                             | Anonymous principal called an endpoint that requires authentication |
+| `"Caller {id} is not in the allowed_canisters whitelist"`                | all update endpoints                             | `allowed_canisters` is configured and caller is not whitelisted     |
+| `"Only canister controllers can revoke sessions"`                        | `siwa_revoke_all`                                | Non-controller called a controller-only endpoint                    |
+| `"Only canister controllers can purge identity mappings"`                | `purge_identity_mappings`                        | Non-controller called a controller-only endpoint                    |
+| `"Only canister controllers can access debug info"`                      | `debug_info`                                     | Non-controller called a controller-only endpoint                    |
+| `"Debug mode is not enabled. Set debug: true in InitArgs."`              | `debug_info`                                     | Debug endpoint called but `debug` is `false`                        |
+| `"Unauthorized: caller is not the session owner or an allowed canister"` | `siwa_prepare_delegation`, `siwa_get_delegation` | Caller is neither the session owner nor in `allowed_canisters`      |
+| `"Caller is not the session owner or a controller"`                      | `siwa_logout`                                    | Caller is neither the session owner nor a canister controller       |
+
+#### Login Flow
+
+| Error String                                                     | Endpoints                              | Description                                           |
+| ---------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------- |
+| `"Custom domains require allowed_domains to be configured..."`   | `siwa_prepare_login_with_options`      | Custom domain provided but `allowed_domains` is empty |
+| `"Domain '{domain}' is not in the allowed domains list..."`      | `siwa_prepare_login_with_options`      | Requested domain not in whitelist                     |
+| `"Failed to generate nonce: {error}"`                            | `siwa_prepare_login`                   | IC random bytes generation failed                     |
+| `"No pending login session for address {address}"`               | `siwa_login`, `siwa_login_and_prepare` | No `siwa_prepare_login` was called for this address   |
+| `"Login session has expired"`                                    | `siwa_login`, `siwa_login_and_prepare` | Pending login session past expiration                 |
+| `"Login must be completed by the same caller that initiated it"` | `siwa_login`, `siwa_login_and_prepare` | Different principal calling login than prepare        |
+| `"Failed to extract domain from SIWA message"`                   | `siwa_login`, `siwa_login_and_prepare` | Stored message has malformed domain field             |
+| `"Domain '{domain}' is not allowed..."`                          | `siwa_login`, `siwa_login_and_prepare` | Domain in stored message fails re-validation          |
+| `"Failed to parse stored SIWA message: {error}"`                 | `siwa_login`, `siwa_login_and_prepare` | Stored SIWA message cannot be deserialized            |
+| `"Chain ID mismatch: message has {x} but settings require {y}"`  | `siwa_login`, `siwa_login_and_prepare` | Message chain ID differs from canister settings       |
+| `"Unsupported SIWA version: {version}"`                          | `siwa_login`, `siwa_login_and_prepare` | Message version is not `1`                            |
+| `"SIWA message has expired"`                                     | `siwa_login`, `siwa_login_and_prepare` | Message `expiration_time` is in the past              |
+| `"Signature verification failed: {error}"`                       | `siwa_login`, `siwa_login_and_prepare` | ECDSA signature verification failed                   |
+| `"Recovered address {x} does not match expected address {y}"`    | `siwa_login`, `siwa_login_and_prepare` | Signer address differs from claimed address           |
+| `"Failed to derive principal: {error}"`                          | `siwa_login`, `siwa_login_and_prepare` | Principal derivation from address + salt failed       |
+| `"Failed to create user canister pubkey: {error}"`               | `siwa_login`, `siwa_login_and_prepare` | DER-encoded canister public key creation failed       |
+
+#### Delegation
+
+| Error String                                             | Endpoints                                        | Description                                                       |
+| -------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| `"No authenticated session found for address {address}"` | `siwa_prepare_delegation`, `siwa_get_delegation` | No login completed for this address                               |
+| `"Address mismatch"`                                     | `siwa_prepare_delegation`, `siwa_get_delegation` | Session address does not match request                            |
+| `"Session has expired"`                                  | `siwa_prepare_delegation`, `siwa_get_delegation` | Authenticated session past expiration                             |
+| `"Session disappeared during validation"`                | `siwa_prepare_delegation`, `siwa_get_delegation` | Session removed between lookup and use (race condition)           |
+| `"Delegation not found in signature map..."`             | `siwa_get_delegation`                            | `siwa_prepare_delegation` was not called or delegation was pruned |
+| `"Failed to create certified signature..."`              | `siwa_get_delegation`                            | Certificate witness creation failed; delegation may have expired  |
+
+#### Lookup
+
+| Error String                                   | Endpoints            | Description                                           |
+| ---------------------------------------------- | -------------------- | ----------------------------------------------------- |
+| `"No principal found for address {address}"`   | `get_principal`      | Address has no stored identity mapping                |
+| `"No address found for principal {principal}"` | `get_address`        | Principal has no stored identity mapping              |
+| `"No address found for caller"`                | `get_caller_address` | Calling principal has no stored identity mapping      |
+| `"Session not found"`                          | `siwa_logout`        | No session matches the provided address and key       |
+| `"Address does not match session"`             | `siwa_logout`        | Provided address does not match the session's address |
+
+#### Capacity Limits
+
+| Error String                                                 | Endpoints                              | Description                                    |
+| ------------------------------------------------------------ | -------------------------------------- | ---------------------------------------------- |
+| `"Too many pending login sessions. Please try again later."` | `siwa_prepare_login`                   | Login session store at capacity (10,000)       |
+| `"Too many active sessions. Please try again later."`        | `siwa_login`, `siwa_login_and_prepare` | Auth session store at capacity (10,000)        |
+| `"Too many prepared delegations. Please try again later."`   | `siwa_prepare_delegation`              | Prepared delegation store at capacity (10,000) |
+
+#### Canister Lifecycle
+
+| Error String                                                    | Endpoints              | Description                                                           |
+| --------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------- |
+| `"Invalid settings: {error}"`                                   | `init`, `post_upgrade` | Settings validation failed (trap)                                     |
+| `"Failed to initialize state: {error}"`                         | `init`, `post_upgrade` | State initialization failed (trap)                                    |
+| `"Canister upgraded without settings and no InitArgs provided"` | `post_upgrade`         | Upgrade without args and no existing settings in stable memory (trap) |
+| `"Failed to encode settings: {error}"`                          | `init`, `post_upgrade` | Candid encoding of settings failed                                    |
+
+### TypeScript Client Error Code Mapping
+
+The TypeScript client (`ic_siwa_ts`) defines `SiwaErrorCode` to categorise errors
+for frontend handling. The mapping from canister error strings to client codes:
+
+| `SiwaErrorCode`    | Value                  | Canister Error Prefix                                                                | Description                         |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------------------ | ----------------------------------- |
+| `InvalidAddress`   | `"INVALID_ADDRESS"`    | `"Invalid address: "`                                                                | Address validation failed           |
+| `InvalidSignature` | `"INVALID_SIGNATURE"`  | `"Invalid signature: "`, `"Signature verification failed: "`, `"Recovered address "` | Signature-related errors            |
+| `MessageExpired`   | `"MESSAGE_EXPIRED"`    | `"Message expired"`, `"SIWA message has expired"`, `"Login session has expired"`     | Message or login session expiration |
+| `SessionExpired`   | `"SESSION_EXPIRED"`    | `"Session has expired"`                                                              | Authenticated session expiration    |
+| `DomainNotAllowed` | `"DOMAIN_NOT_ALLOWED"` | `"Domain not allowed: "`, `"Domain '"`                                               | Domain whitelist rejection          |
+| `NotAuthenticated` | `"NOT_AUTHENTICATED"`  | `"Session not found"`, `"No authenticated session"`, `"Anonymous callers"`           | No valid session or identity        |
+| `NetworkError`     | `"NETWORK_ERROR"`      | (client-side)                                                                        | Network communication failure       |
+| `CanisterError`    | `"CANISTER_ERROR"`     | (catch-all for unmatched canister errors)                                            | Generic canister error              |
+| `StorageError`     | `"STORAGE_ERROR"`      | (client-side)                                                                        | Client storage read/write failure   |
+| `NotImplemented`   | `"NOT_IMPLEMENTED"`    | (client-side)                                                                        | Feature not yet implemented         |
+| `Unknown`          | `"UNKNOWN"`            | (fallback)                                                                           | Unrecognised error                  |
+
+> **Note**: The TypeScript client wraps all canister errors in `SiwaError` objects.
+> Errors that don't match a known prefix are mapped to `SiwaErrorCode.CanisterError`
+> or `SiwaErrorCode.Unknown`. Frontend integrators should use `SiwaErrorCode` for
+> programmatic error handling and the error `message` property for display.
 
 ## Client Library Requirements
 
@@ -306,16 +813,20 @@ Must provide:
 
 ### Deviations from EIP-4361
 
-The following EIP-4361 fields are not implemented:
+The following EIP-4361 fields are supported structurally but not populated
+by the canister during message construction:
 
-- `not-before`: Not required for this use case
-- `request-id`: Not required for this use case
-- `resources`: Not required for this use case
+- `not-before`: Parsed if present in signed messages, but not set during `siwa_prepare_login`
+- `request-id`: Parsed if present in signed messages, but not set during `siwa_prepare_login`
+- `resources`: Parsed if present in signed messages, but not set during `siwa_prepare_login`
+
+These fields are `None` in all canister-generated messages. The parser preserves
+them during roundtrips if they were present in the original signed message.
 
 ### Avalanche-Specific Adaptations
 
 - Chain ID defaults to 43113 (Fuji) or 43114 (Mainnet)
-- Message prefix adapted for Avalanche signing
+- Uses standard Ethereum personal sign prefix (`\x19Ethereum Signed Message:\n`) since Avalanche C-Chain is EVM-compatible
 - Address format identical to Ethereum (EIP-55)
 
 ## Project Components
