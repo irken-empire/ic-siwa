@@ -16,6 +16,10 @@ inputs:
     description: "Deploy mode: install, upgrade, reinstall, auto (default: auto)"
     required: false
     default: "auto"
+  accept_breaking_changes:
+    description: "Accept breaking candid interface changes (passes --yes to dfx deploy)"
+    required: false
+    default: "false"
 
 outputs:
   canister_id:
@@ -44,13 +48,20 @@ runs:
       run: |
         echo "Deploying ${{ inputs.canister }} to IC mainnet..."
 
+        # Build --yes flag for breaking candid changes
+        YES_FLAG=""
+        if [ "${{ inputs.accept_breaking_changes }}" = "true" ]; then
+          echo "⚠️  accept_breaking_changes=true — will auto-accept candid interface changes"
+          YES_FLAG="--yes"
+        fi
+
         # Deploy using --network ic (canister_ids.json must be set up first)
         if [ -n "${INIT_ARGS}" ]; then
           echo "Init args:"
           echo "${INIT_ARGS}"
-          dfx deploy --network ic ${{ inputs.canister }} --mode ${{ inputs.mode }} --argument "${INIT_ARGS}"
+          dfx deploy --network ic ${{ inputs.canister }} --mode ${{ inputs.mode }} --argument "${INIT_ARGS}" ${YES_FLAG}
         else
-          dfx deploy --network ic ${{ inputs.canister }} --mode ${{ inputs.mode }}
+          dfx deploy --network ic ${{ inputs.canister }} --mode ${{ inputs.mode }} ${YES_FLAG}
         fi
 
         # Get canister ID

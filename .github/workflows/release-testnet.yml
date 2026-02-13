@@ -5,6 +5,7 @@
 #
 # Triggers:
 #   - Push to trunk branch
+#   - Manual workflow dispatch (with breaking changes option)
 #
 # This is a self-contained workflow that:
 #   1. Builds all canisters and npm package
@@ -23,6 +24,12 @@ on:
   push:
     branches:
       - trunk
+  workflow_dispatch:
+    inputs:
+      accept_breaking_changes:
+        description: "Accept breaking candid interface changes (auto-accept upgrade prompts)"
+        type: boolean
+        default: false
 
 concurrency:
   group: release-testnet
@@ -265,6 +272,7 @@ jobs:
         with:
           canister: ic_siwa_provider
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+          accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes || 'false' }}
           init_args: |
             (record {
               domain = "${{ needs.setup.outputs.domain }}";
@@ -361,6 +369,7 @@ jobs:
         with:
           canister: test_canister_rs
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+          accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes || 'false' }}
 
       - name: Deploy test_canister_ts
         id: deploy-ts
@@ -368,6 +377,7 @@ jobs:
         with:
           canister: test_canister_ts
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
+          accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes || 'false' }}
 
   ##################################################
   # Register Custom Domain (when debug=true)
