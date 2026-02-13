@@ -39,6 +39,7 @@ tweens
 WASD
 
 # Crypto and web3
+caip
 degen
 degens
 FOMO
@@ -48,16 +49,32 @@ decentralized
 decentralization
 decentralizing
 Lambos
+merkle
 normie
+secp
 SIWA
+SIWE
+siwe
+submap
+walletconnect
+WALLETCONNECT
 
 # Tools and infrastructure
+cachix
+CACHIX
+Cachix
 dedup
 devenv
 direnv
+nixpkgs
+NIXPKGS
+nixos
+oxalica
+packtool
 prek
 prebuild
 precaching
+softprops
 webp
 webps
 
@@ -68,7 +85,9 @@ Orbitron
 # People and brands
 Fiverr
 Gensler
+Kristofer
 Rabby
+shazow
 
 # Game names and characters
 Assasian
@@ -76,20 +95,49 @@ Pickel
 
 # Word fragments from hyphenated compounds
 # cspell splits on hyphens and suffixes, producing these fragments
+alnum
+ated
 ator
+authenti
+Aval
 cano
 compl
 configur
+cript
 develo
+elif
+encr
 enviro
+esac
+immedi
+iner
+ipal
+mgmt
+MSVC
+myapp
 nged
 nment
+nosniff
 notific
 ntion
+onclick
+ostics
+overcounting
+prefersdark
 priate
 prin
+roundtrips
+rustc
 subd
+tible
+tion
+ters
 tures
+versionrc
+Vite
+walletco
+xnew
+yment
 
 # Slang and flavour text
 Waaaaaaa
@@ -102,6 +150,7 @@ clippy
 Clippy
 convco
 getrandom
+inversed
 serde
 thiserror
 
