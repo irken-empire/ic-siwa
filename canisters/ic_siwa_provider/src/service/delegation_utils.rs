@@ -64,6 +64,7 @@ pub fn validate_session_data(address: &str, session_key: &[u8]) -> Result<(Strin
 /// # Returns
 /// * `Ok((key_hash, session_expires_at))` - Session key hash and session expiration
 /// * `Err(String)` - Error message if validation fails
+#[allow(dead_code)] // Retained for future inter-canister authorization scenarios
 pub fn validate_session(address: &str, session_key: &[u8]) -> Result<(String, u64), String> {
     let (key_hash, expires_at) = validate_session_data(address, session_key)?;
 

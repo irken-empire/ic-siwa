@@ -258,8 +258,11 @@ show_help() {
 		  IC_SIWA_SALT_DEVELOPMENT    Salt for development deployments
 		  IC_SIWA_SALT_TESTNET        Salt for testnet deployments
 		  IC_SIWA_SALT_MAINNET        Salt for mainnet deployments
-		  IC_SIWA_DOMAIN              Domain for SIWA messages
-		  IC_SIWA_URI                 URI for SIWA messages
+
+		Config Files (domain/uri read from YAML):
+		  config/development.yaml     Local dev (siwa.domain, siwa.uri)
+		  config/testnet.yaml         IC testnet (siwa.domain, siwa.uri)
+		  config/mainnet.yaml         IC mainnet (siwa.domain, siwa.uri)
 	EOF
 }
 
@@ -273,7 +276,7 @@ declare -A CMD_DEPS=(
 	["build"]="cargo"
 	["candid"]="cargo,candid-extractor,didc"
 	["test"]="cargo"
-	["test-integration"]="dfx,cast"
+	["test-integration"]="dfx,cast,yq"
 	["fmt"]="cargo"
 	["lint"]="cargo"
 	["deploy"]="dfx,cargo,bun,yq"
@@ -1827,9 +1830,11 @@ build_init_arg() {
 	# Log to stderr so it doesn't get captured in the return value
 	echo -e "${BLUE}[INFO]${NC} Reading config from: ${config_file}" >&2
 
-	# Get configuration from environment or use defaults
-	local domain="${IC_SIWA_DOMAIN:-localhost}"
-	local uri="${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
+	# Read domain/uri from config file (consistent with CI read-config action)
+	local domain
+	domain=$(yq -r '.siwa.domain' "${config_file}")
+	local uri
+	uri=$(yq -r '.siwa.uri' "${config_file}")
 	local salt="${IC_SIWA_SALT_DEVELOPMENT:-development-salt-change-me}"
 
 	# Read values from config file
@@ -1926,9 +1931,7 @@ cmd_deploy() {
 	init_arg=$(build_init_arg "${network}") || return 1
 
 	# Deploy ic_siwa_provider
-	log_debug "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
-	log_debug "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
-	log_debug "  Chain ID: $([[ ${network} == "ic" ]] && echo "43114" || echo "43113")"
+	log_debug "  Init arg: ${init_arg}"
 
 	run_cmd "Deploying ic_siwa_provider..." dfx deploy ic_siwa_provider --network "${network}" --argument "${init_arg}" --yes || {
 		log_error "Failed to deploy ic_siwa_provider"
@@ -2049,8 +2052,7 @@ cmd_upgrade() {
 	init_arg=$(build_init_arg "${network}") || return 1
 
 	log_info "Upgrading with config:"
-	log_info "  Domain: ${IC_SIWA_DOMAIN:-localhost}"
-	log_info "  URI: ${IC_SIWA_URI:-http://localhost:${DFX_PORT}}"
+	log_debug "  Init arg: ${init_arg}"
 
 	# Upgrade ic_siwa_provider
 	# Use --upgrade-unchanged to force upgrade even if WASM hash is the same

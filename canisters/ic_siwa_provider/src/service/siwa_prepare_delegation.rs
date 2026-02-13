@@ -4,7 +4,7 @@
 
 use crate::service::delegation_utils::{
     cleanup_expired_prepared_delegations, compute_delegation_hash, compute_final_expiration,
-    compute_seed_hash, get_delegation_targets, store_prepared_delegation, validate_session,
+    compute_seed_hash, get_delegation_targets, store_prepared_delegation, validate_session_data,
 };
 use crate::state::store_delegation;
 use ic_siwa::siwa::hash_session_key;
@@ -13,6 +13,21 @@ use ic_siwa::siwa::hash_session_key;
 ///
 /// This must be called before `siwa_get_delegation` to store the delegation
 /// in the signature map for certified responses.
+///
+/// # Security
+/// This uses `validate_session_data()` (data-only validation) rather than
+/// `validate_session()` (which also checks `msg_caller()`). The caller
+/// authorization check is intentionally omitted because:
+///
+/// 1. **Browser callers use anonymous agents** — the TS client calls this
+///    via an anonymous `HttpAgent`, so `msg_caller()` is the anonymous
+///    principal (`2vxsx-fae`), which can never match the keccak-derived
+///    `auth_session.principal`.
+/// 2. **The session key is the real security** — only the browser that
+///    initiated login holds the private session key. Knowing the address +
+///    session key is sufficient proof of authorization.
+/// 3. **Consistent with `siwa_get_delegation`** — the query endpoint also
+///    uses data-only validation for the same reason.
 ///
 /// # Arguments
 /// * `address` - The Avalanche address
@@ -30,8 +45,9 @@ pub fn prepare_delegation(
     // Periodically cleanup expired prepared delegations
     cleanup_expired_prepared_delegations();
 
-    // Validate the session and get session data
-    let (_key_hash, session_expires_at) = validate_session(&address, &session_key)?;
+    // Validate the session data (address, key, expiration) without caller check.
+    // See function-level doc comment for security rationale.
+    let (_key_hash, session_expires_at) = validate_session_data(&address, &session_key)?;
 
     // Compute the final expiration (capped to session and settings limits)
     let final_expiration = compute_final_expiration(expiration, session_expires_at);

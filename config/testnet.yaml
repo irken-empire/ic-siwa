@@ -1,27 +1,104 @@
+# =============================================================================
 # IC-SIWA Testnet Configuration
-# For IC Mainnet deployment with Avalanche Fuji Testnet
+# =============================================================================
+# For IC Mainnet deployment with Avalanche Fuji Testnet.
+# This is a "testnet" in the Avalanche sense (Fuji), but deploys to the real
+# IC network so you can test the full end-to-end flow with real IC canisters.
+#
+# This file is parsed by the Config struct (libs/ic_siwa/src/config.rs) and
+# converted to a Settings struct via Config::to_settings(). The `siwa` section
+# is consumed by deploy scripts to populate InitArgs, not by Config directly.
+# =============================================================================
 
+# -----------------------------------------------------------------------------
+# Avalanche Chain Settings
+# Maps to: AvalancheConfig struct
+# -----------------------------------------------------------------------------
 avalanche:
-  # Avalanche Fuji Testnet
+  # Chain ID determines which Avalanche network to use for signature verification.
+  # Must be one of:
+  #   43113 = Fuji Testnet (for development and testing)
+  #   43114 = C-Chain Mainnet (for production)
+  # Validated by Config::validate() and Settings::validate().
   chain_id: 43113
+
+  # RPC endpoint URL for the Avalanche network.
+  # For reference only - not used by the canister itself (canisters can't make
+  # HTTP calls to external chains). Used by deploy scripts and off-chain tooling.
   rpc_url: "https://api.avax-test.network/ext/bc/C/rpc"
 
+# -----------------------------------------------------------------------------
+# Internet Computer Settings
+# Maps to: IcConfig struct
+# -----------------------------------------------------------------------------
 ic:
+  # IC network to deploy to.
+  #   "local" = local dfx replica
+  #   "ic"    = IC mainnet
   network: "ic"
+
+  # Canister IDs for this deployment.
+  # Once assigned, canister IDs are permanent and never change.
   canisters:
+    # The IC-SIWA Provider canister ID on IC mainnet (testnet deployment).
     ic_siwa_provider: "ejj2n-kqaaa-aaaad-qjlxq-cai"
+    # Test canisters used for integration testing on IC.
     test_canister_rs: "qyw5d-liaaa-aaaai-avgna-cai"
     test_canister_ts: "kelzz-6qaaa-aaaak-qwlga-cai"
 
+# -----------------------------------------------------------------------------
+# SIWA Default Identity (Wallet Signing Prompt)
+# NOT part of Config struct - used by GitHub Actions for deployments.
+# -----------------------------------------------------------------------------
+# These values define what users see in their wallet when signing:
+#   "Sign in to <domain>"
+#   Message body includes: "URI: <uri>"
+#
+# For multi-tenant "SIWA as a Service" deployments, these are the DEFAULTS.
+# Each calling app can override domain/uri per-request via
+# siwa_prepare_login_with_options(), subject to the allowed_domains whitelist.
 siwa:
-  # Default domain/uri for wallet signing prompt (used when calling app doesn't specify one)
-  # For multi-tenant "SIWA as a Service", each app can override these via siwa_prepare_login_with_options
+  # Default domain shown in the wallet signing prompt.
+  # Used when siwa_prepare_login() is called without custom options.
   domain: "siwa-testnet.irkenempire.tech"
+
+  # Default URI included in the SIWA message body.
+  # Used when siwa_prepare_login() is called without custom options.
   uri: "https://siwa-testnet.irkenempire.tech"
 
+# -----------------------------------------------------------------------------
+# Security Settings
+# Maps to: SecurityConfig struct -> Settings fields
+# These settings control anti-phishing, access control, and rate limiting.
+# -----------------------------------------------------------------------------
 security:
-  # Allowed domains for SIWA messages (whitelist for multi-tenant support)
-  # Apps can only use domains listed here via siwa_prepare_login_with_options
+  # ---------------------------------------------------------------------------
+  # Domain Whitelist (Anti-Phishing Protection)
+  # Maps to: Settings.allowed_domains -> Vec<String>
+  # Parsed into: DomainPattern::Exact or DomainPattern::Wildcard
+  # ---------------------------------------------------------------------------
+  # Controls which domains can appear in SIWA wallet signing prompts.
+  # This is the primary defense against phishing attacks - a fake site cannot
+  # trick users into signing messages for a different domain.
+  #
+  # How it works:
+  #   1. At prepare_login, the domain in the SIWA message is set
+  #   2. At login, the domain is validated against this whitelist
+  #   3. The domain is cryptographically signed by the user's wallet,
+  #      so it cannot be tampered with after signing
+  #
+  # Pattern types:
+  #   "example.com"    = Exact match only
+  #   "*.example.com"  = Wildcard - matches example.com AND any subdomain
+  #                      (e.g., app.example.com, foo.bar.example.com)
+  # All matching is case-insensitive.
+  #
+  # IMPORTANT: If empty ([]), custom domains via siwa_prepare_login_with_options()
+  # are rejected, but the default domain (from InitArgs/siwa section) is still
+  # accepted. For production, ALWAYS populate this list.
+  #
+  # For multi-tenant mode, list ALL app domains that are allowed to use this
+  # SIWA provider instance.
   allowed_domains:
     # Primary domains
     - "irkenempire.tech"
@@ -31,32 +108,98 @@ security:
     - "*.tresr.community"
     # Add your app domains here...
 
-  # Allowed canisters for inter-canister calls
+  # ---------------------------------------------------------------------------
+  # Canister Caller Whitelist (Inter-Canister Access Control)
+  # Maps to: Settings.allowed_canisters -> Vec<Principal>
+  # ---------------------------------------------------------------------------
+  # Restricts which ICP canisters can call the SIWA provider endpoints
+  # (siwa_prepare_login, siwa_login, etc.).
+  #
+  # Empty = allow ALL callers (acceptable for testing, NOT for production).
+  # For production, list the specific canister IDs that should be allowed
+  # to call the SIWA provider (e.g., your app's frontend canister).
+  #
+  # Values are ICP Principal IDs (e.g., "rrkah-fqaaa-aaaaa-aaaaq-cai").
   # TODO: Add canister IDs after deployment
   allowed_canisters: []
 
-  # Delegation targets - canisters that delegations are valid for
+  # ---------------------------------------------------------------------------
+  # Delegation Targets (Delegation Scope Control)
+  # Maps to: Settings.delegation_targets -> Vec<Principal>
+  # ---------------------------------------------------------------------------
+  # Restricts which canisters the generated IC delegations are valid for.
+  # When a user signs in via SIWA, a delegation is created that lets them
+  # act as their derived ICP Principal. This setting controls which canisters
+  # that delegation can be used against.
+  #
+  # Empty = delegations work for ANY canister (less secure - if a delegation
+  # is compromised, the attacker can use it against any canister).
+  #
+  # For production, list your app's canister IDs (e.g., your Juno Satellite
+  # canister, backend canisters, etc.).
+  #
+  # Values are ICP Principal IDs.
   # TODO: Add your Juno Satellite and other app canister IDs after deployment
-  # If empty, delegations work for any canister (less secure)
   delegation_targets: []
 
-  # Rate limiting to prevent cycle drain
+  # ---------------------------------------------------------------------------
+  # Rate Limiting (Cycle Drain Protection)
+  # Maps to: Settings.rate_limits -> RateLimitSettings struct
+  # ---------------------------------------------------------------------------
+  # Prevents attackers from draining canister cycles by spamming
+  # prepare_login calls. Each prepare_login costs cycles, so without
+  # rate limiting an attacker could exhaust the canister's cycle balance.
   rate_limits:
-    # Max prepare_login calls per address per window
+    # Maximum prepare_login calls allowed per Avalanche address within the
+    # time window. Prevents a single address from spamming.
+    # Default if omitted: 10
     max_logins_per_address: 5
-    # Max total prepare_login calls per window (across all addresses)
+
+    # Maximum total prepare_login calls across ALL addresses within the
+    # time window. Global backstop against distributed attacks.
+    # Default if omitted: 1000
     max_logins_total: 100
-    # Time window in seconds for rate limiting
-    window_seconds: 3600
 
-  # 30 minute sessions
-  session_expiration_seconds: 1800
-  # 5 minute login window
-  login_expiration_seconds: 300
+    # Time window in seconds for the above limits.
+    # After this window expires, counters reset.
+    # Default if omitted: 3600 (1 hour)
+    window_seconds: 3600 # 1 hour
 
+  # ---------------------------------------------------------------------------
+  # Session & Login Expiration
+  # Maps to: Settings.session_expiration_time (nanoseconds, converted from seconds)
+  #          Settings.login_expiration_time (nanoseconds, converted from seconds)
+  # ---------------------------------------------------------------------------
+
+  # How long an authenticated session remains valid after login.
+  # After expiry, the user must sign in again.
+  # Valid range: 60 (1 min) to 2592000 (30 days).
+  # Stored internally as nanoseconds (value * 1,000,000,000).
+  session_expiration_seconds: 1800 # 30 minutes
+
+  # How long a login message remains valid after prepare_login creates it.
+  # The user must complete wallet signing within this window.
+  # Valid range: 30 (30 sec) to 600 (10 min).
+  # Stored internally as nanoseconds (value * 1,000,000,000).
+  login_expiration_seconds: 300 # 5 minutes
+
+# -----------------------------------------------------------------------------
+# Library Settings
+# Maps to: LibraryConfig struct
+# -----------------------------------------------------------------------------
 library:
-  timeout_ms: 30000
+  # Request timeout in milliseconds for off-chain tooling/library calls.
+  # Not used by the canister itself - used by the TypeScript client library.
+  timeout_ms: 30000 # 30 seconds
 
-# Debug mode - enables test canister deployments and debug_info endpoint
-# The debug_info endpoint is restricted to canister controllers only (not public)
+# -----------------------------------------------------------------------------
+# Debug Mode
+# Maps to: Settings.debug -> bool
+# -----------------------------------------------------------------------------
+# Enables diagnostic features:
+#   - debug_info canister endpoint (restricted to controllers, not public)
+#   - Additional logging in canister
+#   - Test canister deployments
+#
+# Set to true for testnet to aid debugging. MUST be false for mainnet.
 debug: true

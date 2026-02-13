@@ -55,7 +55,7 @@ pub fn create_delegation_hash(delegation: &DelegationInfo<'_>) -> Hash {
     hash_with_domain(b"ic-request-auth-delegation", &delegation_map_hash)
 }
 
-/// Generate a seed for principal derivation from the salt and address.
+/// Generate a seed for principal derivation from the salt, address, and optional origin.
 ///
 /// This seed is used both for deriving the user's principal and for
 /// creating the canister's public key that signs delegations.
