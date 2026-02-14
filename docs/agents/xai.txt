@@ -410,7 +410,7 @@ if __name__ == "__main__":
 
 # Batch API
 
-The Batch API lets you process large volumes of requests asynchronously at **50% off** compared to real-time API calls.
+The Batch API lets you process large volumes of requests asynchronously with reduced pricing and higher rate limits. For pricing details, see [Batch API Pricing](/developers/models#batch-api-pricing).
 
 ## What is the Batch API?
 
@@ -423,7 +423,7 @@ The Batch API takes a different approach. Instead of processing requests immedia
 | | Real-time API | Batch API |
 |---|---|---|
 | **Response time** | Immediate (seconds) | Typically within 24 hours |
-| **Cost** | Standard pricing | **50% off** standard pricing |
+| **Cost** | Standard pricing | Reduced pricing ([see details](/developers/models#batch-api-pricing)) |
 | **Rate limits** | Per-minute limits apply | Requests don't count towards rate limits |
 | **Use case** | Interactive, real-time | Background processing, bulk jobs |
 
@@ -433,7 +433,7 @@ You can also create, monitor, and manage batches through the [xAI Console](https
 
 ## When to use the Batch API
 
-The Batch API is ideal when you don't need immediate results and want to **cut your API costs in half**:
+The Batch API is ideal when you don't need immediate results and want to **reduce your API costs**:
 
 * **Running evaluations and benchmarks** - Test model performance across thousands of prompts
 * **Processing large datasets** - Analyze customer feedback, classify support tickets, extract entities
@@ -759,7 +759,7 @@ for request in metadata.batch_request_metadata:
 
 ### Track costs
 
-Each batch tracks the total processing cost. Access the cost breakdown after processing to understand your spending. Batch requests are billed at **50% of standard API pricing**, so you'll see significant savings compared to real-time requests.
+Each batch tracks the total processing cost. Access the cost breakdown after processing to understand your spending. For pricing details, see [Batch API Pricing on the Models and Pricing page](/developers/models#batch-api-pricing).
 
 ```pythonXAI
 from xai_sdk import Client
@@ -873,9 +873,9 @@ print("\\nTotal cost: $%.4f" % cost_usd)
 
 ## Related
 
-* [API Reference: Batch endpoints](/developers/api-reference#batches)
-* [gRPC Reference: Batch management](/developers/grpc-reference#batch-management)
-* [Models and pricing](/developers/models)
+* [API Reference: Batch endpoints](/developers/rest-api-reference/inference/batches#create-a-new-batch)
+* [gRPC Reference: Batch management](/developers/grpc-api-reference#batch-management)
+* [Models and pricing — Batch API Pricing](/developers/models#batch-api-pricing)
 * [xAI Python SDK](https://github.com/xai-org/xai-sdk-python)
 
 
@@ -1077,7 +1077,7 @@ The response body will be the same as what you would expect with non-deferred ch
 }
 ```
 
-For more details, refer to [Chat completions](/developers/api-reference#chat-completions) and [Get deferred chat completions](/developers/api-reference#get-deferred-chat-completions) in our REST API Reference.
+For more details, refer to [Chat completions](/developers/rest-api-reference/inference/chat#chat-completions) and [Get deferred chat completions](/developers/rest-api-reference/inference/chat#get-deferred-chat-completions) in our REST API Reference.
 
 
 ===/developers/advanced-api-usage/fingerprint===
@@ -1244,419 +1244,6 @@ In the "Add or search model" input box, enter a coding model such as `grok-code-
 Besides Cline and Cursor, you can also use our code model with [GitHub Copilot](https://github.com/features/copilot), [opencode](https://opencode.ai/), [Kilo Code](https://kilocode.ai/), [Roo Code](https://roocode.com/) and [Windsurf](https://windsurf.com/).
 
 
-===/developers/api-reference===
-# REST API Reference
-
-The xAI Enterprise API is a robust, high-performance RESTful interface designed for seamless integration into existing systems.
-It offers advanced AI capabilities with full compatibility with the OpenAI REST API.
-
-The base for all routes is at `https://api.x.ai`. For all routes, you have to authenticate with the header `Authorization: Bearer <your xAI API key>`.
-
-***
-
-## POST /v1/chat/completions
-
-API endpoint for POST requests to /v1/chat/completions.
-
-```
-Method: POST
-Path: /v1/chat/completions
-```
-
-***
-
-## POST /v1/responses
-
-API endpoint for POST requests to /v1/responses.
-
-```
-Method: POST
-Path: /v1/responses
-```
-
-***
-
-## GET /v1/responses/\{response\_id}
-
-API endpoint for GET requests to /v1/responses/\{response\_id}.
-
-```
-Method: GET
-Path: /v1/responses/{response_id}
-```
-
-***
-
-## DELETE /v1/responses/\{response\_id}
-
-API endpoint for DELETE requests to /v1/responses/\{response\_id}.
-
-```
-Method: DELETE
-Path: /v1/responses/{response_id}
-```
-
-***
-
-**Deprecated**: The Anthropic SDK compatibility is fully deprecated. Please migrate to the [Responses API](#create-new-response) or [gRPC](/developers/grpc-reference).
-
-## POST /v1/messages
-
-API endpoint for POST requests to /v1/messages.
-
-```
-Method: POST
-Path: /v1/messages
-```
-
-***
-
-## POST /v1/images/generations
-
-API endpoint for POST requests to /v1/images/generations.
-
-```
-Method: POST
-Path: /v1/images/generations
-```
-
-***
-
-## POST /v1/images/edits
-
-API endpoint for POST requests to /v1/images/edits.
-
-```
-Method: POST
-Path: /v1/images/edits
-```
-
-***
-
-## POST /v1/videos/generations
-
-API endpoint for POST requests to /v1/videos/generations.
-
-```
-Method: POST
-Path: /v1/videos/generations
-```
-
-***
-
-## POST /v1/videos/edits
-
-API endpoint for POST requests to /v1/videos/edits.
-
-```
-Method: POST
-Path: /v1/videos/edits
-```
-
-***
-
-## GET /v1/videos/\{request\_id}
-
-API endpoint for GET requests to /v1/videos/\{request\_id}.
-
-```
-Method: GET
-Path: /v1/videos/{request_id}
-```
-
-***
-
-## GET /v1/api-key
-
-API endpoint for GET requests to /v1/api-key.
-
-```
-Method: GET
-Path: /v1/api-key
-```
-
-***
-
-## GET /v1/models
-
-API endpoint for GET requests to /v1/models.
-
-```
-Method: GET
-Path: /v1/models
-```
-
-***
-
-## GET /v1/models/\{model\_id}
-
-API endpoint for GET requests to /v1/models/\{model\_id}.
-
-```
-Method: GET
-Path: /v1/models/{model_id}
-```
-
-***
-
-## GET /v1/language-models
-
-API endpoint for GET requests to /v1/language-models.
-
-```
-Method: GET
-Path: /v1/language-models
-```
-
-***
-
-## GET /v1/language-models/\{model\_id}
-
-API endpoint for GET requests to /v1/language-models/\{model\_id}.
-
-```
-Method: GET
-Path: /v1/language-models/{model_id}
-```
-
-***
-
-## GET /v1/image-generation-models
-
-API endpoint for GET requests to /v1/image-generation-models.
-
-```
-Method: GET
-Path: /v1/image-generation-models
-```
-
-***
-
-## GET /v1/image-generation-models/\{model\_id}
-
-API endpoint for GET requests to /v1/image-generation-models/\{model\_id}.
-
-```
-Method: GET
-Path: /v1/image-generation-models/{model_id}
-```
-
-***
-
-## POST /v1/tokenize-text
-
-API endpoint for POST requests to /v1/tokenize-text.
-
-```
-Method: POST
-Path: /v1/tokenize-text
-```
-
-***
-
-## GET /v1/chat/deferred-completion/\{request\_id}
-
-API endpoint for GET requests to /v1/chat/deferred-completion/\{request\_id}.
-
-```
-Method: GET
-Path: /v1/chat/deferred-completion/{request_id}
-```
-
-***
-
-***
-
-## POST /v1/completions
-
-API endpoint for POST requests to /v1/completions.
-
-```
-Method: POST
-Path: /v1/completions
-```
-
-***
-
-**Deprecated**: The Anthropic SDK compatibility is fully deprecated. Please migrate to the [Responses API](#create-new-response) or [gRPC](/developers/grpc-reference).
-
-## POST /v1/complete
-
-API endpoint for POST requests to /v1/complete.
-
-```
-Method: POST
-Path: /v1/complete
-```
-
-***
-
-
-===/developers/collections-api/collection===
-#### Collections API Reference
-
-# Collection Management
-
-The base URL for `collection` management is shared with [Management API](/developers/management-api) at `https://management-api.x.ai/`.
-You have to authenticate using **xAI Management API Key** with the header `Authorization: Bearer <your xAI Management API key>`.
-
-For more details on provisioning xAI Management API key and using Management API, you can visit
-
-***
-
-## POST /v1/collections
-
-API endpoint for POST requests to /v1/collections.
-
-```
-Method: POST
-Path: /v1/collections
-```
-
-***
-
-## GET /v1/collections
-
-API endpoint for GET requests to /v1/collections.
-
-```
-Method: GET
-Path: /v1/collections
-```
-
-***
-
-## GET /v1/collections/\{collection\_id}
-
-API endpoint for GET requests to /v1/collections/\{collection\_id}.
-
-```
-Method: GET
-Path: /v1/collections/{collection_id}
-```
-
-***
-
-## DELETE /v1/collections/\{collection\_id}
-
-API endpoint for DELETE requests to /v1/collections/\{collection\_id}.
-
-```
-Method: DELETE
-Path: /v1/collections/{collection_id}
-```
-
-***
-
-## PUT /v1/collections/\{collection\_id}
-
-API endpoint for PUT requests to /v1/collections/\{collection\_id}.
-
-```
-Method: PUT
-Path: /v1/collections/{collection_id}
-```
-
-***
-
-## POST /v1/collections/\{collection\_id}/documents/\{file\_id}
-
-API endpoint for POST requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
-
-```
-Method: POST
-Path: /v1/collections/{collection_id}/documents/{file_id}
-```
-
-***
-
-## GET /v1/collections/\{collection\_id}/documents
-
-API endpoint for GET requests to /v1/collections/\{collection\_id}/documents.
-
-```
-Method: GET
-Path: /v1/collections/{collection_id}/documents
-```
-
-***
-
-## GET /v1/collections/\{collection\_id}/documents/\{file\_id}
-
-API endpoint for GET requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
-
-```
-Method: GET
-Path: /v1/collections/{collection_id}/documents/{file_id}
-```
-
-***
-
-## PATCH /v1/collections/\{collection\_id}/documents/\{file\_id}
-
-API endpoint for PATCH requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
-
-```
-Method: PATCH
-Path: /v1/collections/{collection_id}/documents/{file_id}
-```
-
-***
-
-## DELETE /v1/collections/\{collection\_id}/documents/\{file\_id}
-
-API endpoint for DELETE requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
-
-```
-Method: DELETE
-Path: /v1/collections/{collection_id}/documents/{file_id}
-```
-
-***
-
-## GET /v1/collections/\{collection\_id}/documents:batchGet
-
-API endpoint for GET requests to /v1/collections/\{collection\_id}/documents:batchGet.
-
-```
-Method: GET
-Path: /v1/collections/{collection_id}/documents:batchGet
-```
-
-
-===/developers/collections-api===
-# Collections API Reference
-
-The Collections API allows you to manage your Collections `documents` and `collections` programmatically.
-
-The base url for `collection` management is shared with [Management API](/developers/management-api) at `https://management-api.x.ai/v1/`. You have to authenticate using **xAI Management API Key** with the header `Authorization: Bearer <your xAI Management API key>`.
-
-For more details on provisioning xAI Management API key and using Management API, you can visit
-
-.
-
-The base url for searching within `collections` is shared with [REST API](/developers/api-reference) at `https://api.x.ai`. You have to authenticate using **xAI API Key** with the header `Authorization: Bearer <your xAI API key>`.
-
-
-===/developers/collections-api/search===
-#### Collections API Reference
-
-# Search in Collections
-
-The base url for searching `collections` is shared with [REST API](/developers/api-reference) at `https://api.x.ai`. You have to authenticate using **xAI API Key** with the header `Authorization: Bearer <your xAI API key>`.
-
-***
-
-## POST /v1/documents/search
-
-API endpoint for POST requests to /v1/documents/search.
-
-```
-Method: POST
-Path: /v1/documents/search
-```
-
-
 ===/developers/community===
 #### Resources
 
@@ -1776,7 +1363,7 @@ via RSS at [https://status.x.ai/feed.xml](https://status.x.ai/feed.xml).
 
 The service status is also indicated in the navigation bar of this site.
 
-Most of the errors will be accompanied by an error message that is self-explanatory. For typical status codes of each endpoint, visit [API Reference](/developers/api-reference) or view our [OpenAPI Document](/openapi.json).
+Most of the errors will be accompanied by an error message that is self-explanatory. For typical status codes of each endpoint, visit [API Reference](/developers/rest-api-reference) or view our [OpenAPI Document](/openapi.json).
 
 ## Status Codes
 
@@ -1789,10 +1376,10 @@ Here is a list of potential errors and statuses arranged by status codes.
 | 400Bad Request            | All Endpoints                          | - A `POST` method request body specified an invalid argument, or a `GET` method with dynamic route has an invalid param in the URL.- An incorrect API key is supplied. | - Please check your request body or request URL.                                                                                                 |
 | 401Unauthorized           | All Endpoints                          | - No authorization header or an invalid authorization token is provided.                                                                                                    | - Supply an `Authorization: Bearer Token <XAI_API_KEY>` in the request header. You can get a new API key on [xAI Console](https://console.x.ai). |
 | 403Forbidden              | All Endpoints                          | - Your API key/team doesn't have permission to perform the action.- Your API key/team is blocked.                                                                     | - Ask your team admin for permission.                                                                                                            |
-| 404Not Found              | All Endpoints                          | - A model specified in a `POST` method request body is not found.- Trying to reach an invalid endpoint URL. (Misspelled URL)                                           | - Check your request body and endpoint URL with our [API Reference](/developers/api-reference).                                                              |
-| 405Method Not Allowed     | All Endpoints                          | - The request method is not allowed. For example, sending a `POST` request to an endpoint supporting only `GET`.                                                            | - Check your request method with our [API Reference](/developers/api-reference).                                                                             |
+| 404Not Found              | All Endpoints                          | - A model specified in a `POST` method request body is not found.- Trying to reach an invalid endpoint URL. (Misspelled URL)                                           | - Check your request body and endpoint URL with our [API Reference](/developers/rest-api-reference).                                                              |
+| 405Method Not Allowed     | All Endpoints                          | - The request method is not allowed. For example, sending a `POST` request to an endpoint supporting only `GET`.                                                            | - Check your request method with our [API Reference](/developers/rest-api-reference).                                                                             |
 | 415Unsupported Media Type | All Endpoints Supporting `POST` Method | - An empty request body in `POST` requests.- Not specifying `Content-Type: application/json` header.                                                                  | - Add a valid request body. - Ensure `Content-Type: application/json` header is present in the request header.                             |
-| 422Unprocessable Entity   | All Endpoints Supporting `POST` Method | - An invalid format for a field in the `POST` request body.                                                                                                                 | - Check your request body is valid. You can find more information from [API Reference](/developers/api-reference).                                           |
+| 422Unprocessable Entity   | All Endpoints Supporting `POST` Method | - An invalid format for a field in the `POST` request body.                                                                                                                 | - Check your request body is valid. You can find more information from [API Reference](/developers/rest-api-reference).                                           |
 | 429Too Many Requests      | All Inference Endpoints                | - You are sending requests too frequently and reaching rate limit                                                                                                           | - Reduce your request rate or increase your rate limit. You can find your current rate limit on [xAI Console](https://console.x.ai).             |
 
 ### 2XX Error Codes
@@ -2037,122 +1624,6 @@ Admins can enable automatic team joining for users with a shared email domain:
 Users signing up with a verified domain email will automatically join the team.
 
 
-===/developers/files-api===
-#### Files API Reference
-
-# Files API Reference
-
-***
-
-## GET /v1/files
-
-API endpoint for GET requests to /v1/files.
-
-```
-Method: GET
-Path: /v1/files
-```
-
-***
-
-## POST /v1/files
-
-API endpoint for POST requests to /v1/files.
-
-```
-Method: POST
-Path: /v1/files
-```
-
-***
-
-## POST /v1/files/batch\_upload
-
-API endpoint for POST requests to /v1/files/batch\_upload.
-
-```
-Method: POST
-Path: /v1/files/batch_upload
-```
-
-***
-
-## POST /v1/files/batch\_upload/\{batch\_job\_id}:complete
-
-API endpoint for POST requests to /v1/files/batch\_upload/\{batch\_job\_id}:complete.
-
-```
-Method: POST
-Path: /v1/files/batch_upload/{batch_job_id}:complete
-```
-
-***
-
-## GET /v1/files/\{file\_id}
-
-API endpoint for GET requests to /v1/files/\{file\_id}.
-
-```
-Method: GET
-Path: /v1/files/{file_id}
-```
-
-***
-
-## DELETE /v1/files/\{file\_id}
-
-API endpoint for DELETE requests to /v1/files/\{file\_id}.
-
-```
-Method: DELETE
-Path: /v1/files/{file_id}
-```
-
-***
-
-## PUT /v1/files/\{file\_id}
-
-API endpoint for PUT requests to /v1/files/\{file\_id}.
-
-```
-Method: PUT
-Path: /v1/files/{file_id}
-```
-
-***
-
-## POST /v1/files:download
-
-API endpoint for POST requests to /v1/files:download.
-
-```
-Method: POST
-Path: /v1/files:download
-```
-
-***
-
-## POST /v1/files:initialize
-
-API endpoint for POST requests to /v1/files:initialize.
-
-```
-Method: POST
-Path: /v1/files:initialize
-```
-
-***
-
-## POST /v1/files:uploadChunks
-
-API endpoint for POST requests to /v1/files:uploadChunks.
-
-```
-Method: POST
-Path: /v1/files:uploadChunks
-```
-
-
 ===/developers/files/collections/api===
 #### Files & Collections
 
@@ -2174,11 +1645,124 @@ Make sure to copy your Management API Key immediately after creation. You won't 
 
 ## Creating a collection
 
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+collection = client.collections.create(
+    name="SEC Filings",
+)
+
+print(collection)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const response = await fetch('https://management-api.x.ai/v1/collections', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}`,
+  },
+  body: JSON.stringify({ collection_name: 'SEC Filings' }),
+});
+const collection = await response.json();
+console.log(collection);
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY" \
+  -d '{"collection_name": "SEC Filings"}'
+```
+
 ## Listing collections
+
+```python customLanguage="pythonXAI"
+# ... Create client
+collections = client.collections.list()
+print(collections)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const response = await fetch('https://management-api.x.ai/v1/collections', {
+  headers: {
+    'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}`,
+  },
+});
+const collections = await response.json();
+console.log(collections);
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY"
+```
 
 ## Viewing collection configuration
 
+```python customLanguage="pythonXAI"
+# ... Create client
+collection = client.collections.get("collection_dbc087b1-6c99-493d-86c6-b401fee34a9d")
+
+print(collection)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const collectionId = 'collection_dbc087b1-6c99-493d-86c6-b401fee34a9d';
+const response = await fetch(`https://management-api.x.ai/v1/collections/${collectionId}`, {
+  headers: {
+    'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}`,
+  },
+});
+const collection = await response.json();
+console.log(collection);
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections/collection_dbc087b1-6c99-493d-86c6-b401fee34a9d \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY"
+```
+
 ## Updating collection configuration
+
+```python customLanguage="pythonXAI"
+# ... Create client
+collection = client.collections.update(
+    "collection_dbc087b1-6c99-493d-86c6-b401fee34a9d",
+    name="SEC Filings (New)"
+)
+
+print(collection)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const collectionId = 'collection_dbc087b1-6c99-493d-86c6-b401fee34a9d';
+const response = await fetch(`https://management-api.x.ai/v1/collections/${collectionId}`, {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}`,
+  },
+  body: JSON.stringify({ collection_name: 'SEC Filings (New)' }),
+});
+const collection = await response.json();
+console.log(collection);
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections/collection_dbc087b1-6c99-493d-86c6-b401fee34a9d \
+  -X PUT \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY" \
+  -d '{"collection_name": "SEC Filings (New)"}'
+```
 
 ## Uploading documents
 
@@ -2187,13 +1771,124 @@ Uploading a document to a collection is a two-step process:
 1. Upload the file to the xAI API
 2. Add the uploaded file to your collection
 
+```python customLanguage="pythonXAI"
+# ... Create client
+with open("tesla-20241231.html", "rb") as file:
+    file_data = file.read()
+
+document = client.collections.upload_document(
+    collection_id="collection_dbc087b1-6c99-493d-86c6-b401fee34a9d",
+    name="tesla-20241231.html",
+    data=file_data,
+)
+print(document)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const collectionId = 'collection_dbc087b1-6c99-493d-86c6-b401fee34a9d';
+
+// Step 1: Upload file
+const formData = new FormData();
+formData.append('file', file);
+formData.append('purpose', 'assistants');
+const uploadResponse = await fetch('https://api.x.ai/v1/files', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}` },
+  body: formData,
+});
+const { id: fileId } = await uploadResponse.json();
+
+// Step 2: Add to collection
+await fetch(`https://management-api.x.ai/v1/collections/${collectionId}/documents/${fileId}`, {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}` },
+});
+```
+
+```bash
+# Step 1: Upload file
+curl https://api.x.ai/v1/files \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -F file=@tesla-20241231.html
+
+# Step 2: Add file to collection (use file_id from step 1)
+curl -X POST https://management-api.x.ai/v1/collections/$COLLECTION_ID/documents/$FILE_ID \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY"
+```
+
 ### Uploading with metadata fields
 
-If your collection has [metadata fields](/developers/files/collections/metadata) defined, include them using the `fields` parameter:
+If your collection has [metadata fields](/developers/files/collections/metadata) defined (the collection must have these fields set in `field_definitions` when created or updated - see the linked metadata page for details), include them using the `fields` parameter:
+
+```python customLanguage="pythonXAI"
+# ... Create client
+with open("paper.pdf", "rb") as file:
+    file_data = file.read()
+
+document = client.collections.upload_document(
+    collection_id="collection_dbc087b1-6c99-493d-86c6-b401fee34a9d",
+    name="paper.pdf",
+    data=file_data,
+    fields={
+        "author": "Sandra Kim",
+        "year": "2024",
+        "title": "Q3 Revenue Analysis"
+    },
+)
+print(document)
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections/collection_dbc087b1-6c99-493d-86c6-b401fee34a9d/documents \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY" \
+  -F "name=paper.pdf" \
+  -F "data=@paper.pdf" \
+  -F "content_type=application/pdf" \
+  -F 'fields={"author": "Sandra Kim", "year": "2024", "title": "Q3 Revenue Analysis"}'
+```
 
 ## Searching documents
 
 You can also search documents using the Responses API with the `file_search` tool. See the [Collections Search Tool](/developers/tools/collections-search) guide for more details.
+
+```python customLanguage="pythonXAI"
+# ... Create client
+response = client.collections.search(
+    query="What were the key revenue drivers based on the SEC filings?",
+    collection_ids=["collection_dbc087b1-6c99-493d-86c6-b401fee34a9d"],
+)
+print(response)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const response = await fetch('https://api.x.ai/v1/documents/search', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+  },
+  body: JSON.stringify({
+    query: 'What were the key revenue drivers based on the SEC filings?',
+    source: {
+      collection_ids: ['collection_dbc087b1-6c99-493d-86c6-b401fee34a9d'],
+    },
+  }),
+});
+const results = await response.json();
+console.log(results);
+```
+
+```bash
+curl https://api.x.ai/v1/documents/search \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "query": "What were the key revenue drivers based on the SEC filings?",
+    "source": {
+      "collection_ids": ["collection_dbc087b1-6c99-493d-86c6-b401fee34a9d"]
+    }
+  }'
+```
 
 ### Search modes
 
@@ -2215,11 +1910,72 @@ The hybrid approach balances precision and recall, making it the recommended def
 
 An example to set hybrid mode:
 
+```bash
+curl https://api.x.ai/v1/documents/search \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+      "query": "What were the key revenue drivers based on the SEC filings?",
+      "source": {
+          "collection_ids": [
+              "collection_dbc087b1-6c99-493d-86c6-b401fee34a9d"
+          ]
+      },
+      "retrieval_mode": {"type": "hybrid"}
+}'
+```
+
 You can set `"retrieval_mode": {"type": "keyword"}` for keyword search and `"retrieval_mode": {"type": "semantic"}` for semantic search.
 
 ## Deleting a document
 
+```python customLanguage="pythonXAI"
+# ... Create client
+
+client.collections.remove_document(
+    collection_id="collection_dbc087b1-6c99-493d-86c6-b401fee34a9d",
+    file_id="file_55a709d4-8edc-4f83-84d9-9f04fe49f832",
+)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const collectionId = 'collection_dbc087b1-6c99-493d-86c6-b401fee34a9d';
+const fileId = 'file_55a709d4-8edc-4f83-84d9-9f04fe49f832';
+
+await fetch(`https://management-api.x.ai/v1/collections/${collectionId}/documents/${fileId}`, {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}` },
+});
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections/collection_dbc087b1-6c99-493d-86c6-b401fee34a9d/documents/file_55a709d4-8edc-4f83-84d9-9f04fe49f832 \
+  -X DELETE \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY"
+```
+
 ## Deleting a collection
+
+```python customLanguage="pythonXAI"
+# ... Create client
+
+client.collections.delete(collection_id="collection_dbc087b1-6c99-493d-86c6-b401fee34a9d")
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const collectionId = 'collection_dbc087b1-6c99-493d-86c6-b401fee34a9d';
+
+await fetch(`https://management-api.x.ai/v1/collections/${collectionId}`, {
+  method: 'DELETE',
+  headers: { 'Authorization': `Bearer ${process.env.XAI_MANAGEMENT_API_KEY}` },
+});
+```
+
+```bash
+curl https://management-api.x.ai/v1/collections/collection_dbc087b1-6c99-493d-86c6-b401fee34a9d \
+  -X DELETE \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY"
+```
 
 ## Next Steps
 
@@ -2241,6 +1997,20 @@ Metadata fields allow you to attach structured attributes to documents in a coll
 
 Define metadata fields using `field_definitions` when creating a collection:
 
+```bash
+curl -X POST "https://management-api.x.ai/v1/collections" \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "collection_name": "research_papers",
+    "field_definitions": [
+      { "key": "author", "required": true },
+      { "key": "year", "required": true, "unique": true },
+      { "key": "title", "inject_into_chunk": true }
+    ]
+  }'
+```
+
 ### Field Definition Options
 
 | Option | Description |
@@ -2253,9 +2023,29 @@ Define metadata fields using `field_definitions` when creating a collection:
 
 Include metadata as a JSON object in the `fields` parameter:
 
+```bash
+curl -X POST "https://management-api.x.ai/v1/collections/{collection_id}/documents" \
+  -H "Authorization: Bearer $XAI_MANAGEMENT_API_KEY" \
+  -F "name=paper.pdf" \
+  -F "data=@paper.pdf" \
+  -F "content_type=application/pdf" \
+  -F 'fields={"author": "Sandra Kim", "year": "2024", "title": "Q3 Revenue Analysis"}'
+```
+
 ## Filtering Documents in Search
 
 Use the `filter` parameter to restrict search results based on metadata values. The filter uses AIP-160 syntax:
+
+```bash
+curl -X POST "https://api.x.ai/v1/documents/search" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "revenue growth",
+    "source": { "collection_ids": ["collection_xxx"] },
+    "filter": "author=\"Sandra Kim\" AND year>=2020"
+  }'
+```
 
 ### Supported Filter Operators
 
@@ -2947,7 +2737,7 @@ Now that you know how to manage files, learn how to use them in chat conversatio
 
 The Files API enables you to upload documents and use them in chat conversations with Grok. When you attach files to a chat message, the system automatically activates the `attachment_search` tool, transforming your request into an agentic workflow where Grok can intelligently search through and reason over your documents to answer questions.
 
-You can view more information at [Files API Reference](/developers/files-api).
+You can view more information at [Files API Reference](/developers/rest-api-reference/files).
 
 **Looking for Collections?** If you need persistent document storage with semantic search across many documents, see [Collections](/developers/files/collections). Files are different—they're for attaching documents to chat conversations for immediate context.
 
@@ -3062,10 +2852,10 @@ Combine files with the [code execution tool](/developers/model-capabilities/file
 ## Next Steps
 
 
-===/developers/grpc-reference===
-# gRPC Reference
+===/developers/grpc-api-reference===
+# gRPC API Reference
 
-The xAI Enterprise gRPC API is a robust, high-performance gRPC interface designed for seamless integration into existing systems.
+The xAI gRPC API is a robust, high-performance gRPC interface designed for seamless integration into existing systems.
 
 The base url for all services is at `api.x.ai`. For all services, you have to authenticate with the header `Authorization: Bearer <your xAI API key>`.
 
@@ -3118,7 +2908,7 @@ This documentation is intended for users using xAI API.
 
 Some enterprise users may prefer to manage their account details programmatically rather than manually through the xAI Console. For this reason, we have developed a Management API to enable enterprise users to efficiently manage their team details.
 
-You can read the endpoint specifications and descriptions at [Management API Reference](/developers/management-api).
+You can read the endpoint specifications and descriptions at [Management API Reference](/developers/rest-api-reference/management).
 
 You need to get a management key, which is separate from your API key, to use the management API. The management key can be obtained at [xAI Console](https://console.x.ai) -> Settings -> Management Keys.
 
@@ -3186,10 +2976,13 @@ You can customize the query parameters such as `pageSize` and `paginationToken`.
 You can update an API key after it has been created. For example, to update the `qpm` of an API key:
 
 ```bash
-curl https://management-api.x.ai/auth/teams/{teamId}/api-keys \\
+curl https://management-api.x.ai/auth/api-keys/{apiKeyId} \\
     -X PUT \\
+    -H "Authorization: Bearer <Your Management API Key>" \\
     -d '{
-            "apiKey": "<The apiKey Object with updated qpm>",
+            "apiKey": {
+                "qpm": 200
+            },
             "fieldMask": "qpm",
         }'
 ```
@@ -3197,10 +2990,13 @@ curl https://management-api.x.ai/auth/teams/{teamId}/api-keys \\
 Or to update the `name` of an API key:
 
 ```bash
-curl https://management-api.x.ai/auth/teams/{teamId}/api-keys \\
+curl https://management-api.x.ai/auth/api-keys/{apiKeyId} \\
     -X PUT \\
+    -H "Authorization: Bearer <Your Management API Key>" \\
     -d '{
-            "apiKey": "<The apiKey Object with updated name>",
+            "apiKey": {
+                "name": "Updated API key"
+            },
             "fieldMask": "name",
         }'
 ```
@@ -3295,248 +3091,6 @@ curl "https://management-api.x.ai/audit/teams/{teamId}/events?pageSize=50&eventT
 ```
 
 
-===/developers/management-api/audit===
-## Audit Logs
-
-## GET /audit/teams/\{teamId}/events
-
-API endpoint for GET requests to /audit/teams/\{teamId}/events.
-
-```
-Method: GET
-Path: /audit/teams/{teamId}/events
-```
-
-
-===/developers/management-api/auth===
-## Accounts and Authorization
-
-## POST /auth/teams/\{teamId}/api-keys
-
-API endpoint for POST requests to /auth/teams/\{teamId}/api-keys.
-
-```
-Method: POST
-Path: /auth/teams/{teamId}/api-keys
-```
-
-***
-
-## GET /auth/teams/\{teamId}/api-keys
-
-API endpoint for GET requests to /auth/teams/\{teamId}/api-keys.
-
-```
-Method: GET
-Path: /auth/teams/{teamId}/api-keys
-```
-
-***
-
-## PUT /auth/api-keys/\{api\_key\_id}
-
-API endpoint for PUT requests to /auth/api-keys/\{api\_key\_id}.
-
-```
-Method: PUT
-Path: /auth/api-keys/{api_key_id}
-```
-
-***
-
-## DELETE /auth/api-keys/\{apiKeyId}
-
-API endpoint for DELETE requests to /auth/api-keys/\{apiKeyId}.
-
-```
-Method: DELETE
-Path: /auth/api-keys/{apiKeyId}
-```
-
-***
-
-## GET /auth/api-keys/\{apiKeyId}/propagation
-
-API endpoint for GET requests to /auth/api-keys/\{apiKeyId}/propagation.
-
-```
-Method: GET
-Path: /auth/api-keys/{apiKeyId}/propagation
-```
-
-***
-
-## GET /auth/teams/\{teamId}/models
-
-API endpoint for GET requests to /auth/teams/\{teamId}/models.
-
-```
-Method: GET
-Path: /auth/teams/{teamId}/models
-```
-
-***
-
-## GET /auth/teams/\{teamId}/endpoints
-
-API endpoint for GET requests to /auth/teams/\{teamId}/endpoints.
-
-```
-Method: GET
-Path: /auth/teams/{teamId}/endpoints
-```
-
-***
-
-## GET /auth/management-keys/validation
-
-API endpoint for GET requests to /auth/management-keys/validation.
-
-```
-Method: GET
-Path: /auth/management-keys/validation
-```
-
-
-===/developers/management-api/billing===
-## Billing Management
-
-## GET /v1/billing/teams/\{team\_id}/billing-info
-
-API endpoint for GET requests to /v1/billing/teams/\{team\_id}/billing-info.
-
-```
-Method: GET
-Path: /v1/billing/teams/{team_id}/billing-info
-```
-
-***
-
-## POST /v1/billing/teams/\{team\_id}/billing-info
-
-API endpoint for POST requests to /v1/billing/teams/\{team\_id}/billing-info.
-
-```
-Method: POST
-Path: /v1/billing/teams/{team_id}/billing-info
-```
-
-***
-
-## GET /v1/billing/teams/\{team\_id}/invoices
-
-API endpoint for GET requests to /v1/billing/teams/\{team\_id}/invoices.
-
-```
-Method: GET
-Path: /v1/billing/teams/{team_id}/invoices
-```
-
-***
-
-## GET /v1/billing/teams/\{team\_id}/payment-method
-
-API endpoint for GET requests to /v1/billing/teams/\{team\_id}/payment-method.
-
-```
-Method: GET
-Path: /v1/billing/teams/{team_id}/payment-method
-```
-
-***
-
-## POST /v1/billing/teams/\{team\_id}/payment-method/default
-
-API endpoint for POST requests to /v1/billing/teams/\{team\_id}/payment-method/default.
-
-```
-Method: POST
-Path: /v1/billing/teams/{team_id}/payment-method/default
-```
-
-***
-
-## GET /v1/billing/teams/\{team\_id}/postpaid/invoice/preview
-
-API endpoint for GET requests to /v1/billing/teams/\{team\_id}/postpaid/invoice/preview.
-
-```
-Method: GET
-Path: /v1/billing/teams/{team_id}/postpaid/invoice/preview
-```
-
-***
-
-## GET /v1/billing/teams/\{team\_id}/postpaid/spending-limits
-
-API endpoint for GET requests to /v1/billing/teams/\{team\_id}/postpaid/spending-limits.
-
-```
-Method: GET
-Path: /v1/billing/teams/{team_id}/postpaid/spending-limits
-```
-
-***
-
-## POST /v1/billing/teams/\{team\_id}/postpaid/spending-limits
-
-API endpoint for POST requests to /v1/billing/teams/\{team\_id}/postpaid/spending-limits.
-
-```
-Method: POST
-Path: /v1/billing/teams/{team_id}/postpaid/spending-limits
-```
-
-***
-
-## GET /v1/billing/teams/\{team\_id}/prepaid/balance
-
-API endpoint for GET requests to /v1/billing/teams/\{team\_id}/prepaid/balance.
-
-```
-Method: GET
-Path: /v1/billing/teams/{team_id}/prepaid/balance
-```
-
-***
-
-## POST /v1/billing/teams/\{team\_id}/prepaid/top-up
-
-API endpoint for POST requests to /v1/billing/teams/\{team\_id}/prepaid/top-up.
-
-```
-Method: POST
-Path: /v1/billing/teams/{team_id}/prepaid/top-up
-```
-
-***
-
-## POST /v1/billing/teams/\{team\_id}/usage
-
-API endpoint for POST requests to /v1/billing/teams/\{team\_id}/usage.
-
-```
-Method: POST
-Path: /v1/billing/teams/{team_id}/usage
-```
-
-
-===/developers/management-api===
-## Overview
-
-The Management API serves as a dedicated interface to the xAI platform, empowering developers and teams to
-programmatically manage their xAI API teams.
-
-For example, users can provision their API key, handle access controls,
-and perform team-level operations like creating, listing, updating, or deleting keys and associated access control lists
-(ACLs). This API also facilitates oversight of billing aspects, including monitoring prepaid credit balances and usage
-deductions, ensuring seamless scalability and cost transparency for Grok model integrations.
-
-To get started, go to [xAI Console](https://console.x.ai). On users page, make sure your xAI account has
-`Management Keys` Read + Write permission, and obtain your Management API key on the settings page. If you don't see
-any of these options, please ask your team administrator to enable the appropriate permissions.
-
-
 ===/developers/migration/models===
 #### Key Information
 
@@ -3566,7 +3120,7 @@ When you are setting up to use new models, it might also be a good idea to ensur
 latest endpoints have more stable supports for the model functionalities. Endpoints that are marked with `legacy`
 might not receive any updates that support newer functionalities.
 
-In general, the following endpoints are recommended: - Text and image input and text output: [Chat Completions](/developers/api-reference#chat-completions) - `/v1/chat/completions` - Text input and image output: [Image Generation](/developers/api-reference#image-generations) - `/v1/image/generations` - Tokenization: [Tokenize Text](/developers/api-reference#tokenize-text) - `/v1/tokenize-text`
+In general, the following endpoints are recommended: - Text and image input and text output: [Chat Completions](/developers/rest-api-reference/inference/chat#chat-completions) - `/v1/chat/completions` - Text input and image output: [Image Generation](/developers/rest-api-reference/inference/images#image-generation) - `/v1/image/generations` - Tokenization: [Tokenize Text](/developers/rest-api-reference/inference/other#tokenize-text) - `/v1/tokenize-text`
 
 
 ===/developers/model-capabilities/audio/voice-agent===
@@ -3577,6 +3131,8 @@ In general, the following endpoints are recommended: - Text and image input and 
 Build interactive voice conversations with Grok models using WebSocket. The Grok Voice Agent API accepts audio and text inputs and creates text and audio responses in real-time.
 
 **WebSocket Endpoint:** `wss://api.x.ai/v1/realtime`
+
+The Voice Agent API is billed at a flat per-minute rate. See [Voice Agent API Pricing](/developers/models#voice-agent-api-pricing) for details.
 
 ## Authentication
 
@@ -3925,12 +3481,13 @@ async def on_open(ws: ClientConnection):
     }
     await send_message(ws, event)
 
-async def main(): # Connect to the secure websocket
-async with websockets.connect(
-uri=base_url,
-ssl=True,
-additional_headers={"Authorization": f"Bearer {XAI_API_KEY}"}
-) as websocket:
+async def main():
+    # Connect to the secure websocket
+    async with websockets.connect(
+        uri=base_url,
+        ssl=True,
+        additional_headers={"Authorization": f"Bearer {XAI_API_KEY}"}
+    ) as websocket:
 
         # Send request on connection open
         await on_open(ws=websocket)
@@ -4204,7 +3761,7 @@ Tools are configured in the `tools` array of the session configuration. Here are
 
 ### Collections Search with `file_search`
 
-Use the `file_search` tool to enable your voice agent to search through document collections. You'll need to create a collection first using the [Collections API](/developers/collections-api).
+Use the `file_search` tool to enable your voice agent to search through document collections. You'll need to create a collection first using the [Collections API](/developers/rest-api-reference/collections).
 
 ```pythonWithoutSDK
 COLLECTION_ID = "your-collection-id"  # Replace with your collection ID
@@ -4420,7 +3977,7 @@ const sessionConfig = {
 };
 ```
 
-For more details on Collections, see the [Collections API documentation](/developers/collections-api). For search tool parameters and options, see the [Web Search](/developers/tools/web-search) and [X Search](/developers/tools/x-search) guides.
+For more details on Collections, see the [Collections API documentation](/developers/rest-api-reference/collections). For search tool parameters and options, see the [Web Search](/developers/tools/web-search) and [X Search](/developers/tools/x-search) guides.
 
 ### Handling Function Call Responses
 
@@ -5164,12 +4721,9 @@ payload = {
     "input": [
         {
             "role": "user",
-            "content": "What was the total revenue in this report?",
-            "attachments": [
-                {
-                    "file_id": file_id,
-                    "tools": [{"type": "file_search"}]
-                }
+            "content": [
+                {"type": "input_text", "text": "What was the total revenue in this report?"},
+                {"type": "input_file", "file_id": file_id}
             ]
         }
     ]
@@ -5494,15 +5048,138 @@ Generate images from text prompts, edit existing images with natural language, o
 
 Generate an image with a single API call:
 
+```python customLanguage="pythonXAI"
+import xai_sdk
+
+client = xai_sdk.Client()
+
+response = client.image.sample(
+    prompt="A collage of London landmarks in a stenciled street‑art style",
+    model="grok-imagine-image",
+)
+
+print(response.url)
+```
+
+```bash
+curl -X POST https://api.x.ai/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-imagine-image",
+    "prompt": "A collage of London landmarks in a stenciled street‑art style"
+  }'
+```
+
+```python customLanguage="pythonOpenAISDK"
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.x.ai/v1",
+    api_key="YOUR_API_KEY",
+)
+
+response = client.images.generate(
+    model="grok-imagine-image",
+    prompt="A collage of London landmarks in a stenciled street‑art style",
+)
+
+print(response.data[0].url)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: 'https://api.x.ai/v1',
+});
+
+const response = await client.images.generate({
+    model: "grok-imagine-image",
+    prompt: "A collage of London landmarks in a stenciled street‑art style",
+});
+
+console.log(response.data[0].url);
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from "@ai-sdk/xai";
+import { generateImage } from "ai";
+
+const { image } = await generateImage({
+    model: xai.image("grok-imagine-image"),
+    prompt: "A collage of London landmarks in a stenciled street‑art style",
+});
+
+console.log(image.base64);
+```
+
 Images are returned as URLs by default. URLs are temporary, so download or process promptly. You can also request [base64 output](#base64-output) for embedding images directly.
 
 ## Image Editing
 
 Edit an existing image by providing a source image along with your prompt. The model understands the image content and applies your requested changes.
 
-> **Note:** The OpenAI SDK's `images.edit()` method is not supported for image editing because it uses `multipart/form-data`, while the xAI API requires `application/json`. Use the xAI SDK, Vercel AI SDK, or direct HTTP requests instead.
+The OpenAI SDK's `images.edit()` method is not supported for image editing because it uses `multipart/form-data`, while the xAI API requires `application/json`. Use the xAI SDK, Vercel AI SDK, or direct HTTP requests instead.
 
 With the xAI SDK, use the same `sample()` method — just add the `image_url` parameter:
+
+```python customLanguage="pythonXAI"
+import base64
+import xai_sdk
+
+client = xai_sdk.Client()
+
+# Load image from file and encode as base64
+with open("landmarks.jpg", "rb") as f:
+    image_data = base64.b64encode(f.read()).decode("utf-8")
+
+response = client.image.sample(
+    prompt="Change the landmarks to be New York City landmarks",
+    model="grok-imagine-image",
+    image_url=f"data:image/jpeg;base64,{image_data}",
+)
+
+print(response.url)
+```
+
+```bash
+# Using a public URL as the source image
+curl -X POST https://api.x.ai/v1/images/edits \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-imagine-image",
+    "prompt": "Change the landmarks to be New York City landmarks",
+    "image": {
+      "url": "https://example.com/landmarks.jpg",
+      "type": "image_url"
+    }
+  }'
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from "@ai-sdk/xai";
+import { generateImage } from "ai";
+import fs from "fs";
+
+// Load image and encode as base64
+const imageBuffer = fs.readFileSync("landmarks.jpg");
+const base64Image = imageBuffer.toString("base64");
+
+const { image } = await generateImage({
+    model: xai.image("grok-imagine-image"),
+    prompt: "Change the landmarks to be New York City landmarks",
+    providerOptions: {
+        xai: {
+            image: `data:image/jpeg;base64,${base64Image}`,
+        },
+    },
+});
+
+console.log(image.base64);
+```
 
 You can provide the source image as:
 
@@ -5513,19 +5190,82 @@ You can provide the source image as:
 
 Chain multiple edits together by using each output as the input for the next. This enables iterative refinement — start with a base image and progressively add details, adjust styles, or make corrections.
 
-The images below show this workflow in action:
-
 ## Style Transfer
 
 The `grok-imagine-image` model excels across a wide range of visual styles — from ultra-realistic photography to anime, oil paintings, pencil sketches, and beyond. Transform existing images by simply describing the desired aesthetic in your prompt.
 
-Using `AsyncClient` with `asyncio.gather` lets you process multiple style transfers concurrently, making it significantly faster than sequential requests:
+## Concurrent Requests
+
+When you need to generate multiple images with **different prompts** — such as applying various style transfers to the same source image, or generating unrelated images in parallel — use `AsyncClient` with `asyncio.gather` to fire requests concurrently. This is significantly faster than issuing them one at a time.
+
+If you want multiple variations from the **same prompt**, use [`sample_batch()` with the `n` parameter](#multiple-images) instead. That generates all images in a single request and is the most efficient approach for same-prompt generation.
+
+```python customLanguage="pythonXAI"
+import asyncio
+import xai_sdk
+
+async def generate_concurrently():
+    client = xai_sdk.AsyncClient()
+
+    source_image = "https://example.com/portrait.jpg"
+
+    # Each request uses a different prompt
+    prompts = [
+        "Render this image as an oil painting in the style of impressionism",
+        "Render this image as a pencil sketch with detailed shading",
+        "Render this image as pop art with bold colors and halftone dots",
+        "Render this image as a watercolor painting with soft edges",
+    ]
+
+    # Fire all requests concurrently
+    tasks = [
+        client.image.sample(
+            prompt=prompt,
+            model="grok-imagine-image",
+            image_url=source_image,
+        )
+        for prompt in prompts
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    for prompt, result in zip(prompts, results):
+        print(f"{prompt}: {result.url}")
+
+asyncio.run(generate_concurrently())
+```
 
 ## Configuration
 
 ### Multiple Images
 
 Generate multiple images in a single request using the `sample_batch()` method and the `n` parameter. This returns a list of `ImageResponse` objects.
+
+```python customLanguage="pythonXAI"
+import xai_sdk
+
+client = xai_sdk.Client()
+
+responses = client.image.sample_batch(
+    prompt="A futuristic city skyline at night",
+    model="grok-imagine-image",
+    n=4,
+)
+
+for i, image in enumerate(responses):
+    print(f"Variation {i + 1}: {image.url}")
+```
+
+```bash
+curl -X POST https://api.x.ai/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-imagine-image",
+    "prompt": "A futuristic city skyline at night",
+    "n": 4
+  }'
+```
 
 ### Aspect Ratio
 
@@ -5540,10 +5280,94 @@ Control image dimensions with the `aspect_ratio` parameter:
 | `2:1` / `1:2` | Banners, headers |
 | `19.5:9` / `9:19.5` | Modern smartphone displays |
 | `20:9` / `9:20` | Ultra-wide displays |
+| `auto` | Model auto-selects the best ratio for the prompt |
+
+```python customLanguage="pythonXAI"
+import xai_sdk
+
+client = xai_sdk.Client()
+
+response = client.image.sample(
+    prompt="Mountain landscape at sunrise",
+    model="grok-imagine-image",
+    aspect_ratio="16:9",
+)
+
+print(response.url)
+```
+
+```bash
+curl -X POST https://api.x.ai/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-imagine-image",
+    "prompt": "Mountain landscape at sunrise",
+    "aspect_ratio": "16:9"
+  }'
+```
+
+### Resolution
+
+You can specify different resolutions of the output image. Currently supported image resolutions are:
+
+* 1k
+* 2k
+
+```python customLanguage="pythonXAI"
+import xai_sdk
+
+client = xai_sdk.Client()
+
+response = client.image.sample(
+    prompt="An astronaut performing EVA in LEO.",
+    model="grok-imagine-image",
+    resolution="2k"
+)
+
+```
+
+```bash
+curl -X POST https://api.x.ai/v1/images/generations \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $XAI_API_KEY" \
+-d '{
+    "model": "grok-imagine-image",
+    "prompt": "An astronaut performing EVA in LEO.",
+    "resolution": "2k"
+}'
+```
 
 ### Base64 Output
 
 For embedding images directly without downloading, request base64:
+
+```python customLanguage="pythonXAI"
+import xai_sdk
+
+client = xai_sdk.Client()
+
+response = client.image.sample(
+    prompt="A serene Japanese garden",
+    model="grok-imagine-image",
+    image_format="base64",
+)
+
+# Save to file
+with open("garden.jpg", "wb") as f:
+    f.write(response.image)
+```
+
+```bash
+curl -X POST https://api.x.ai/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-imagine-image",
+    "prompt": "A serene Japanese garden",
+    "response_format": "b64_json"
+  }'
+```
 
 ### Response Details
 
@@ -5551,7 +5375,18 @@ The xAI SDK exposes additional metadata on the response object beyond the image 
 
 **Moderation** — Check whether the generated image passed content moderation:
 
+```python customLanguage="pythonXAI"
+if response.respect_moderation:
+    print(response.url)
+else:
+    print("Image filtered by moderation")
+```
+
 **Model** — Get the actual model used (resolving any aliases):
+
+```python customLanguage="pythonXAI"
+print(f"Model: {response.model}")
+```
 
 ## Pricing
 
@@ -5559,7 +5394,7 @@ Image generation uses flat per-image pricing rather than token-based pricing lik
 
 For image editing, you are charged for both the input image and the generated output image.
 
-For full pricing details on the `grok-imagine-image` model, see the [model page](/docs/models/grok-imagine-image).
+For full pricing details on the `grok-imagine-image` model, see the [model page](/developers/models/grok-imagine-image).
 
 ## Limitations
 
@@ -5569,9 +5404,9 @@ For full pricing details on the `grok-imagine-image` model, see the [model page]
 
 ## Related
 
-* [Models](/docs/models) — Available image models
+* [Models](/developers/models) — Available image models
 * [Video Generation](/developers/model-capabilities/video/generation) — Animate generated images
-* [API Reference](/api-reference) — Full endpoint documentation
+* [API Reference](/developers/rest-api-reference) — Full endpoint documentation
 
 
 ===/developers/model-capabilities/images/understanding===
@@ -5622,20 +5457,176 @@ The `image_url.url` can also be the image's url on the Internet.
 
 ### Image understanding example
 
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, image
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+image_url = "https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png"
+
+
+chat = client.chat.create(model="grok-4-1-fast-reasoning")
+chat.append(
+    user(
+        "What's in this image?",
+        image(image_url=image_url, detail="high"),
+    )
+)
+
+response = chat.sample()
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+image_url = (
+    "https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png"
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_image",
+                    "image_url": image_url,
+                    "detail": "high",
+                },
+                {
+                    "type": "input_text",
+                    "text": "What's in this image?",
+                },
+            ],
+        },
+    ],
+)
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const image_url =
+    "https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png";
+
+const response = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        {
+            role: "user",
+            content: [
+                {
+                    type: "input_image",
+                    image_url: image_url,
+                    detail: "high",
+                },
+                {
+                    type: "input_text",
+                    text: "What's in this image?",
+                },
+            ],
+        },
+    ],
+});
+
+console.log(response);
+
+// The response ID that can be used to recall the conversation later
+console.log(response.id);
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text, response } = await generateText({
+    model: xai.responses('grok-4-1-fast-reasoning'),
+    messages: [
+        {
+            role: 'user',
+            content: [
+                {
+                    type: 'image',
+                    image: new URL('https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png'),
+                },
+                {
+                    type: 'text',
+                    text: "What's in this image?",
+                },
+            ],
+        },
+    ]
+});
+
+console.log(text);
+
+// The response ID can be used to continue the conversation
+console.log(response.id);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600 \
+  -d '{
+    "model": "grok-4-1-fast-reasoning",
+    "input": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_image",
+            "image_url": "https://science.nasa.gov/wp-content/uploads/2023/09/web-first-images-release.png",
+            "detail": "high"
+          },
+          {
+            "type": "input_text",
+            "text": "What'\''s in this image?"
+          }
+        ]
+      }
+    ]
+  }'
+```
+
 ### Image input general limits
 
 * Maximum image size: `20MiB`
 * Maximum number of images: No limit
 * Supported image file types: `jpg/jpeg` or `png`.
 * Any image/text input order is accepted (e.g. text prompt can precede image prompt)
-
-### Image detail levels
-
-The `"detail"` field controls the level of pre-processing applied to the image that will be provided to the model. It is optional and determines the resolution at which the image is processed. The possible values for `"detail"` are:
-
-* **`"auto"`**: The system will automatically determine the image resolution to use. This is the default setting, balancing speed and detail based on the model's assessment.
-* **`"low"`**: The system will process a low-resolution version of the image. This option is faster and consumes fewer tokens, making it more cost-effective, though it may miss finer details.
-* **`"high"`**: The system will process a high-resolution version of the image. This option is slower and more expensive in terms of token usage, but it allows the model to attend to more nuanced details in the image.
 
 
 ===/developers/model-capabilities/legacy/chat-completions===
@@ -5670,7 +5661,178 @@ You can also stream the response, which is covered in [Streaming Response](/deve
 
 The user sends a request to the xAI API endpoint. The API processes this and returns a complete response.
 
+```python customLanguage="pythonXAI"
+import os
+
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    timeout=3600, # Override default timeout with longer timeout for reasoning models
+)
+
+chat = client.chat.create(model="grok-4-1-fast-reasoning")
+chat.append(system("You are a PhD-level mathematician."))
+chat.append(user("What is 2 + 2?"))
+
+response = chat.sample()
+print(response.content)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+completion = client.chat.completions.create(
+    model="grok-4-1-fast-reasoning",
+    messages=[
+        {"role": "system", "content": "You are a PhD-level mathematician."},
+        {"role": "user", "content": "What is 2 + 2?"},
+    ],
+)
+
+print(completion.choices[0].message)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const completion = await client.chat.completions.create({
+    model: "grok-4-1-fast-reasoning",
+    messages: [
+        {
+            role: "system",
+            content: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."
+        },
+        {
+            role: "user",
+            content: "What is the meaning of life, the universe, and everything?"
+        },
+    ],
+});
+console.log(completion.choices[0].message);
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: xai('grok-4-1-fast-reasoning'),
+  system:
+    "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy.",
+  prompt: 'What is the meaning of life, the universe, and everything?',
+});
+
+console.log(result.text);
+```
+
+```bash
+curl https://api.x.ai/v1/chat/completions \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $XAI_API_KEY" \
+-m 3600 \
+-d '{
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."
+        },
+        {
+            "role": "user",
+            "content": "What is the meaning of life, the universe, and everything?"
+        }
+    ],
+    "model": "grok-4-1-fast-reasoning",
+    "stream": false
+}'
+```
+
 Response:
+
+```python customLanguage="pythonXAI"
+'2 + 2 equals 4.'
+```
+
+```python customLanguage="pythonOpenAISDK"
+ChatCompletionMessage(
+  content='2 + 2 equals 4.',
+  refusal=None,
+  role='assistant',
+  audio=None,
+  function_call=None,
+  tool_calls=None
+)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+{
+  role: 'assistant',
+  content: `Ah, the ultimate question! According to Douglas Adams' "The Hitchhiker's Guide to the Galaxy," the answer to the ultimate question of life, the universe, and everything is **42**. However, the guide also notes that the actual question to which this is the answer is still unknown. Isn't that delightfully perplexing? Now, if you'll excuse me, I'll just go ponder the intricacies of existence.`
+  refusal: null
+}
+```
+
+```javascript customLanguage="javascriptAISDK"
+// result object structure
+{
+  text: "Ah, the ultimate question! As someone...",
+  finishReason: "stop",
+  usage: {
+    inputTokens: 716,
+    outputTokens: 126,
+    totalTokens: 1009,
+    reasoningTokens: 167
+  },
+  totalUsage: { /* same as usage */ }
+}
+```
+
+```bash
+{
+  "id": "0daf962f-a275-4a3c-839a-047854645532",
+  "object": "chat.completion",
+  "created": 1739301120,
+  "model": "grok-4-1-fast-reasoning",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "The meaning of life, the universe, and everything is a question that has puzzled philosophers, scientists, and hitchhikers alike. According to the Hitchhiker's Guide to the Galaxy, the answer to this ultimate question is simply \"42\". However, the exact nature of the question itself remains unknown. So, while we may have the answer, the true meaning behind it is still up for debate. In the meantime, perhaps we should all just enjoy the journey and have a good laugh along the way!",
+        "refusal": null
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 41,
+    "completion_tokens": 104,
+    "total_tokens": 145,
+    "prompt_tokens_details": {
+      "text_tokens": 41,
+      "audio_tokens": 0,
+      "image_tokens": 0,
+      "cached_tokens": 0
+    }
+  },
+  "system_fingerprint": "fp_84ff176447"
+}
+```
 
 ## Conversations
 
@@ -6068,17 +6230,288 @@ The first step in using Responses API is analogous to using the legacy Chat Comp
 
 `instructions` parameter is currently not supported. The API will return an error if it is specified.
 
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+chat = client.chat.create(model="grok-4-1-fast-reasoning")
+chat.append(system("You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."))
+chat.append(user("What is the meaning of life, the universe, and everything?"))
+response = chat.sample()
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+)
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const response = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        {
+            role: "system",
+            content: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."
+        },
+        {
+            role: "user",
+            content: "What is the meaning of life, the universe, and everything?"
+        },
+    ],
+});
+
+console.log(response);
+
+// The response ID that can be used to recall the conversation later
+console.log(response.id);
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text, response } = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  system: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy.",
+  prompt: "What is the meaning of life, the universe, and everything?",
+});
+
+console.log(text);
+
+// The response ID can be used to continue the conversation
+console.log(response.id);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600 \
+  -d '{
+    "model": "grok-4-1-fast-reasoning",
+    "input": [
+        {
+            "role": "system",
+            "content": "You are Grok, a chatbot inspired by the Hitchhiker'\''s Guide to the Galaxy."
+        },
+        {
+            "role": "user",
+            "content": "What is the meaning of life, the universe, and everything?"
+        }
+    ]
+}'
+```
+
 The `developer` role is supported as an alias for `system`. Only a **single** system/developer message should be used, and it should always be the **first message** in your conversation.
 
 ### Disable storing previous request/response on server
 
 If you do not want to store your previous request/response on the server, you can set `store: false` on the request.
 
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=False)
+chat.append(system("You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."))
+chat.append(user("What is the meaning of life, the universe, and everything?"))
+response = chat.sample()
+
+print(response)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+    store=False
+)
+
+print(response)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const response = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        {
+            role: "system",
+            content: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."
+        },
+        {
+            role: "user",
+            content: "What is the meaning of life, the universe, and everything?"
+        },
+    ],
+    store: false
+});
+
+console.log(response);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600 \
+  -d '{
+    "model": "grok-4-1-fast-reasoning",
+    "input": [
+        {
+            "role": "system",
+            "content": "You are Grok, a chatbot inspired by the Hitchhiker'\''s Guide to the Galaxy."
+        },
+        {
+            "role": "user",
+            "content": "What is the meaning of life, the universe, and everything?"
+        }
+    ],
+    "store": false
+}'
+```
+
 ### Returning encrypted thinking content
 
 If you want to return the encrypted thinking traces, you need to specify `use_encrypted_content=True` in xAI SDK or gRPC request message, or `include: ["reasoning.encrypted_content"]` in the request body.
 
 Modify the steps to create a chat client (xAI SDK) or change the request body as following:
+
+```python customLanguage="pythonXAI"
+chat = client.chat.create(model="grok-4-1-fast-reasoning",
+        use_encrypted_content=True)
+```
+
+```python customLanguage="pythonOpenAISDK"
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+    include=["reasoning.encrypted_content"]
+)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const response = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+    include: ["reasoning.encrypted_content"],
+});
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text, reasoning } = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  system: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy.",
+  prompt: "What is the meaning of life, the universe, and everything?",
+  providerOptions: {
+    xai: {
+      include: ['reasoning.encrypted_content'],
+    },
+  },
+});
+
+console.log(text);
+console.log(reasoning); // Contains encrypted reasoning content
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600 \
+  -d '{
+    "model": "grok-4-1-fast-reasoning",
+    "input": [
+        {
+            "role": "system",
+            "content": "You are Grok, a chatbot inspired by the Hitchhiker'\''s Guide to the Galaxy."
+        },
+        {
+            "role": "user",
+            "content": "What is the meaning of life, the universe, and everything?"
+        }
+    ],
+    "include": ["reasoning.encrypted_content"]
+}'
+```
 
 See [Adding encrypted thinking content](#adding-encrypted-thinking-content) on how to use the returned encrypted thinking content when making a new request.
 
@@ -6088,17 +6521,534 @@ We now have the `id` of the first response. With Chat Completions API, we typica
 
 With Responses API, we can send the `id` of the previous response, and the new messages to append to it.
 
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
+chat.append(system("You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."))
+chat.append(user("What is the meaning of life, the universe, and everything?"))
+response = chat.sample()
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+
+# New steps
+
+chat = client.chat.create(
+    model="grok-4-1-fast-reasoning",
+    previous_response_id=response.id,
+    store_messages=True,
+)
+chat.append(user("What is the meaning of 42?"))
+second_response = chat.sample()
+
+print(second_response)
+
+# The response ID that can be used to continue the conversation later
+
+print(second_response.id)
+```
+
+```python customLanguage="pythonOpenAISDK"
+# Previous steps
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+)
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+
+# New steps
+
+second_response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    previous_response_id=response.id,
+    input=[
+        {"role": "user", "content": "What is the meaning of 42?"},
+    ],
+)
+
+print(second_response)
+
+# The response ID that can be used to continue the conversation later
+
+print(second_response.id)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+// Previous steps
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const response = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        {
+            role: "system",
+            content: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."
+        },
+        {
+            role: "user",
+            content: "What is the meaning of life, the universe, and everything?"
+        },
+    ],
+});
+
+console.log(response);
+
+// The response ID that can be used to recall the conversation later
+console.log(response.id);
+
+const secondResponse = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    previous_response_id: response.id,
+    input: [
+        {"role": "user", "content": "What is the meaning of 42?"},
+    ],
+});
+
+console.log(secondResponse);
+
+// The response ID that can be used to recall the conversation later
+console.log(secondResponse.id);
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+// First request
+const result = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  system: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy.",
+  prompt: "What is the meaning of life, the universe, and everything?",
+});
+
+console.log(result.text);
+
+// Get the response ID from the response object
+const responseId = result.response.id;
+
+// Continue the conversation using previousResponseId
+const { text: secondResponse } = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  prompt: "What is the meaning of 42?",
+  providerOptions: {
+    xai: {
+      previousResponseId: responseId,
+    },
+  },
+});
+
+console.log(secondResponse);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600 \
+  -d '{
+    "model": "grok-4-1-fast-reasoning",
+    "previous_response_id": "The previous response ID",
+    "input": [
+        {
+            "role": "user",
+            "content": "What is the meaning of 42?"
+        }
+    ]
+}'
+```
+
 ### Adding encrypted thinking content
 
 After returning the encrypted thinking content, you can also add it to a new response's input:
+
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True, use_encrypted_content=True)
+chat.append(system("You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."))
+chat.append(user("What is the meaning of life, the universe, and everything?"))
+response = chat.sample()
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+
+# New steps
+
+chat.append(response)  ## Append the response and the SDK will automatically add the outputs from response to message history
+
+chat.append(user("What is the meaning of 42?"))
+second_response = chat.sample()
+
+print(second_response)
+
+# The response ID that can be used to continue the conversation later
+
+print(second_response.id)
+```
+
+```python customLanguage="pythonOpenAISDK"
+# Previous steps
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."},
+        {"role": "user", "content": "What is the meaning of life, the universe, and everything?"},
+    ],
+    include=["reasoning.encrypted_content"]
+)
+
+print(response)
+
+# The response ID that can be used to continue the conversation later
+
+print(response.id)
+
+# New steps
+
+second_response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        *response.output,  # Use response.output instead of the stored response
+        {"role": "user", "content": "What is the meaning of 42?"},
+    ],
+)
+
+print(second_response)
+
+# The response ID that can be used to continue the conversation later
+
+print(second_response.id)
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+// Previous steps
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const response = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        {
+            role: "system",
+            content: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy."
+        },
+        {
+            role: "user",
+            content: "What is the meaning of life, the universe, and everything?"
+        },
+    ],
+    include: ["reasoning.encrypted_content"],
+});
+
+console.log(response);
+
+// The response ID that can be used to recall the conversation later
+console.log(response.id);
+
+const secondResponse = await client.responses.create({
+    model: "grok-4-1-fast-reasoning",
+    input: [
+        ...response.output,  // Use response.output instead of the stored response
+        {"role": "user", "content": "What is the meaning of 42?"},
+    ],
+});
+
+console.log(secondResponse);
+
+// The response ID that can be used to recall the conversation later
+console.log(secondResponse.id);
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+// First request with encrypted reasoning content
+const result = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  system: "You are Grok, a chatbot inspired by the Hitchhiker's Guide to the Galaxy.",
+  prompt: "What is the meaning of life, the universe, and everything?",
+  providerOptions: {
+    xai: {
+      include: ['reasoning.encrypted_content'],
+    },
+  },
+});
+
+console.log(result.text);
+
+// Continue the conversation using previousResponseId
+// The encrypted content is automatically included when using previousResponseId
+const { text: secondResponse } = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  prompt: "What is the meaning of 42?",
+  providerOptions: {
+    xai: {
+      previousResponseId: result.response.id,
+      include: ['reasoning.encrypted_content'],
+    },
+  },
+});
+
+console.log(secondResponse);
+```
+
+```bash
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600 \
+  -d '{
+    "model": "grok-4-1-fast-reasoning",
+    "input": [
+        {
+            "role": "system",
+            "content": "You are Grok, a chatbot inspired by the Hitchhiker'\''s Guide to the Galaxy."
+        },
+        {
+            "role": "user",
+            "content": "What is the meaning of life, the universe, and everything?"
+        },
+        {
+            "id": "rs_51abe1aa-599b-80b6-57c8-dddc6263362f_us-east-1",
+            "summary": [],
+            "type": "reasoning",
+            "status": "completed",
+            "encrypted_content": "bvV88j99ILvgfHRTHCUSJtw+ISji6txJzPdZNbcSVuDk4OMG2Z9r5wOBBwjd3u3Hhm9XtpCWJO1YgTOlpgbn+g7DZX+pOagYYrCFUpQ19XkWz6Je8bHG9JcSDoGDqNgRbDbAUO8at6RCyqgPupJj5ArBDCt73fGQLTC4G3S0JMK9LsPiWz6GPj6qyzYoRzkj4R6bntRm74E4h8Y+z6u6B7+ixPSv8s1EFs8c+NUAB8TNKZZpXZquj2LXfx1xAie85Syl7qLqxLNtDG1dNBhBnHpYoE4gQzwyXqywf5pF2Q2imzPNzGQhurK+6gaNWgZbxRmjhdsW6TnzO5Kk6pzb5qpfgfcEScQeYHSj5GpD+yDUCNlhdbzhhWnEErH+wuBPpTG6UQhiC7m7yrJ7IY2E8K/BeUPlUvkhMaMwb4dA279pWMJdchNJ+TAxca+JVc80pXMG/PmrQUNJU9qdXRLbNmQbRadBNwV2qkPfgggL3q0yNd7Un9P+atmP3B9keBILif3ufsBDtVUobEniiyGV7YVDvQ/fQRVs7XDxJiOKkogjjQySyHgpjseO8iG5xtb9mrz6B3mDvv2aAuyDL6MHZRM7QDVPjUbgNMzDm5Sm3J7IhtzfR+3eMDws3qeTsxOt1KOslu983Btv1Wx37b5HJqX1pQU1dae/kOSJ7MifFd6wMkQtQBDgVoG3ka9wq5Vxq9Ki8bDOOMcwA2kUXhCcY3TZCXJfDWSKPTcCoNCYIv5LT2NFVdamiSfLIyeOjBNz459BfMvAoOZShFViQyc5YwjnReUQPQ8a18jcz8GoAK1O99e0h91oYxIgDV52EfS+IYrzqvJOEQbKQinB+LJwkPbBEp7ZtgAtiNBzm985hNgLfiBaVFWcRYwI3tNBCT1vkw2YI0NEEG0yOF29x+u64XzqyP1CX1pU6sGXEFn3RPdfYibf6bt/Y1BRqBL5l0CrXWsgDw02SqIFta8OvJ7Iwmq40/4acE/Ew6eWO/z2MHkWgqSpwGNjn7MfeKkTi44foZjfNqN9QOFQt6VG2tY+biKZDo0h9DAftae8Q2Xs2UDvsBYOm7YEahVkput6/uKzxljpXlz269qHk6ckvdN9hKLbaTO3/IZPCCPQ5a/a/sWn/1VOJj72sDk+23RNjBf0FL6bJMXZI5aQdtxbF1zij9mWcP9nJ9FHhj53ytuf1NiKl5xU8ZsaoKmCAJcXUz1n2FZvyWlqvgPYiszc7R8Y5dF6QbW2mlKnXzVy6qRMHNeQqGhCEncyT5nPNSdK5QlUwLokAIg"
+        },
+        {
+            "content": [
+                {
+                    "type": "output_text",
+                    "text": "42\n\nThis is, of course, the iconic answer from Douglas Adams'\'' *The Hitchhiker'\''s Guide to the Galaxy*, where a supercomputer named Deep Thought spends 7.5 million years computing the \"Answer to the Ultimate Question of Life, the Universe, and Everything\"—only to reveal it'\''s 42. (The real challenge, it turns out, is figuring out what the actual *question* was.)\n\nIf you'\''re asking in a more literal or philosophical sense, the universe doesn'\''t have a single tidy answer—it'\''s full of mysteries like quantum mechanics, dark matter, and why cats knock things off tables. But 42? That'\''s as good a starting point as any. What'\''s your take on it?",
+                    "logprobs": null,
+                    "annotations": []
+                }
+            ],
+            "id": "msg_c2f68a9b-87cd-4f85-a9e9-b6047213a3ce_us-east-1",
+            "role": "assistant",
+            "type": "message",
+            "status": "completed"
+        },
+        {
+            "role": "user",
+            "content": "What is the meaning of 42?"
+        }
+    ],
+    "include": [
+        "reasoning.encrypted_content"
+    ]
+}'
+```
 
 ## Retrieving a previous model response
 
 If you have a previous response's ID, you can retrieve the content of the response.
 
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+response = client.chat.get_stored_completion("<The previous response's id>")
+
+print(response)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+response = client.responses.retrieve("<The previous response's id>")
+
+print(response)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const response = await client.responses.retrieve("<The previous response's id>");
+
+console.log(response);
+```
+
+```javascript customLanguage="javascriptAISDK"
+// Note: The Vercel AI SDK does not provide a method to retrieve previous responses.
+// Use the OpenAI SDK as shown above for this functionality.
+
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000,
+});
+
+const response = await client.responses.retrieve("<The previous response's id>");
+
+console.log(response);
+```
+
+```bash
+curl https://api.x.ai/v1/responses/{response_id} \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600
+```
+
 ## Delete a model response
 
 If you no longer want to store the previous model response, you can delete it.
+
+```python customLanguage="pythonXAI"
+import os
+from xai_sdk import Client
+from xai_sdk.chat import user, system
+
+client = Client(
+    api_key=os.getenv("XAI_API_KEY"),
+    management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"),
+    timeout=3600,
+)
+
+response = client.chat.delete_stored_completion("<The previous response's id>")
+print(response)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import httpx
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="<YOUR_XAI_API_KEY_HERE>",
+    base_url="https://api.x.ai/v1",
+    timeout=httpx.Timeout(3600.0), # Override default timeout with longer timeout for reasoning models
+)
+
+response = client.responses.delete("<The previous response's id>")
+
+print(response)
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000, // Override default timeout with longer timeout for reasoning models
+});
+
+const response = await client.responses.delete("<The previous response's id>");
+
+console.log(response);
+```
+
+```javascript customLanguage="javascriptAISDK"
+// Note: The Vercel AI SDK does not provide a method to delete previous responses.
+// Use the OpenAI SDK as shown above for this functionality.
+
+import OpenAI from "openai";
+
+const client = new OpenAI({
+    apiKey: "<api key>",
+    baseURL: "https://api.x.ai/v1",
+    timeout: 360000,
+});
+
+const response = await client.responses.delete("<The previous response's id>");
+
+console.log(response);
+```
+
+```bash
+curl -X DELETE https://api.x.ai/v1/responses/{response_id} \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -m 3600
+```
 
 
 ===/developers/model-capabilities/text/reasoning===
@@ -6881,9 +7831,368 @@ This combination enables workflows where the model can use tools to gather infor
 
 This example uses web search to find the latest research on a topic and extracts structured data into a schema:
 
+```python customLanguage="pythonWithoutSDK"
+from pydantic import BaseModel, Field
+
+class ProofInfo(BaseModel):
+    name: str = Field(description="Name of the proof or paper")
+    authors: str = Field(description="Authors of the proof")
+    year: str = Field(description="Year published")
+    summary: str = Field(description="Brief summary of the approach")
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+import { z } from "zod";
+
+const ProofInfoSchema = z.object({
+    name: z.string().describe("Name of the proof or paper"),
+    authors: z.string().describe("Authors of the proof"),
+    year: z.string().describe("Year published"),
+    summary: z.string().describe("Brief summary of the approach"),
+});
+```
+
+```python customLanguage="pythonXAI"
+import os
+from pydantic import BaseModel, Field
+
+from xai_sdk import Client
+from xai_sdk.chat import user
+from xai_sdk.tools import web_search
+
+# ProofInfo schema defined above
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+chat = client.chat.create(
+    model="grok-4-1-fast",
+    tools=[web_search()],
+)
+
+chat.append(user("Find the latest machine-checked proof of the four color theorem."))
+
+response, proof = chat.parse(ProofInfo)
+
+print(f"Name: {proof.name}")
+print(f"Authors: {proof.authors}")
+print(f"Year: {proof.year}")
+print(f"Summary: {proof.summary}")
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+# ProofInfo schema defined above
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+response = client.responses.parse(
+    model="grok-4-1-fast",
+    input="Find the latest machine-checked proof of the four color theorem.",
+    tools=[
+        {"type": "web_search"}
+    ],
+    text_format=ProofInfo,
+)
+
+proof = response.output_parsed
+print(f"Name: {proof.name}")
+print(f"Authors: {proof.authors}")
+print(f"Year: {proof.year}")
+print(f"Summary: {proof.summary}")
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { z } from "zod";
+
+// ProofInfoSchema defined above
+
+const client = new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: "https://api.x.ai/v1",
+});
+
+// Convert Zod schema to JSON schema format
+const format = zodResponseFormat(ProofInfoSchema, "proof_info");
+
+const response = await client.responses.create({
+    model: "grok-4-1-fast",
+    input: "Find the latest machine-checked proof of the four color theorem.",
+    tools: [
+        { type: "web_search" }
+    ],
+    text: {
+        format: {
+            type: "json_schema",
+            name: format.json_schema.name,
+            schema: format.json_schema.schema,
+            strict: true,
+        }
+    }
+});
+
+// Find the message in the output array
+const message = response.output.find((item) => item.type === "message");
+const textContent = message?.content?.find((c) => c.type === "output_text");
+
+if (textContent) {
+    const proof = JSON.parse(textContent.text);
+    console.log(`Name: ${proof.name}`);
+    console.log(`Authors: ${proof.authors}`);
+    console.log(`Year: ${proof.year}`);
+    console.log(`Summary: ${proof.summary}`);
+}
+```
+
 ### Example: Client-side Tools with Structured Output
 
 This example uses a client-side function tool to compute Collatz sequence steps and returns the result in a structured format:
+
+```python customLanguage="pythonWithoutSDK"
+from pydantic import BaseModel, Field
+
+class CollatzResult(BaseModel):
+    starting_number: int = Field(description="The input number")
+    steps: int = Field(description="Number of steps to reach 1")
+```
+
+```javascript customLanguage="javascriptWithoutSDK"
+const CollatzResultSchema = {
+    type: "object",
+    properties: {
+        starting_number: { type: "integer", description: "The input number" },
+        steps: { type: "integer", description: "Number of steps to reach 1" },
+    },
+    required: ["starting_number", "steps"],
+    additionalProperties: false,
+};
+```
+
+```python customLanguage="pythonXAI"
+import os
+import json
+from pydantic import BaseModel, Field
+
+from xai_sdk import Client
+from xai_sdk.chat import tool, tool_result, user
+
+# CollatzResult schema defined above
+
+def collatz_steps(n: int) -> int:
+    """Returns the number of steps for n to reach 1 in the Collatz sequence."""
+    steps = 0
+    while n != 1:
+        n = n // 2 if n % 2 == 0 else 3 * n + 1
+        steps += 1
+    return steps
+
+collatz_tool = tool(
+    name="collatz_steps",
+    description="Compute the number of steps for a number to reach 1 in the Collatz sequence",
+    parameters={
+        "type": "object",
+        "properties": {
+            "n": {"type": "integer", "description": "The starting number"},
+        },
+        "required": ["n"],
+    },
+)
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+chat = client.chat.create(
+    model="grok-4-1-fast-non-reasoning",
+    tools=[collatz_tool],
+)
+
+chat.append(user("Use the collatz_steps tool to find how many steps it takes for 20250709 to reach 1."))
+
+# Handle tool calls until we get a final response
+while True:
+    response = chat.sample()
+    
+    if not response.tool_calls:
+        break
+    
+    chat.append(response)
+    for tc in response.tool_calls:
+        args = json.loads(tc.function.arguments)
+        result = collatz_steps(args["n"])
+        chat.append(tool_result(str(result)))
+
+# Parse the final response into structured output
+response, result = chat.parse(CollatzResult)
+
+print(f"Starting number: {result.starting_number}")
+print(f"Steps to reach 1: {result.steps}")
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+import json
+from openai import OpenAI
+from pydantic import BaseModel, Field
+
+# CollatzResult schema defined above
+
+def collatz_steps(n: int) -> int:
+    """Returns the number of steps for n to reach 1 in the Collatz sequence."""
+    steps = 0
+    while n != 1:
+        n = n // 2 if n % 2 == 0 else 3 * n + 1
+        steps += 1
+    return steps
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "collatz_steps",
+            "description": "Compute the number of steps for a number to reach 1 in the Collatz sequence",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "n": {"type": "integer", "description": "The starting number"},
+                },
+                "required": ["n"],
+            },
+        },
+    }
+]
+
+messages = [
+    {"role": "user", "content": "Use the collatz_steps tool to find how many steps it takes for 20250709 to reach 1."}
+]
+
+# Handle tool calls until we get a final response
+while True:
+    completion = client.chat.completions.create(
+        model="grok-4-1-fast-non-reasoning",
+        messages=messages,
+        tools=tools,
+    )
+    
+    message = completion.choices[0].message
+    
+    if not message.tool_calls:
+        break
+    
+    messages.append(message)
+    for tc in message.tool_calls:
+        args = json.loads(tc.function.arguments)
+        result = collatz_steps(args["n"])
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tc.id,
+            "content": str(result),
+        })
+
+# Final call with structured output
+completion = client.beta.chat.completions.parse(
+    model="grok-4-1-fast-non-reasoning",
+    messages=messages,
+    response_format=CollatzResult,
+)
+
+result = completion.choices[0].message.parsed
+print(f"Starting number: {result.starting_number}")
+print(f"Steps to reach 1: {result.steps}")
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from "openai";
+
+// CollatzResultSchema defined above
+
+function collatzSteps(n) {
+    let steps = 0;
+    while (n !== 1) {
+        n = n % 2 === 0 ? n / 2 : 3 * n + 1;
+        steps++;
+    }
+    return steps;
+}
+
+const client = new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: "https://api.x.ai/v1",
+});
+
+const tools = [
+    {
+        type: "function",
+        function: {
+            name: "collatz_steps",
+            description: "Compute the number of steps for a number to reach 1 in the Collatz sequence",
+            parameters: {
+                type: "object",
+                properties: {
+                    n: { type: "integer", description: "The starting number" },
+                },
+                required: ["n"],
+            },
+        },
+    },
+];
+
+let messages = [
+    { role: "user", content: "Use the collatz_steps tool to find how many steps it takes for 20250709 to reach 1." }
+];
+
+// Handle tool calls until we get a final response
+while (true) {
+    const completion = await client.chat.completions.create({
+        model: "grok-4-1-fast-non-reasoning",
+        messages,
+        tools,
+    });
+
+    const message = completion.choices[0].message;
+
+    if (!message.tool_calls) {
+        break;
+    }
+
+    messages.push(message);
+    for (const tc of message.tool_calls) {
+        const args = JSON.parse(tc.function.arguments);
+        const result = collatzSteps(args.n);
+        messages.push({
+            role: "tool",
+            tool_call_id: tc.id,
+            content: String(result),
+        });
+    }
+}
+
+// Final call with structured output
+const completion = await client.chat.completions.create({
+    model: "grok-4-1-fast-non-reasoning",
+    messages,
+    response_format: {
+        type: "json_schema",
+        json_schema: {
+            name: "collatz_result",
+            schema: CollatzResultSchema,
+            strict: true,
+        },
+    },
+});
+
+const result = JSON.parse(completion.choices[0].message.content);
+console.log("Starting number:", result.starting_number);
+console.log("Steps to reach 1:", result.steps);
+```
 
 ## Alternative: Using `response_format` with `sample()` or `stream()`
 
@@ -7038,451 +8347,396 @@ print(f"Sentiment: {summary.sentiment}")
 
 # Video Generation
 
-All video generation/edit requests are deferred requests, where a user sends a video generation/edit request, get a response with a request ID, and retrieve the video result later using the request ID.
-If you're using our SDK, it can handle the polling of the result automatically.
+Generate videos from text prompts, animate still images, or edit existing videos with natural language. The API supports configurable duration, aspect ratio, and resolution for generated videos — with the SDK handling the asynchronous polling automatically.
 
-## Generate/Edit a Video with Automatic Polling
+## Quick Start
 
-For easiness of use, our SDK can automatically send the video generation/edit request, and poll for the response until the result is available, or if the request has failed.
+Generate a video with a single API call:
 
-Generate a video directly from a text prompt:
+```python customLanguage="pythonXAI"
+import xai_sdk
 
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
+client = xai_sdk.Client()
 
 response = client.video.generate(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
+    prompt="A glowing crystal-powered rocket launching from the red dunes of Mars, ancient alien ruins lighting up in the background as it soars into a sky full of unfamiliar constellations",
+    model="grok-imagine-video",
+    duration=10,
+    aspect_ratio="16:9",
+    resolution="720p",
 )
-print(f"Video URL: {response.url}")
-```
 
-Generate a video from a user-provided image:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.generate(
-    prompt="Generate a video based on the provided image.",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    image_url=<url of the image>,
-)
-print(f"Video URL: {response.url}")
-```
-
-Edit an existing video:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.generate(
-    prompt="Make the ball larger.",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    video_url=<url of the video to edit>,
-)
-print(f"Video URL: {response.url}")
-```
-
-## Send a Video Generation Request
-
-If you do not want to use our SDK, or prefer to send a request and retrieve the result yourself, you can still send a regular video generation request. This will return a `response_id` which you can use to retrieve the generated video later.
-
-### Video Generation from Text
-
-Send a request to start generating a video from a text prompt.
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.start(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-)
-print(f"Request ID: {response.request_id}")
-```
-
-```javascriptWithoutSDK
-const response = await fetch('https://api.x.ai/v1/videos/generations', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
-  },
-  body: JSON.stringify({
-    prompt: 'A cat playing with a ball',
-    model: '{{LATEST_VIDEO_MODEL_NAME}}',
-  }),
-});
-const data = await response.json();
-console.log('Request ID:', data.request_id);
+print(response.url)
 ```
 
 ```bash
-curl -X 'POST' https://api.x.ai/v1/videos/generations \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
-  -H 'Content-Type: application/json' \\
+curl -X POST https://api.x.ai/v1/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
   -d '{
-      "prompt": "A cat playing with a ball",
-      "model": "{{LATEST_VIDEO_MODEL_NAME}}"
+    "model": "grok-imagine-video",
+    "prompt": "A glowing crystal-powered rocket launching from the red dunes of Mars, ancient alien ruins lighting up in the background as it soars into a sky full of unfamiliar constellations",
+    "duration": 10,
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
   }'
 ```
 
-The response includes a `request_id`, which you'll use to retrieve the generated video result.
+Video generation is an **asynchronous process** that typically takes up to several minutes to complete. The exact time varies based on:
+
+* **Prompt complexity** — More detailed scenes require additional processing
+* **Duration** — Longer videos take more time to generate
+* **Resolution** — Higher resolutions (720p vs 480p) increase processing time
+* **Video editing** — Editing existing videos adds overhead compared to image-to-video or text-to-video
+
+### How it works
+
+Under the hood, video generation is a two-step process:
+
+1. **Start** — Submit a generation request and receive a `request_id`
+2. **Poll** — Repeatedly check the status using the `request_id` until the video is ready
+
+The xAI SDK's `generate()` method abstracts this entirely — it submits your request, polls for the result, and returns the completed video response. You don't need to manage request IDs or implement polling logic. For long-running generations, you can [customize the polling behavior](#customize-polling-behavior) with timeout and interval parameters, or [handle polling manually](#handle-polling-manually) for full control over the generation lifecycle.
+
+**REST API users** must implement this two-step flow manually:
+
+**Step 1: Start the generation request**
 
 ```bash
-{"request_id":"aa87081b-1a29-d8a6-e5bf-5807e3a7a561"}
-```
-
-### Video Generation from Image
-
-You can also generate a video from an existing image.
-
-To generate from an image:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.start(
-    prompt="Generate a video based on the provided image.",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    image_url=<url of the image>,
-)
-print(f"Request ID: {response.request_id}")
-```
-
-```javascriptWithoutSDK
-const response = await fetch('https://api.x.ai/v1/videos/generations', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
-  },
-  body: JSON.stringify({
-    prompt: 'Generate a video based on the provided image.',
-    model: '{{LATEST_VIDEO_MODEL_NAME}}',
-    image: { url: '<url of the image>' },
-  }),
-});
-const data = await response.json();
-console.log('Request ID:', data.request_id);
-```
-
-```bash
-curl -X 'POST' https://api.x.ai/v1/videos/generations \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
-  -H 'Content-Type: application/json' \\
+curl -X POST https://api.x.ai/v1/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
   -d '{
-      "prompt": "Generate a video based on the provided image.",
-      "model": "{{LATEST_VIDEO_MODEL_NAME}}",
-      "image": {"url": "<url of the image>"}
+    "model": "grok-imagine-video",
+    "prompt": "A glowing crystal-powered rocket launching from Mars"
   }'
 ```
 
-### Edit a Video
+Response:
 
-Provide an input video (via a publicly accessible URL) and a prompt describing the desired changes. The API will generate a new edited video based on your instructions.
-
-**Note:** The input video URL must be a direct, publicly accessible link to the video file. The maximum supported video length is 8.7 seconds.
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.start(
-    prompt="Make the ball in the video larger.",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    video_url=<url of the previous video>,
-)
-print(f"Request ID: {response.request_id}")
+```json
+{"request_id": "d97415a1-5796-b7ec-379f-4e6819e08fdf"}
 ```
 
-```javascriptWithoutSDK
-const response = await fetch('https://api.x.ai/v1/videos/edits', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
+**Step 2: Poll for the result**
+
+Use the `request_id` to check the status. Keep polling every few seconds until the video is ready:
+
+```bash
+curl -X GET "https://api.x.ai/v1/videos/{request_id}" \
+  -H "Authorization: Bearer $XAI_API_KEY"
+```
+
+The response includes a `status` field with one of these values:
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Video is still being generated |
+| `done` | Video is ready |
+| `expired` | Request has expired |
+
+Response (when complete):
+
+```json
+{
+  "status": "done",
+  "video": {
+    "url": "https://vidgen.x.ai/.../video.mp4",
+    "duration": 8,
+    "respect_moderation": true
   },
-  body: JSON.stringify({
-    prompt: 'Make the ball in the video larger.',
-    video: { url: '<url of the previous video>' },
-    model: '{{LATEST_VIDEO_MODEL_NAME}}',
-  }),
-});
-const data = await response.json();
-console.log('Request ID:', data.request_id);
+  "model": "grok-imagine-video"
+}
 ```
 
-```bash
-curl -X 'POST' https://api.x.ai/v1/videos/edits \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-      "prompt": "Make the ball in the video larger.",
-      "video": {"url": "<url of the previous video>"},
-      "model": "{{LATEST_VIDEO_MODEL_NAME}}"
-  }'
-```
+Videos are returned as temporary URLs — download or process them promptly.
 
-You will receive a `request_id` in the response body, which you can use to retrieve the edit generation result.
+## Generate Videos from Images
 
-```bash
-{"request_id":"a3d1008e-4544-40d4-d075-11527e794e4a"}
-```
+Transform a still image into a video by providing a source image along with your prompt. The model animates the image content based on your instructions.
 
-## Retrieving Video Generation/Edit Results
+```python customLanguage="pythonXAI"
+import base64
+import xai_sdk
 
-After making a video generation or edit requests and receiving the video generation `request_id`, you can retrieve
-the results using the `request_id`.
+client = xai_sdk.Client()
 
-```pythonXAI
-# After sending the generation request and getting the request_id.
-
-response = client.video.get(request_id)
-print(f"Video URL: {response.url}")
-```
-
-```javascriptWithoutSDK
-// After sending the generation request and getting the request_id.
-const requestId = 'aa87081b-1a29-d8a6-e5bf-5807e3a7a561';
-
-const response = await fetch(\`https://api.x.ai/v1/videos/\${requestId}\`, {
-  headers: {
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
-  },
-});
-const data = await response.json();
-console.log('Video URL:', data.url);
-```
-
-```bash
-curl -X 'GET' https://api.x.ai/v1/videos/{request_id} \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>'
-```
-
-## Specifying Video Output Format
-
-### Video Duration
-
-You can specify the duration of the generated video in seconds. The allowed range is between 1 and 15 seconds.
-
-Video editing doesn't support user-defined `duration`. The edited video will have the same duration of the original video.
-
-Using xAI SDK auto-polling:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
+# Load image from file and encode as base64
+with open("landscape.jpg", "rb") as f:
+    image_data = base64.b64encode(f.read()).decode("utf-8")
 
 response = client.video.generate(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    duration=10
+    prompt="Animate the clouds drifting across the sky and add gentle swaying to the trees",
+    model="grok-imagine-video",
+    image_url=f"data:image/jpeg;base64,{image_data}",
 )
-print(f"Video URL: {response.url}")
-print(f"Duration: {response.duration}")
-```
 
-Sending normal generation request:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.start(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    duration=10
-)
-print(f"Request ID: {response.request_id}")
-```
-
-```javascriptWithoutSDK
-const response = await fetch('https://api.x.ai/v1/videos/generations', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
-  },
-  body: JSON.stringify({
-    prompt: 'A cat playing with a ball',
-    model: '{{LATEST_VIDEO_MODEL_NAME}}',
-    duration: 10,
-  }),
-});
-const data = await response.json();
-console.log('Request ID:', data.request_id);
+print(response.url)
 ```
 
 ```bash
-curl -X 'POST' https://api.x.ai/v1/videos/generations \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
-  -H 'Content-Type: application/json' \\
+# Using a public URL as the source image
+curl -X POST https://api.x.ai/v1/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
   -d '{
-      "prompt": "A cat playing with a ball",
-      "model": "{{LATEST_VIDEO_MODEL_NAME}}",
-      "duration": 10
+    "model": "grok-imagine-video",
+    "prompt": "Animate the clouds drifting across the sky and add gentle swaying to the trees",
+    "image": {"url": "https://example.com/landscape.jpg"}
   }'
 ```
+
+You can provide the source image as:
+
+* A **public URL** pointing to an image
+* A **base64-encoded data URI** (e.g., `data:image/jpeg;base64,...`)
+
+The demo below shows this in action — hold to animate a still image:
+
+## Edit Existing Videos
+
+Edit an existing video by providing a source video along with your prompt. The model understands the video content and applies your requested changes.
+
+The demo below shows video editing in action — `grok-imagine-video` delivers high-fidelity edits with strong scene preservation, modifying only what you ask for while keeping the rest of the video intact:
+
+## Concurrent Requests
+
+When you need to generate multiple videos or apply several edits to the same source video, use `AsyncClient` with `asyncio.gather` to fire requests concurrently. Since video generation and editing are long-running processes, running requests in parallel is significantly faster than issuing them sequentially.
+
+The example below applies all three edits from the interactive demo above — adding a necklace, changing the outfit color, and adding a hat — concurrently:
+
+```python customLanguage="pythonXAI"
+import asyncio
+import xai_sdk
+
+async def edit_concurrently():
+    client = xai_sdk.AsyncClient()
+
+    source_video = "https://example.com/balcony-scene.mp4"
+
+    # Each request applies a different edit to the same video
+    prompts = [
+        "Give the woman a silver necklace",
+        "Change the color of the woman's outfit to red",
+        "Give the woman a wide-brimmed black hat",
+    ]
+
+    # Fire all edit requests concurrently
+    tasks = [
+        client.video.generate(
+            prompt=prompt,
+            model="grok-imagine-video",
+            video_url=source_video,
+        )
+        for prompt in prompts
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    for prompt, result in zip(prompts, results):
+        print(f"{prompt}: {result.url}")
+
+asyncio.run(edit_concurrently())
+```
+
+## Configuration
+
+The video generation API lets you control the output format of your generated videos. You can specify the duration, aspect ratio, and resolution to match your specific use case.
+
+### Duration
+
+Control video length with the `duration` parameter. The allowed range is 1–15 seconds.
+
+Video editing does not support custom `duration`. The edited video retains the duration of the original, which is capped at 8.7 seconds.
 
 ### Aspect Ratio
 
-You can specify the aspect ratio of the video. The default aspect ratio is 16:9.
+| Ratio | Use case |
+|-------|----------|
+| `1:1` | Social media, thumbnails |
+| `16:9` / `9:16` | Widescreen, mobile, stories (default: `16:9`) |
+| `4:3` / `3:4` | Presentations, portraits |
+| `3:2` / `2:3` | Photography |
 
-The following aspect ratios are supported:
+For image-to-video generation, the output defaults to the input image's aspect ratio. If you specify the `aspect_ratio` parameter, it will override this and stretch the image to the desired aspect ratio.
 
-* 16:9
-* 4:3
-* 1:1
-* 9:16
-* 3:4
-* 3:2
-* 2:3
-
-Using xAI SDK auto-polling:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.generate(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    aspect_ratio="4:3"
-)
-print(f"Video URL: {response.url}")
-```
-
-Sending regular generation request:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.start(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    aspect_ratio="4:3"
-)
-print(f"Request ID: {response.request_id}")
-```
-
-```javascriptWithoutSDK
-const response = await fetch('https://api.x.ai/v1/videos/generations', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
-  },
-  body: JSON.stringify({
-    prompt: 'A cat playing with a ball',
-    model: '{{LATEST_VIDEO_MODEL_NAME}}',
-    aspect_ratio: '4:3',
-  }),
-});
-const data = await response.json();
-console.log('Request ID:', data.request_id);
-```
-
-```bash
-curl -X 'POST' https://api.x.ai/v1/videos/generations \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
-  -H 'Content-Type: application/json' \\
-  -d '{
-      "prompt": "A cat playing with a ball",
-      "model": "{{LATEST_VIDEO_MODEL_NAME}}",
-      "aspect_ratio": "4:3"
-  }'
-```
+Video editing does not support custom `aspect_ratio` — the output matches the input video's aspect ratio.
 
 ### Resolution
 
-You can select a resolution from a list of supported resolutions.
+| Resolution | Description |
+|------------|-------------|
+| `720p` | HD quality |
+| `480p` | Standard definition, faster processing (default) |
 
-Supported resolutions:
+Video editing does not support custom `resolution`. The output resolution matches the input video's resolution, capped at 720p (e.g., a 1080p input will be downsized to 720p).
 
-* 720p
-* 480p
+### Example
 
-Using xAI SDK auto-polling:
+```python customLanguage="pythonXAI"
+import xai_sdk
 
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
+client = xai_sdk.Client()
 
 response = client.video.generate(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    resolution="720p"
+    prompt="Timelapse of a flower blooming in a sunlit garden",
+    model="grok-imagine-video",
+    duration=10,
+    aspect_ratio="16:9",
+    resolution="720p",
 )
+
 print(f"Video URL: {response.url}")
-```
-
-Sending regular generation request:
-
-```pythonXAI
-from xai_sdk import Client
-
-client = Client()
-
-response = client.video.start(
-    prompt="A cat playing with a ball",
-    model="{{LATEST_VIDEO_MODEL_NAME}}",
-    resolution="720p"
-)
-print(f"Request ID: {response.request_id}")
-```
-
-```javascriptWithoutSDK
-const response = await fetch('https://api.x.ai/v1/videos/generations', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': \`Bearer \${process.env.XAI_API_KEY}\`,
-  },
-  body: JSON.stringify({
-    prompt: 'A cat playing with a ball',
-    model: '{{LATEST_VIDEO_MODEL_NAME}}',
-    resolution: '720p',
-  }),
-});
-const data = await response.json();
-console.log('Request ID:', data.request_id);
+print(f"Duration: {response.duration}s")
 ```
 
 ```bash
-curl -X 'POST' https://api.x.ai/v1/videos/generations \\
-  -H 'accept: application/json' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
-  -H 'Content-Type: application/json' \\
+curl -X POST https://api.x.ai/v1/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
   -d '{
-      "prompt": "A cat playing with a ball",
-      "model": "{{LATEST_VIDEO_MODEL_NAME}}",
-      "resolution": "720p"
+    "model": "grok-imagine-video",
+    "prompt": "Timelapse of a flower blooming in a sunlit garden",
+    "duration": 10,
+    "aspect_ratio": "16:9",
+    "resolution": "720p"
   }'
 ```
+
+## Customize Polling Behavior
+
+When using the SDK's `generate()` method, you can control how long to wait and how frequently to check for results using the `timeout` and `interval` parameters:
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `timeout` | Maximum time to wait for the video to complete | 10 minutes |
+| `interval` | Time between status checks | 100 milliseconds |
+
+```python customLanguage="pythonXAI"
+from datetime import timedelta
+import xai_sdk
+
+client = xai_sdk.Client()
+
+response = client.video.generate(
+    prompt="Epic cinematic drone shot flying through mountain peaks",
+    model="grok-imagine-video",
+    duration=15,
+    timeout=timedelta(minutes=15),  # Wait up to 15 minutes
+    interval=timedelta(seconds=5),  # Check every 5 seconds
+)
+
+print(response.url)
+```
+
+If the video isn't ready within the timeout period, a `TimeoutError` is raised. For even finer control, use the [manual polling approach](#handle-polling-manually) with `start()` and `get()`.
+
+## Handle Polling Manually
+
+For fine-grained control over the generation lifecycle, use `start()` to initiate generation and `get()` to check status.
+
+The `get()` method returns a response with a `status` field. Import the status enum from the SDK:
+
+```python customLanguage="pythonXAI"
+import time
+import xai_sdk
+from xai_sdk.proto import deferred_pb2
+
+client = xai_sdk.Client()
+
+# Start the generation request
+start_response = client.video.start(
+    prompt="A cat lounging in a sunbeam, tail gently swishing",
+    model="grok-imagine-video",
+    duration=5,
+)
+
+print(f"Request ID: {start_response.request_id}")
+
+# Poll for results
+while True:
+    result = client.video.get(start_response.request_id)
+    
+    if result.status == deferred_pb2.DeferredStatus.DONE:
+        print(f"Video URL: {result.response.video.url}")
+        break
+    elif result.status == deferred_pb2.DeferredStatus.EXPIRED:
+        print("Request expired")
+        break
+    elif result.status == deferred_pb2.DeferredStatus.PENDING:
+        print("Still processing...")
+        time.sleep(5)
+```
+
+```bash
+# Step 1: Start generation
+curl -X POST https://api.x.ai/v1/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+    "model": "grok-imagine-video",
+    "prompt": "A cat lounging in a sunbeam, tail gently swishing",
+    "duration": 5
+  }'
+
+# Response: {"request_id": "{request_id}"}
+
+# Step 2: Poll for results
+curl -X GET https://api.x.ai/v1/videos/{request_id} \
+  -H "Authorization: Bearer $XAI_API_KEY"
+```
+
+The available status values are:
+
+| Proto Value | Description |
+|-------------|-------------|
+| `deferred_pb2.DeferredStatus.PENDING` | Video is still being generated |
+| `deferred_pb2.DeferredStatus.DONE` | Video is ready |
+| `deferred_pb2.DeferredStatus.EXPIRED` | Request has expired |
+
+## Response Details
+
+The xAI SDK exposes additional metadata on the response object beyond the video URL.
+
+**Moderation** — Check whether the generated video passed content moderation:
+
+```python customLanguage="pythonXAI"
+if response.respect_moderation:
+    print(response.url)
+else:
+    print("Video filtered by moderation")
+```
+
+**Duration** — Get the actual duration of the generated video:
+
+```python customLanguage="pythonXAI"
+print(f"Duration: {response.duration} seconds")
+```
+
+**Model** — Get the actual model used (resolving any aliases):
+
+```python customLanguage="pythonXAI"
+print(f"Model: {response.model}")
+```
+
+## Pricing
+
+Video generation uses per-second pricing. Longer videos cost more, and both duration and resolution affect the total cost.
+
+For full pricing details on the `grok-imagine-video` model, see the [model page](/developers/models).
+
+## Limitations
+
+* **Maximum duration:** 15 seconds for generation, 8.7 seconds for editing input videos
+* **URL expiration:** Generated URLs are ephemeral and should not be relied upon for long-term storage
+* **Resolutions:** 480p or 720p
+* **Content moderation:** Videos are subject to content policy review
+
+## Related
+
+* [Models](/developers/models) — Available video models and pricing
+* [Image Generation](/developers/model-capabilities/images/generation) — Generate still images from text
+* [API Reference](/developers/rest-api-reference) — Full endpoint documentation
 
 
 ===/developers/models===
@@ -7493,6 +8747,36 @@ curl -X 'POST' https://api.x.ai/v1/videos/generations \\
 An overview of our models' capabilities and their associated pricing.
 
 ## Model Pricing
+
+| Model | Modalities | Capabilities | Context | Rate Limits | Pricing [in (cached in) / out] |
+| --- | --- | --- | --- | --- | --- |
+| grok-4-1-fast-reasoning | text, image → text | functions, structured, reasoning | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-4-1-fast-reasoning | text, image → text | functions, structured, reasoning | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-4-1-fast-non-reasoning | text, image → text | functions, structured | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-4-1-fast-non-reasoning | text, image → text | functions, structured | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-4-1-fast-non-reasoning | text, image → text | functions, structured | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-code-fast-1 | text → text | functions, structured, reasoning | 256,000 | 2M TPM, 480 RPM | $0.20 ($0.02) / $1.50 |
+| grok-code-fast-1 | text → text | functions, structured, reasoning | 256,000 | 2M TPM, 480 RPM | $0.20 ($0.02) / $1.50 |
+| grok-4-0709 | text, image → text | functions, structured, reasoning | 256,000 | 2M TPM, 480 RPM | $3.00 ($0.75) / $15.00 |
+| grok-4-0709 | text, image → text | functions, structured, reasoning | 256,000 | 2M TPM, 480 RPM | $3.00 ($0.75) / $15.00 |
+| grok-3 | text → text | functions, structured | 131,072 | 600 RPM | $3.00 ($0.75) / $15.00 |
+| grok-3 | text → text | functions, structured | 131,072 | 600 RPM | $3.00 ($0.75) / $15.00 |
+| grok-3-mini | text → text | functions, structured, reasoning | 131,072 | 480 RPM | $0.30 ($0.07) / $0.50 |
+| grok-3-mini | text → text | functions, structured, reasoning | 131,072 | 480 RPM | $0.30 ($0.07) / $0.50 |
+| grok-2-image-1212 | text → image | - | - | 300 RPM | $0.07/image |
+| grok-2-image-1212 | text → image | - | - | 300 RPM | $0.07/image |
+| grok-4-fast-non-reasoning | text, image → text | functions, structured | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-4-fast-reasoning | text, image → text | functions, structured, reasoning | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-2-vision-1212 | text, image → text | functions, structured | 32,768 | 600 RPM | $2.00 ($0.00) / $10.00 |
+| grok-4-fast-reasoning | text, image → text | functions, structured, reasoning | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-4-fast-non-reasoning | text, image → text | functions, structured | 2,000,000 | 4M TPM, 480 RPM | $0.20 ($0.05) / $0.50 |
+| grok-2-vision-1212 | text, image → text | functions, structured | 32,768 | 600 RPM | $2.00 ($0.00) / $10.00 |
+| grok-imagine-image-pro | text, image → image | - | - | 30 RPM | $0.07/image |
+| grok-imagine-image | text, image → image | - | - | 300 RPM | $0.02/image |
+| grok-imagine-image | text, image → image | - | - | 300 RPM | $0.02/image |
+| grok-imagine-image-pro | text, image → image | - | - | 30 RPM | $0.07/image |
+| grok-imagine-video | text, image, video → video | - | - | 60 RPM | $0.050/sec |
+| grok-imagine-video | text, image, video → video | - | - | 60 RPM | $0.050/sec |
 
 
 When moving from `grok-3`/`grok-3-mini` to `grok-4`, please note the following differences:
@@ -7513,16 +8797,18 @@ All standard token types are billed at the [rate](#model-pricing) for the model 
 
 ### Tool Invocation Costs
 
-| Tool | Cost per 1,000 calls | Description |
-|------|---------------------|-------------|
-| **[Web Search](/developers/tools/web-search)** | $5 | Internet search and page browsing |
-| **[X Search](/developers/tools/x-search)** | $5 | X posts, users, and threads |
-| **[Code Execution](/developers/tools/code-execution)** | $5 | Python code execution environment |
-| **[Document Search](/developers/files)** | $5 | Search through uploaded files and documents |
-| **[View Image](/developers/tools/web-search#enable-image-understanding)** | Token-based only | Image analysis within search results |
-| **[View X Video](/developers/tools/x-search#enable-video-understanding)** | Token-based only | Video analysis within X posts |
-| **[Collections Search](/developers/tools/collections-search)** | $2.50 | Knowledge base search using xAI Collections |
-| **[Remote MCP Tools](/developers/tools/remote-mcp)** | Token-based only | Custom MCP tools |
+| Tool | Description | Cost / 1k Calls | Tool Name |
+| --- | --- | --- | --- |
+| Web Search | Search the internet and browse web pages | $5 | `web_search` |
+| X Search | Search X posts, user profiles, and threads | $5 | `x_search` |
+| Code Execution | Run Python code in a sandboxed environment | $5 | `code_execution`, `code_interpreter*` |
+| File Attachments | Search through files attached to messages | $10 | `attachment_search` |
+| Collections Search | Query your uploaded document collections (RAG) | $2.50 | `collections_search`, `file_search*` |
+| Image Understanding | Analyze images found during Web Search and X Search\*\* | Token-based | `view_image` |
+| X Video Understanding | Analyze videos found during X Search\*\* | Token-based | `view_x_video` |
+| Remote MCP Tools | Connect and use custom MCP tool servers | Token-based | *(set by MCP server)* |
+\* All tool names work in the Responses API. In the gRPC API (Python xAI SDK), `code_interpreter` and `file_search` are not supported.
+\*\* Only applies to images and videos found by search tools — not to images passed directly in messages.
 
 For the view image and view x video tools, you will not be charged for the tool invocation itself but will be charged for the image tokens used to process the image or video.
 
@@ -7530,13 +8816,39 @@ For Remote MCP tools, you will not be charged for the tool invocation but will b
 
 For more information on using Tools, please visit [our guide on Tools](/developers/tools/overview).
 
-## Documents Search Pricing
+## Batch API Pricing
 
-For users using our Collections API and Documents Search, the following pricing applies:
+The [Batch API](/developers/advanced-api-usage/batch-api) lets you process large volumes of requests asynchronously at **50% of standard pricing** — effectively cutting your token costs in half. Batch requests are queued and processed in the background, with most completing within 24 hours.
+
+| | Real-time API | Batch API |
+|---|---|---|
+| **Token pricing** | Standard rates | **50% off** standard rates |
+| **Response time** | Immediate (seconds) | Typically within 24 hours |
+| **Rate limits** | Per-minute limits apply | Requests don't count towards rate limits |
+
+The 50% discount applies to all token types — input tokens, output tokens, cached tokens, and reasoning tokens. To see batch pricing for a specific model, visit the model's detail page and toggle **"Show batch API pricing"**.
+
+Batch API pricing applies to text and language models only. Image and video generation models are not supported in the Batch API. See [Batch API documentation](/developers/advanced-api-usage/batch-api) for full details, limitations, and usage examples.
+
+## Voice Agent API Pricing
+
+The [Voice Agent API](/developers/model-capabilities/audio/voice-agent) is a real-time voice conversation offering, billed at a straightforward flat rate of $0.05 per minute of connection time.
+
+| | Details |
+|---|---|
+| **Pricing** | $0.05 / minute ($3.00 / hour) |
+| **Rate Limit** | 10 concurrent sessions per team |
+| **Capabilities** | Function calling (web search, X search, collections, custom functions) |
+
+When using the Voice Agent API with tools such as function calling, web search, X search, or collections, you will be charged for the tool invocations in addition to the per-minute voice session cost. See [Tool Invocation Costs](#tool-invocation-costs) above for tool pricing details.
+
+For more details on how to get started with the Voice Agent API, see the [Voice Agent API documentation](/developers/model-capabilities/audio/voice-agent).
 
 ## Usage Guidelines Violation Fee
 
-A rare occurrence for most users, when your request is deemed to be in violation of our usage guideline by our system, we will charge a $0.05 per request usage guidelines violation fee.
+When your request is deemed to be in violation of our usage guideline by our system, we will still charge for the generation of the request.
+
+For violations that are caught before generation in the Responses API, we will charge a $0.05 usage guideline violation fee per request.
 
 ## Additional Information Regarding Models
 
@@ -7696,7 +9008,7 @@ curl https://api.x.ai/v1/responses \\
 
 As well as a native xAI Python SDK, the majority of our APIs are fully compatible with the OpenAI SDK (and the Anthropic SDK, although this is now deprecated). For example, we can make the same request from Python or JavaScript like so:
 
-**Anthropic SDK Deprecated**: The Anthropic SDK compatibility is fully deprecated. Please migrate to the [Responses API](/developers/api-reference#create-new-response) or [gRPC](/developers/grpc-reference).
+**Anthropic SDK Deprecated**: The Anthropic SDK compatibility is fully deprecated. Please migrate to the [Responses API](/developers/rest-api-reference/inference/chat#create-new-response) or [gRPC](/developers/grpc-api-reference).
 
 ```pythonXAI
 # In your terminal, first run:
@@ -8005,7 +9317,7 @@ After the inference is completed, the completion tokens will be aggregated into 
 Our system will add additional formatting tokens to the input/output token, and if you selected a reasoning model, additional reasoning tokens will be added into the total token consumption as well.
 Your actual consumption will be reflected either in the `usage` object returned in the API response, or in Usage Explorer on the [xAI Console](https://console.x.ai).
 
-You can use [Tokenizer](https://console.x.ai/team/default/tokenizer) on xAI Console to visualize tokens a given text prompt, or use [Tokenize text](/developers/api-reference#tokenize-text) endpoint on the API.
+You can use [Tokenizer](https://console.x.ai/team/default/tokenizer) on xAI Console to visualize tokens a given text prompt, or use [Tokenize text](/developers/rest-api-reference/inference/other#tokenize-text) endpoint on the API.
 
 ### Text tokens
 
@@ -8046,7 +9358,7 @@ Message body:
 
 Tokenize result on Tokenizer page:
 
-You can also utilize the [Tokenize Text](/developers/api-reference#tokenize-text) API endpoint to tokenize the text, and count the output token array length.
+You can also utilize the [Tokenize Text](/developers/rest-api-reference/inference/other#tokenize-text) API endpoint to tokenize the text, and count the output token array length.
 
 ### Cached prompt tokens
 
@@ -8079,28 +9391,33 @@ You can either:
 
 ## Checking token consumption
 
-In each completion response, there is a `usage` object detailing your prompt and completion token count. You might find it helpful to keep track of it, in order to avoid hitting rate limits or having cost surprises.
+In each completion response, there is a `usage` object detailing your prompt and completion token count. You might find it helpful to keep track of it, in order to avoid hitting rate limits or having cost surprises. You can view more details of the object on our [API Reference](/developers/rest-api-reference).
 
 ```json
 "usage": {
-    "prompt_tokens":37,
-    "completion_tokens":530,
-    "total_tokens":800,
+    "prompt_tokens": 199,
+    "completion_tokens": 1,
+    "total_tokens": 200,
     "prompt_tokens_details": {
-        "text_tokens":37,
-        "audio_tokens":0,
-        "image_tokens":0,
-        "cached_tokens":8
+        "text_tokens": 199,
+        "audio_tokens": 0,
+        "image_tokens": 0,
+        "cached_tokens": 163
     },
     "completion_tokens_details": {
-        "reasoning_tokens":233,
-        "audio_tokens":0,
-        "accepted_prediction_tokens":0,
-        "rejected_prediction_tokens":0
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
     },
-    "num_sources_used":0
+    "num_sources_used": 0,
+    "cost_in_usd_ticks": 158500
 }
 ```
+
+The `cost_in_usd_ticks` field expresses the total cost to perform the inference, in 1/10,000,000,000 US dollar.
+
+**Note:** The `usage.prompt_tokens_details.text_tokens` is the total text input token, which includes `cached_tokens` and non-cached text tokens.
 
 You can also check with the xAI or OpenAI SDKs (Anthropic SDK is deprecated).
 
@@ -8282,6 +9599,22 @@ for the available models to your team in each region, or [Models and Pricing](..
 
 Stay up to date with the latest changes to the xAI API.
 
+# January 2026
+
+### Video Generation & Next-Gen Image Generation
+
+[Video Generation](/developers/model-capabilities/video/generation) and a revamped [Image Generation](/developers/model-capabilities/images/generation) are now available.
+
+### Batch API is released
+
+[Batch API](/developers/advanced-api-usage/batch-api) is available for all customers. It enables efficient batch processing of multiple requests, providing a better experience for users who need to submit large volumes of requests at once.
+
+# December 2025
+
+### Grok Voice Agent API is released
+
+Grok Voice Agent API is generally available. Visit [Grok Voice Agent API](/developers/model-capabilities/audio/voice) for guidance on using the API.
+
 # November 2025
 
 ### Grok 4.1 Fast is available in Enterprise API
@@ -8372,10 +9705,13 @@ Team admins can now view audit logs on [console.x.ai](https://console.x.ai).
 
 # January 2025
 
-### Docs Dark Mode Released dark mode support on docs.x.ai
+### Docs Dark Mode
 
-### Status Page Check service statuses across all xAI products at
+Released dark mode support on docs.x.ai
 
+### Status Page
+
+Check service statuses across all xAI products at
 [status.x.ai](https://status.x.ai/).
 
 # December 2024
@@ -8389,8 +9725,9 @@ Check out the [announcement](https://x.com/Replit/status/1874211039258333643) fo
 
 [console.x.ai](https://console.x.ai) to get a better understanding of what counts as a token.
 
-### Structured Outputs We're excited to announce that Grok now supports structured outputs. Grok can
+### Structured Outputs
 
+We're excited to announce that Grok now supports structured outputs. Grok can
 now format responses in a predefined, organized format rather than free-form text. 1. Specify the
 desired schema
 
@@ -8431,16 +9768,967 @@ and multilingual capabilities.
 
 ### LangChain & xAI Our API is now available through LangChain! - Python Docs:
 
-http://python.langchain.com/integrations/providers/xai/ - Javascript Docs:
-http://js.langchain.com/integrations/chat/xai/
+https://python.langchain.com/integrations/providers/xai/ - Javascript Docs:
+https://js.langchain.com/integrations/chat/xai/
 
 What are you going to build?
 
-### API Public Beta Released We are happy to announce the immediate availability of our API, which
+### API Public Beta
 
+We are happy to announce the immediate availability of our API, which
 gives developers programmatic access to our Grok series of foundation models. To get started, head
 to [console.x.ai](https://console.x.ai/) and sign up to create an account. We are excited to see
 what developers build using Grok.
+
+
+===/developers/rest-api-reference/collections/collection===
+#### Collections API
+
+# Collection Management
+
+The base URL for `collection` management is shared with [Management API](/developers/rest-api-reference/management) at `https://management-api.x.ai/`.
+You have to authenticate using **xAI Management API Key** with the header `Authorization: Bearer <your xAI Management API key>`.
+
+For more details on provisioning xAI Management API key and using Management API, you can visit
+
+***
+
+## POST /v1/collections
+
+API endpoint for POST requests to /v1/collections.
+
+```
+Method: POST
+Path: /v1/collections
+```
+
+***
+
+## GET /v1/collections
+
+API endpoint for GET requests to /v1/collections.
+
+```
+Method: GET
+Path: /v1/collections
+```
+
+***
+
+## GET /v1/collections/\{collection\_id}
+
+API endpoint for GET requests to /v1/collections/\{collection\_id}.
+
+```
+Method: GET
+Path: /v1/collections/{collection_id}
+```
+
+***
+
+## DELETE /v1/collections/\{collection\_id}
+
+API endpoint for DELETE requests to /v1/collections/\{collection\_id}.
+
+```
+Method: DELETE
+Path: /v1/collections/{collection_id}
+```
+
+***
+
+## PUT /v1/collections/\{collection\_id}
+
+API endpoint for PUT requests to /v1/collections/\{collection\_id}.
+
+```
+Method: PUT
+Path: /v1/collections/{collection_id}
+```
+
+***
+
+## POST /v1/collections/\{collection\_id}/documents/\{file\_id}
+
+API endpoint for POST requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
+
+```
+Method: POST
+Path: /v1/collections/{collection_id}/documents/{file_id}
+```
+
+***
+
+## GET /v1/collections/\{collection\_id}/documents
+
+API endpoint for GET requests to /v1/collections/\{collection\_id}/documents.
+
+```
+Method: GET
+Path: /v1/collections/{collection_id}/documents
+```
+
+***
+
+## GET /v1/collections/\{collection\_id}/documents/\{file\_id}
+
+API endpoint for GET requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
+
+```
+Method: GET
+Path: /v1/collections/{collection_id}/documents/{file_id}
+```
+
+***
+
+## PATCH /v1/collections/\{collection\_id}/documents/\{file\_id}
+
+API endpoint for PATCH requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
+
+```
+Method: PATCH
+Path: /v1/collections/{collection_id}/documents/{file_id}
+```
+
+***
+
+## DELETE /v1/collections/\{collection\_id}/documents/\{file\_id}
+
+API endpoint for DELETE requests to /v1/collections/\{collection\_id}/documents/\{file\_id}.
+
+```
+Method: DELETE
+Path: /v1/collections/{collection_id}/documents/{file_id}
+```
+
+***
+
+## GET /v1/collections/\{collection\_id}/documents:batchGet
+
+API endpoint for GET requests to /v1/collections/\{collection\_id}/documents:batchGet.
+
+```
+Method: GET
+Path: /v1/collections/{collection_id}/documents:batchGet
+```
+
+
+===/developers/rest-api-reference/collections===
+#### Collections API
+
+# Collections REST API Overview
+
+The Collections API allows you to manage your Collections `documents` and `collections` programmatically.
+
+The base url for `collection` management is shared with [Management API](/developers/rest-api-reference/management) at `https://management-api.x.ai/v1/`. You have to authenticate using **xAI Management API Key** with the header `Authorization: Bearer <your xAI Management API key>`.
+
+For more details on provisioning xAI Management API key and using Management API, you can visit
+
+.
+
+The base url for searching within `collections` is shared with [REST API](/developers/rest-api-reference) at `https://api.x.ai`. You have to authenticate with the header `Authorization: Bearer <your xAI API key>`.
+
+* [Collection Management](/developers/rest-api-reference/collections/collection)
+* [Search in Collections](/developers/rest-api-reference/collections/search)
+
+
+===/developers/rest-api-reference/collections/search===
+#### Collections API
+
+# Search in Collections
+
+The base url for searching `collections` is shared with [REST API](/developers/rest-api-reference) at `https://api.x.ai`. You have to authenticate using **xAI API Key** with the header `Authorization: Bearer <your xAI API key>`.
+
+***
+
+## POST /v1/documents/search
+
+API endpoint for POST requests to /v1/documents/search.
+
+```
+Method: POST
+Path: /v1/documents/search
+```
+
+
+===/developers/rest-api-reference/files/download===
+#### Files API
+
+# Download
+
+***
+
+## POST /v1/files:download
+
+API endpoint for POST requests to /v1/files:download.
+
+```
+Method: POST
+Path: /v1/files:download
+```
+
+
+===/developers/rest-api-reference/files/manage===
+#### Files API
+
+# Manage
+
+***
+
+## GET /v1/files
+
+API endpoint for GET requests to /v1/files.
+
+```
+Method: GET
+Path: /v1/files
+```
+
+***
+
+## GET /v1/files/\{file\_id}
+
+API endpoint for GET requests to /v1/files/\{file\_id}.
+
+```
+Method: GET
+Path: /v1/files/{file_id}
+```
+
+***
+
+## PUT /v1/files/\{file\_id}
+
+API endpoint for PUT requests to /v1/files/\{file\_id}.
+
+```
+Method: PUT
+Path: /v1/files/{file_id}
+```
+
+***
+
+## DELETE /v1/files/\{file\_id}
+
+API endpoint for DELETE requests to /v1/files/\{file\_id}.
+
+```
+Method: DELETE
+Path: /v1/files/{file_id}
+```
+
+
+===/developers/rest-api-reference/files===
+#### Files API
+
+# Files REST API Overview
+
+The Files API allows you to upload, manage, and download files for use with Grok models. Files can be attached to chat messages for document understanding, or added to collections for semantic search.
+
+The base URL for all file operations is `https://api.x.ai`. You have to authenticate with the header `Authorization: Bearer <your xAI API key>`.
+
+* [Upload](/developers/rest-api-reference/files/upload)
+* [Manage](/developers/rest-api-reference/files/manage)
+* [Download](/developers/rest-api-reference/files/download)
+
+
+===/developers/rest-api-reference/files/upload===
+#### Files API
+
+# Upload
+
+***
+
+## POST /v1/files
+
+API endpoint for POST requests to /v1/files.
+
+```
+Method: POST
+Path: /v1/files
+```
+
+***
+
+## POST /v1/files/batch\_upload
+
+API endpoint for POST requests to /v1/files/batch\_upload.
+
+```
+Method: POST
+Path: /v1/files/batch_upload
+```
+
+***
+
+## POST /v1/files/batch\_upload/\{batch\_job\_id}:complete
+
+API endpoint for POST requests to /v1/files/batch\_upload/\{batch\_job\_id}:complete.
+
+```
+Method: POST
+Path: /v1/files/batch_upload/{batch_job_id}:complete
+```
+
+***
+
+## POST /v1/files:initialize
+
+API endpoint for POST requests to /v1/files:initialize.
+
+```
+Method: POST
+Path: /v1/files:initialize
+```
+
+***
+
+## POST /v1/files:uploadChunks
+
+API endpoint for POST requests to /v1/files:uploadChunks.
+
+```
+Method: POST
+Path: /v1/files:uploadChunks
+```
+
+
+===/developers/rest-api-reference/inference/batches===
+#### Inference API
+
+# Batches
+
+***
+
+## POST /v1/batches
+
+API endpoint for POST requests to /v1/batches.
+
+```
+Method: POST
+Path: /v1/batches
+```
+
+***
+
+## GET /v1/batches
+
+API endpoint for GET requests to /v1/batches.
+
+```
+Method: GET
+Path: /v1/batches
+```
+
+***
+
+## GET /v1/batches/\{batch\_id}
+
+API endpoint for GET requests to /v1/batches/\{batch\_id}.
+
+```
+Method: GET
+Path: /v1/batches/{batch_id}
+```
+
+***
+
+## GET /v1/batches/\{batch\_id}/requests
+
+API endpoint for GET requests to /v1/batches/\{batch\_id}/requests.
+
+```
+Method: GET
+Path: /v1/batches/{batch_id}/requests
+```
+
+***
+
+## POST /v1/batches/\{batch\_id}/requests
+
+API endpoint for POST requests to /v1/batches/\{batch\_id}/requests.
+
+```
+Method: POST
+Path: /v1/batches/{batch_id}/requests
+```
+
+***
+
+## GET /v1/batches/\{batch\_id}/results
+
+API endpoint for GET requests to /v1/batches/\{batch\_id}/results.
+
+```
+Method: GET
+Path: /v1/batches/{batch_id}/results
+```
+
+***
+
+## POST /v1/batches/\{batch\_id}:cancel
+
+API endpoint for POST requests to /v1/batches/\{batch\_id}:cancel.
+
+```
+Method: POST
+Path: /v1/batches/{batch_id}:cancel
+```
+
+
+===/developers/rest-api-reference/inference/chat===
+#### Inference API
+
+# Chat
+
+***
+
+## POST /v1/chat/completions
+
+API endpoint for POST requests to /v1/chat/completions.
+
+```
+Method: POST
+Path: /v1/chat/completions
+```
+
+***
+
+## POST /v1/responses
+
+API endpoint for POST requests to /v1/responses.
+
+```
+Method: POST
+Path: /v1/responses
+```
+
+***
+
+## GET /v1/responses/\{response\_id}
+
+API endpoint for GET requests to /v1/responses/\{response\_id}.
+
+```
+Method: GET
+Path: /v1/responses/{response_id}
+```
+
+***
+
+## DELETE /v1/responses/\{response\_id}
+
+API endpoint for DELETE requests to /v1/responses/\{response\_id}.
+
+```
+Method: DELETE
+Path: /v1/responses/{response_id}
+```
+
+***
+
+## GET /v1/chat/deferred-completion/\{request\_id}
+
+API endpoint for GET requests to /v1/chat/deferred-completion/\{request\_id}.
+
+```
+Method: GET
+Path: /v1/chat/deferred-completion/{request_id}
+```
+
+
+===/developers/rest-api-reference/inference/images===
+#### Inference API
+
+# Images
+
+***
+
+## POST /v1/images/generations
+
+API endpoint for POST requests to /v1/images/generations.
+
+```
+Method: POST
+Path: /v1/images/generations
+```
+
+***
+
+## POST /v1/images/edits
+
+API endpoint for POST requests to /v1/images/edits.
+
+```
+Method: POST
+Path: /v1/images/edits
+```
+
+
+===/developers/rest-api-reference/inference/legacy===
+#### Inference API
+
+# Legacy & Deprecated
+
+***
+
+## POST /v1/completions
+
+API endpoint for POST requests to /v1/completions.
+
+```
+Method: POST
+Path: /v1/completions
+```
+
+***
+
+**Deprecated**: The Anthropic SDK compatibility is fully deprecated. Please migrate to the [Responses API](/developers/rest-api-reference/inference/chat#create-new-response) or [gRPC](/developers/grpc-api-reference).
+
+## POST /v1/messages
+
+API endpoint for POST requests to /v1/messages.
+
+```
+Method: POST
+Path: /v1/messages
+```
+
+***
+
+**Deprecated**: The Anthropic SDK compatibility is fully deprecated. Please migrate to the [Responses API](/developers/rest-api-reference/inference/chat#create-new-response) or [gRPC](/developers/grpc-api-reference).
+
+## POST /v1/complete
+
+API endpoint for POST requests to /v1/complete.
+
+```
+Method: POST
+Path: /v1/complete
+```
+
+
+===/developers/rest-api-reference/inference/models===
+#### Inference API
+
+# Models
+
+***
+
+## GET /v1/models
+
+API endpoint for GET requests to /v1/models.
+
+```
+Method: GET
+Path: /v1/models
+```
+
+***
+
+## GET /v1/models/\{model\_id}
+
+API endpoint for GET requests to /v1/models/\{model\_id}.
+
+```
+Method: GET
+Path: /v1/models/{model_id}
+```
+
+***
+
+## GET /v1/language-models
+
+API endpoint for GET requests to /v1/language-models.
+
+```
+Method: GET
+Path: /v1/language-models
+```
+
+***
+
+## GET /v1/language-models/\{model\_id}
+
+API endpoint for GET requests to /v1/language-models/\{model\_id}.
+
+```
+Method: GET
+Path: /v1/language-models/{model_id}
+```
+
+***
+
+## GET /v1/image-generation-models
+
+API endpoint for GET requests to /v1/image-generation-models.
+
+```
+Method: GET
+Path: /v1/image-generation-models
+```
+
+***
+
+## GET /v1/image-generation-models/\{model\_id}
+
+API endpoint for GET requests to /v1/image-generation-models/\{model\_id}.
+
+```
+Method: GET
+Path: /v1/image-generation-models/{model_id}
+```
+
+
+===/developers/rest-api-reference/inference/other===
+#### Inference API
+
+# Other
+
+***
+
+## GET /v1/api-key
+
+API endpoint for GET requests to /v1/api-key.
+
+```
+Method: GET
+Path: /v1/api-key
+```
+
+***
+
+## POST /v1/tokenize-text
+
+API endpoint for POST requests to /v1/tokenize-text.
+
+```
+Method: POST
+Path: /v1/tokenize-text
+```
+
+
+===/developers/rest-api-reference/inference===
+#### Inference API
+
+# Inference REST API Overview
+
+The xAI Inference REST API is a robust, high-performance RESTful interface designed for seamless integration into existing systems.
+It offers advanced AI capabilities with full compatibility with the OpenAI REST API.
+
+The base for all routes is at `https://api.x.ai`. For all routes, you have to authenticate with the header `Authorization: Bearer <your xAI API key>`.
+
+* [Chat](/developers/rest-api-reference/inference/chat)
+* [Images](/developers/rest-api-reference/inference/images)
+* [Videos](/developers/rest-api-reference/inference/videos)
+* [Models](/developers/rest-api-reference/inference/models)
+* [Files](/developers/rest-api-reference/files)
+* [Batches](/developers/rest-api-reference/inference/batches)
+* [Other](/developers/rest-api-reference/inference/other)
+* [Legacy & Deprecated](/developers/rest-api-reference/inference/legacy)
+
+
+===/developers/rest-api-reference/inference/videos===
+#### Inference API
+
+# Videos
+
+***
+
+## POST /v1/videos/generations
+
+API endpoint for POST requests to /v1/videos/generations.
+
+```
+Method: POST
+Path: /v1/videos/generations
+```
+
+***
+
+## POST /v1/videos/edits
+
+API endpoint for POST requests to /v1/videos/edits.
+
+```
+Method: POST
+Path: /v1/videos/edits
+```
+
+***
+
+## GET /v1/videos/\{request\_id}
+
+API endpoint for GET requests to /v1/videos/\{request\_id}.
+
+```
+Method: GET
+Path: /v1/videos/{request_id}
+```
+
+
+===/developers/rest-api-reference/management/audit===
+#### Management API
+
+# Audit Logs
+
+***
+
+## GET /audit/teams/\{teamId}/events
+
+API endpoint for GET requests to /audit/teams/\{teamId}/events.
+
+```
+Method: GET
+Path: /audit/teams/{teamId}/events
+```
+
+
+===/developers/rest-api-reference/management/auth===
+#### Management API
+
+# Accounts and Authorization
+
+***
+
+## POST /auth/teams/\{teamId}/api-keys
+
+API endpoint for POST requests to /auth/teams/\{teamId}/api-keys.
+
+```
+Method: POST
+Path: /auth/teams/{teamId}/api-keys
+```
+
+***
+
+## GET /auth/teams/\{teamId}/api-keys
+
+API endpoint for GET requests to /auth/teams/\{teamId}/api-keys.
+
+```
+Method: GET
+Path: /auth/teams/{teamId}/api-keys
+```
+
+***
+
+## PUT /auth/api-keys/\{api\_key\_id}
+
+API endpoint for PUT requests to /auth/api-keys/\{api\_key\_id}.
+
+```
+Method: PUT
+Path: /auth/api-keys/{api_key_id}
+```
+
+***
+
+## DELETE /auth/api-keys/\{apiKeyId}
+
+API endpoint for DELETE requests to /auth/api-keys/\{apiKeyId}.
+
+```
+Method: DELETE
+Path: /auth/api-keys/{apiKeyId}
+```
+
+***
+
+## GET /auth/api-keys/\{apiKeyId}/propagation
+
+API endpoint for GET requests to /auth/api-keys/\{apiKeyId}/propagation.
+
+```
+Method: GET
+Path: /auth/api-keys/{apiKeyId}/propagation
+```
+
+***
+
+## GET /auth/teams/\{teamId}/models
+
+API endpoint for GET requests to /auth/teams/\{teamId}/models.
+
+```
+Method: GET
+Path: /auth/teams/{teamId}/models
+```
+
+***
+
+## GET /auth/teams/\{teamId}/endpoints
+
+API endpoint for GET requests to /auth/teams/\{teamId}/endpoints.
+
+```
+Method: GET
+Path: /auth/teams/{teamId}/endpoints
+```
+
+***
+
+## GET /auth/management-keys/validation
+
+API endpoint for GET requests to /auth/management-keys/validation.
+
+```
+Method: GET
+Path: /auth/management-keys/validation
+```
+
+
+===/developers/rest-api-reference/management/billing===
+#### Management API
+
+# Billing Management
+
+***
+
+## GET /v1/billing/teams/\{team\_id}/billing-info
+
+API endpoint for GET requests to /v1/billing/teams/\{team\_id}/billing-info.
+
+```
+Method: GET
+Path: /v1/billing/teams/{team_id}/billing-info
+```
+
+***
+
+## POST /v1/billing/teams/\{team\_id}/billing-info
+
+API endpoint for POST requests to /v1/billing/teams/\{team\_id}/billing-info.
+
+```
+Method: POST
+Path: /v1/billing/teams/{team_id}/billing-info
+```
+
+***
+
+## GET /v1/billing/teams/\{team\_id}/invoices
+
+API endpoint for GET requests to /v1/billing/teams/\{team\_id}/invoices.
+
+```
+Method: GET
+Path: /v1/billing/teams/{team_id}/invoices
+```
+
+***
+
+## GET /v1/billing/teams/\{team\_id}/payment-method
+
+API endpoint for GET requests to /v1/billing/teams/\{team\_id}/payment-method.
+
+```
+Method: GET
+Path: /v1/billing/teams/{team_id}/payment-method
+```
+
+***
+
+## POST /v1/billing/teams/\{team\_id}/payment-method/default
+
+API endpoint for POST requests to /v1/billing/teams/\{team\_id}/payment-method/default.
+
+```
+Method: POST
+Path: /v1/billing/teams/{team_id}/payment-method/default
+```
+
+***
+
+## GET /v1/billing/teams/\{team\_id}/postpaid/invoice/preview
+
+API endpoint for GET requests to /v1/billing/teams/\{team\_id}/postpaid/invoice/preview.
+
+```
+Method: GET
+Path: /v1/billing/teams/{team_id}/postpaid/invoice/preview
+```
+
+***
+
+## GET /v1/billing/teams/\{team\_id}/postpaid/spending-limits
+
+API endpoint for GET requests to /v1/billing/teams/\{team\_id}/postpaid/spending-limits.
+
+```
+Method: GET
+Path: /v1/billing/teams/{team_id}/postpaid/spending-limits
+```
+
+***
+
+## POST /v1/billing/teams/\{team\_id}/postpaid/spending-limits
+
+API endpoint for POST requests to /v1/billing/teams/\{team\_id}/postpaid/spending-limits.
+
+```
+Method: POST
+Path: /v1/billing/teams/{team_id}/postpaid/spending-limits
+```
+
+***
+
+## GET /v1/billing/teams/\{team\_id}/prepaid/balance
+
+API endpoint for GET requests to /v1/billing/teams/\{team\_id}/prepaid/balance.
+
+```
+Method: GET
+Path: /v1/billing/teams/{team_id}/prepaid/balance
+```
+
+***
+
+## POST /v1/billing/teams/\{team\_id}/prepaid/top-up
+
+API endpoint for POST requests to /v1/billing/teams/\{team\_id}/prepaid/top-up.
+
+```
+Method: POST
+Path: /v1/billing/teams/{team_id}/prepaid/top-up
+```
+
+***
+
+## POST /v1/billing/teams/\{team\_id}/usage
+
+API endpoint for POST requests to /v1/billing/teams/\{team\_id}/usage.
+
+```
+Method: POST
+Path: /v1/billing/teams/{team_id}/usage
+```
+
+
+===/developers/rest-api-reference/management===
+#### Management API
+
+# Management REST API Overview
+
+The Management API allows you to perform operations on your team programmatically. You
+need a [management key](https://console.x.ai/team/default/management-keys) in
+order to use this API. The base URL for all endpoints is `https://management-api.x.ai`.
+
+The Management API serves as a dedicated interface to the xAI platform, empowering developers and teams to
+programmatically manage their xAI API teams.
+
+For example, users can provision their API key, handle access controls,
+and perform team-level operations like creating, listing, updating, or deleting keys and associated access control lists
+(ACLs). This API also facilitates oversight of billing aspects, including monitoring prepaid credit balances and usage
+deductions, ensuring seamless scalability and cost transparency for Grok model integrations.
+
+To get started, go to [xAI Console](https://console.x.ai). On users page, make sure your xAI account has
+`Management Keys` Read + Write permission, and obtain your Management API key on the settings page. If you don't see
+any of these options, please ask your team administrator to enable the appropriate permissions.
+
+* [Accounts and Authorization](/developers/rest-api-reference/management/auth)
+* [Billing Management](/developers/rest-api-reference/management/billing)
+* [Audit Logs](/developers/rest-api-reference/management/audit)
 
 
 ===/developers/tools/advanced-usage===
@@ -9273,6 +11561,117 @@ Inline citations are **markdown-style links** (e.g., `[[1]](https://x.ai/news)`)
 
 Inline citations are returned by default with the Responses API. For the xAI SDK, you can explicitly request them with `include=["inline_citations"]`:
 
+```bash customLanguage="bash"
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+  "model": "grok-4-1-fast-reasoning",
+  "input": [
+    {"role": "user", "content": "What is xAI?"}
+  ],
+  "tools": [{"type": "web_search"}]
+}'
+```
+
+```python customLanguage="pythonXAI"
+import os
+
+from xai_sdk import Client
+from xai_sdk.chat import user
+from xai_sdk.tools import web_search, x_search
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+chat = client.chat.create(
+    model="grok-4-1-fast-reasoning",
+    tools=[
+        web_search(),
+        x_search(),
+    ],
+    include=["inline_citations"],  # Enable inline citations
+)
+
+chat.append(user("What is xAI?"))
+response = chat.sample()
+
+# Access the response text (includes inline citation markdown)
+print(response.content)
+```
+
+```python customLanguage="pythonOpenAISDK"
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "user", "content": "What is xAI?"}
+    ],
+    tools=[
+        {"type": "web_search"},
+    ],
+)
+
+# Get the message output with inline citations
+for item in response.output:
+    if item.type == "message":
+        for content in item.content:
+            if content.type == "output_text":
+                print(content.text)
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text, sources } = await generateText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  prompt: 'What is xAI?',
+  tools: {
+    web_search: xai.tools.webSearch(),
+  },
+});
+
+// Text includes inline citation markdown
+console.log(text);
+
+// Sources contain all citation URLs
+console.log('Sources:', sources);
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: process.env.XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1',
+});
+
+const response = await client.responses.create({
+  model: 'grok-4-1-fast-reasoning',
+  input: [
+    { role: 'user', content: 'What is xAI?' }
+  ],
+  tools: [{ type: 'web_search' }],
+});
+
+// Get the message with inline citations
+for (const item of response.output) {
+  if (item.type === 'message') {
+    for (const content of item.content) {
+      if (content.type === 'output_text') {
+        console.log(content.text);
+      }
+    }
+  }
+}
+```
+
 ### Markdown Citation Format
 
 When inline citations are enabled, the model will insert markdown-style citation links directly into the response text:
@@ -9307,6 +11706,68 @@ Each citation annotation contains:
 | `start_index` | int | Character position where the citation starts in the response text |
 | `end_index` | int | Character position where the citation ends (exclusive) |
 | `title` | string | The citation number (e.g., "1", "2") |
+
+```python customLanguage="pythonXAI"
+# After streaming or sampling completes, access the structured inline citations:
+for citation in response.inline_citations:
+    print(f"Citation [{citation.id}]:")
+    print(f"  Position: {citation.start_index} to {citation.end_index}")
+    
+    # Check citation type
+    if citation.HasField("web_citation"):
+        print(f"  Web URL: {citation.web_citation.url}")
+    elif citation.HasField("x_citation"):
+        print(f"  X URL: {citation.x_citation.url}")
+```
+
+```python customLanguage="pythonOpenAISDK"
+# Access annotations from the response
+for item in response.output:
+    if item.type == "message":
+        for content in item.content:
+            if content.type == "output_text":
+                for annotation in content.annotations:
+                    print(f"Citation [{annotation.title}]:")
+                    print(f"  URL: {annotation.url}")
+                    print(f"  Position: {annotation.start_index} to {annotation.end_index}")
+```
+
+```javascript customLanguage="javascriptAISDK"
+import { xai } from '@ai-sdk/xai';
+import { streamText } from 'ai';
+
+const { fullStream } = streamText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  prompt: 'What is xAI?',
+  tools: {
+    web_search: xai.tools.webSearch(),
+  },
+});
+
+// Access sources as they stream in
+for await (const part of fullStream) {
+  if (part.type === 'source' && part.sourceType === 'url') {
+    console.log(`Citation: ${part.url}`);
+  }
+}
+```
+
+```javascript customLanguage="javascriptOpenAISDK"
+// Access annotations from the response
+for (const item of response.output) {
+  if (item.type === 'message') {
+    for (const content of item.content) {
+      if (content.type === 'output_text') {
+        for (const annotation of content.annotations) {
+          console.log(`Citation [${annotation.title}]:`);
+          console.log(`  URL: ${annotation.url}`);
+          console.log(`  Position: ${annotation.start_index} to ${annotation.end_index}`);
+        }
+      }
+    }
+  }
+}
+```
 
 ```output
 Citation [1]:
@@ -9786,7 +12247,7 @@ TESLA_10_K_PDF_URL = "https://ir.tesla.com/_flysystem/s3/sec/000162828025003063/
 
 
 async def main():
-    client = AsyncClient(api_key=os.getenv("XAI_API_KEY"))
+    client = AsyncClient(api_key=os.getenv("XAI_API_KEY"), management_api_key=os.getenv("XAI_MANAGEMENT_API_KEY"))
 
     # Step 1: Create a collection for Tesla SEC filings
     response = await client.collections.create("tesla-sec-filings")
@@ -9804,7 +12265,6 @@ async def main():
             collection_id=collection_id,
             name=name,
             data=pdf_content,
-            content_type="application/pdf",
         )
 
         # Poll until document is processed and ready for search
@@ -10226,17 +12686,337 @@ With streaming, the function call is returned in whole in a single chunk, not st
 
 ## Quick Start
 
+```bash customLanguage="bash"
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+  "model": "grok-4-1-fast-reasoning",
+  "input": [
+    {"role": "user", "content": "What is the temperature in San Francisco?"}
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "get_temperature",
+      "description": "Get current temperature for a location",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {"type": "string", "description": "City name"},
+          "unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "default": "fahrenheit"}
+        },
+        "required": ["location"]
+      }
+    }
+  ]
+}'
+```
+
+```pythonXAI
+import os
+import json
+
+from xai_sdk import Client
+from xai_sdk.chat import user, tool, tool_result
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+
+# Define tools
+tools = [
+    tool(
+        name="get_temperature",
+        description="Get current temperature for a location",
+        parameters={
+            "type": "object",
+            "properties": {
+                "location": {"type": "string", "description": "City name"},
+                "unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "default": "fahrenheit"}
+            },
+            "required": ["location"]
+        },
+    ),
+]
+
+chat = client.chat.create(
+    model="grok-4-1-fast-reasoning",
+    tools=tools,
+)
+chat.append(user("What is the temperature in San Francisco?"))
+response = chat.sample()
+
+# Handle tool calls
+if response.tool_calls:
+    chat.append(response)
+    for tc in response.tool_calls:
+        args = json.loads(tc.function.arguments)
+        # Execute your function
+        result = {"location": args["location"], "temperature": 59, "unit": args.get("unit", "fahrenheit")}
+        chat.append(tool_result(json.dumps(result)))
+    
+    response = chat.sample()
+
+print(response.content)
+```
+
+```pythonOpenAISDK
+import os
+import json
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+tools = [
+    {
+        "type": "function",
+        "name": "get_temperature",
+        "description": "Get current temperature for a location",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {"type": "string", "description": "City name"},
+                "unit": {"type": "string", "enum": ["celsius", "fahrenheit"], "default": "fahrenheit"}
+            },
+            "required": ["location"]
+        },
+    },
+]
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[{"role": "user", "content": "What is the temperature in San Francisco?"}],
+    tools=tools,
+)
+
+# Handle function calls
+for item in response.output:
+    if item.type == "function_call":
+        args = json.loads(item.arguments)
+        result = {"location": args["location"], "temperature": 59, "unit": args.get("unit", "fahrenheit")}
+        
+        response = client.responses.create(
+            model="grok-4-1-fast-reasoning",
+            input=[{"type": "function_call_output", "call_id": item.call_id, "output": json.dumps(result)}],
+            tools=tools,
+            previous_response_id=response.id,
+        )
+
+for item in response.output:
+    if item.type == "message":
+        print(item.content[0].text)
+```
+
+```javascriptAISDK
+import { xai } from '@ai-sdk/xai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  tools: {
+    getTemperature: tool({
+      description: 'Get current temperature for a location',
+      parameters: z.object({
+        location: z.string().describe('City name'),
+        unit: z.enum(['celsius', 'fahrenheit']).default('fahrenheit'),
+      }),
+      execute: async ({ location, unit }) => ({
+        location,
+        temperature: unit === 'fahrenheit' ? 59 : 15,
+        unit,
+      }),
+    }),
+  },
+  prompt: 'What is the temperature in San Francisco?',
+});
+
+for await (const chunk of result.fullStream) {
+  if (chunk.type === 'text-delta') {
+    process.stdout.write(chunk.text);
+  }
+}
+```
+
 ## Defining Tools with Pydantic
 
 Use Pydantic models for type-safe parameter schemas:
+
+```pythonXAI
+from typing import Literal
+from pydantic import BaseModel, Field
+from xai_sdk.chat import tool
+
+class TemperatureRequest(BaseModel):
+    location: str = Field(description="City and state, e.g. San Francisco, CA")
+    unit: Literal["celsius", "fahrenheit"] = Field("fahrenheit", description="Temperature unit")
+
+class CeilingRequest(BaseModel):
+    location: str = Field(description="City and state, e.g. San Francisco, CA")
+
+# Generate JSON schema from Pydantic models
+tools = [
+    tool(
+        name="get_temperature",
+        description="Get current temperature for a location",
+        parameters=TemperatureRequest.model_json_schema(),
+    ),
+    tool(
+        name="get_ceiling",
+        description="Get current cloud ceiling for a location",
+        parameters=CeilingRequest.model_json_schema(),
+    ),
+]
+```
+
+```pythonOpenAISDK
+from typing import Literal
+from pydantic import BaseModel, Field
+
+class TemperatureRequest(BaseModel):
+    location: str = Field(description="City and state, e.g. San Francisco, CA")
+    unit: Literal["celsius", "fahrenheit"] = Field("fahrenheit", description="Temperature unit")
+
+class CeilingRequest(BaseModel):
+    location: str = Field(description="City and state, e.g. San Francisco, CA")
+
+tools = [
+    {
+        "type": "function",
+        "name": "get_temperature",
+        "description": "Get current temperature for a location",
+        "parameters": TemperatureRequest.model_json_schema(),
+    },
+    {
+        "type": "function",
+        "name": "get_ceiling",
+        "description": "Get current cloud ceiling for a location",
+        "parameters": CeilingRequest.model_json_schema(),
+    },
+]
+```
 
 ## Handling Tool Calls
 
 When the model wants to use your tool, execute the function and return the result:
 
+```pythonXAI
+import json
+
+def get_temperature(location: str, unit: str = "fahrenheit") -> dict:
+    # In production, call a real weather API
+    temp = 59 if unit == "fahrenheit" else 15
+    return {"location": location, "temperature": temp, "unit": unit}
+
+def get_ceiling(location: str) -> dict:
+    return {"location": location, "ceiling": 15000, "unit": "ft"}
+
+tools_map = {
+    "get_temperature": get_temperature,
+    "get_ceiling": get_ceiling,
+}
+
+chat.append(user("What's the weather in Denver?"))
+response = chat.sample()
+
+# Process tool calls
+if response.tool_calls:
+    chat.append(response)
+    
+    for tool_call in response.tool_calls:
+        name = tool_call.function.name
+        args = json.loads(tool_call.function.arguments)
+        
+        result = tools_map[name](**args)
+        chat.append(tool_result(json.dumps(result)))
+    
+    response = chat.sample()
+
+print(response.content)
+```
+
+```pythonOpenAISDK
+import json
+
+def get_temperature(location: str, unit: str = "fahrenheit") -> dict:
+    temp = 59 if unit == "fahrenheit" else 15
+    return {"location": location, "temperature": temp, "unit": unit}
+
+tools_map = {"get_temperature": get_temperature}
+
+# Process function calls
+for item in response.output:
+    if item.type == "function_call":
+        name = item.name
+        args = json.loads(item.arguments)
+        
+        if name not in tools_map:
+            output = json.dumps({"error": f"Unknown function: {name}"})
+        else:
+            output = json.dumps(tools_map[name](**args))
+        
+        response = client.responses.create(
+            model="grok-4-1-fast-reasoning",
+            input=[{"type": "function_call_output", "call_id": item.call_id, "output": output}],
+            tools=tools,
+            previous_response_id=response.id,
+        )
+
+for item in response.output:
+    if item.type == "message":
+        print(item.content[0].text)
+```
+
 ## Combining with Built-in Tools
 
 Function calling works alongside built-in agentic tools. The model can use web search, then call your custom function:
+
+```pythonXAI
+from xai_sdk.chat import tool
+from xai_sdk.tools import web_search, x_search
+
+tools = [
+    web_search(),                    # Built-in: runs on xAI servers
+    x_search(),                      # Built-in: runs on xAI servers  
+    tool(                            # Custom: runs on your side
+        name="save_to_database",
+        description="Save research results to the database",
+        parameters={
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "Data to save"}
+            },
+            "required": ["data"]
+        },
+    ),
+]
+
+chat = client.chat.create(
+    model="grok-4-1-fast-reasoning",
+    tools=tools,
+)
+```
+
+```pythonOpenAISDK
+tools = [
+    {"type": "web_search"},          # Built-in
+    {"type": "x_search"},            # Built-in
+    {                                # Custom
+        "type": "function",
+        "name": "save_to_database",
+        "description": "Save research results to the database",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "data": {"type": "string", "description": "Data to save"}
+            },
+            "required": ["data"]
+        },
+    },
+]
+```
 
 When mixing tools:
 
@@ -10389,6 +13169,131 @@ When you provide tools to a request, the xAI API can use them to gather informat
 5. **Returns the final response** with citations where applicable
 
 ## Quick Start
+
+```bash customLanguage="bash"
+curl https://api.x.ai/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $XAI_API_KEY" \
+  -d '{
+  "model": "grok-4-1-fast-reasoning",
+  "stream": true,
+  "input": [
+    {
+      "role": "user",
+      "content": "What are the latest updates from xAI?"
+    }
+  ],
+  "tools": [
+    { "type": "web_search" },
+    { "type": "x_search" },
+    { "type": "code_interpreter" }
+  ]
+}'
+```
+
+```pythonXAI
+import os
+
+from xai_sdk import Client
+from xai_sdk.chat import user
+from xai_sdk.tools import web_search, x_search, code_execution
+
+client = Client(api_key=os.getenv("XAI_API_KEY"))
+chat = client.chat.create(
+    model="grok-4-1-fast-reasoning",
+    tools=[
+        web_search(),
+        x_search(),
+        code_execution(),
+    ],
+)
+
+chat.append(user("What are the latest updates from xAI?"))
+
+for response, chunk in chat.stream():
+    if chunk.content:
+        print(chunk.content, end="", flush=True)
+
+print("\nCitations:", response.citations)
+```
+
+```pythonOpenAISDK
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("XAI_API_KEY"),
+    base_url="https://api.x.ai/v1",
+)
+
+response = client.responses.create(
+    model="grok-4-1-fast-reasoning",
+    input=[
+        {"role": "user", "content": "What are the latest updates from xAI?"}
+    ],
+    tools=[
+        {"type": "web_search"},
+        {"type": "x_search"},
+        {"type": "code_interpreter"},
+    ],
+    stream=True,
+)
+
+for event in response:
+    if hasattr(event, 'delta') and hasattr(event.delta, 'content'):
+        print(event.delta.content, end="", flush=True)
+```
+
+```javascriptAISDK
+import { xai } from '@ai-sdk/xai';
+import { streamText } from 'ai';
+
+const { fullStream } = streamText({
+  model: xai.responses('grok-4-1-fast-reasoning'),
+  prompt: 'What are the latest updates from xAI?',
+  tools: {
+    web_search: xai.tools.webSearch(),
+    x_search: xai.tools.xSearch(),
+    code_execution: xai.tools.codeExecution(),
+  },
+});
+
+for await (const part of fullStream) {
+  if (part.type === 'text-delta') {
+    process.stdout.write(part.text);
+  } else if (part.type === 'source' && part.sourceType === 'url') {
+    console.log(`Citation: ${part.url}`);
+  }
+}
+```
+
+```javascriptOpenAISDK
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.XAI_API_KEY,
+  baseURL: "https://api.x.ai/v1",
+});
+
+const stream = await client.responses.create({
+  model: "grok-4-1-fast-reasoning",
+  input: [
+    { role: "user", content: "What are the latest updates from xAI?" }
+  ],
+  tools: [
+    { type: "web_search" },
+    { type: "x_search" },
+    { type: "code_interpreter" },
+  ],
+  stream: true,
+});
+
+for await (const event of stream) {
+  if (event.delta?.content) {
+    process.stdout.write(event.delta.content);
+  }
+}
+```
 
 ## Citations
 
@@ -11192,7 +14097,7 @@ client = Client(api_key=os.getenv("XAI_API_KEY"))
 chat = client.chat.create(
     model="grok-4-1-fast-reasoning",
     tools=[
-        web_search(allowed_domains=["wikipedia.org"]),
+        web_search(allowed_domains=["grokipedia.com"]),
     ],
 )
 
@@ -11207,7 +14112,7 @@ response = client.responses.create(
     tools=[
         {
             "type": "web_search",
-            "filters": {"allowed_domains": ["wikipedia.org"]},
+            "filters": {"allowed_domains": ["grokipedia.com"]},
         },
     ],
 )
@@ -11219,7 +14124,7 @@ const { text } = await generateText({
   prompt: 'What is xAI?',
   tools: {
     web_search: xai.tools.webSearch({
-      allowedDomains: ['wikipedia.org'],
+      allowedDomains: ['grokipedia.com'],
     }),
   },
 });
@@ -11233,7 +14138,7 @@ Use `excluded_domains` to prevent the model from including the specified domains
 chat = client.chat.create(
     model="grok-4-1-fast-reasoning",
     tools=[
-        web_search(excluded_domains=["wikipedia.org"]),
+        web_search(excluded_domains=["grokipedia.com"]),
     ],
 )
 ```
@@ -11245,7 +14150,7 @@ response = client.responses.create(
     tools=[
         {
             "type": "web_search",
-            "filters": {"excluded_domains": ["wikipedia.org"]},
+            "filters": {"excluded_domains": ["grokipedia.com"]},
         },
     ],
 )

@@ -1,6 +1,8 @@
 # IC-SIWA
 
-Sign in with Avalanche for the Internet Computer. Build cross-chain Avalanche apps on ICP!
+Sign in with Avalanche for the Internet Computer.
+
+Build cross-chain Avalanche apps on ICP!
 
 ## Overview
 

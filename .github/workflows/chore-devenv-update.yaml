@@ -1,16 +1,17 @@
 ---
 ##################################################
-# Name: devenv.yaml
-# Description: Workflow for Developer Environment Testing
+# Name: chore-devenv-update.yaml
+# Description: Workflow for Updating Developer Environment
 ##################################################
 
-name: Devenv
+name: Chore Devenv Update
 
 on:
-  # Test Development Environment on PRs.
-  pull_request:
-    branches:
-      - trunk
+  # Update on schedule
+  schedule:
+    - cron: "0 0 * * 0"
+  # Allow manual runs
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +21,7 @@ permissions:
   contents: write
   packages: write
   pull-requests: write
-  statuses: write
+  statuses: read
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -32,24 +33,23 @@ defaults:
 
 jobs:
   ##################################################
-  # Test the Development environment shell
+  # Update devenv dependencies
   ##################################################
-  test:
-    name: Test
+  update:
+    name: Update
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
       - name: Configuration summary
         run: |
           {
-            echo "## Devenv Configuration"
+            echo "## Devenv Update Configuration"
             echo "| Setting | Value |"
             echo "|---------|-------|"
             echo "| Trigger | \`${{ github.event_name }}\` |"
             echo "| Ref | \`${{ github.ref_name }}\` |"
             echo "| SHA | \`${{ github.sha }}\` |"
-            echo "| PR | ${{ github.event.pull_request.number || 'N/A' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout repository
@@ -68,6 +68,9 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
         run: secretspec check
 
+      - name: Devenv update
+        run: devenv update
+
       - name: Install dependencies
         shell: devenv shell --quiet bash -- -e {0}
         run: bun run install-deps
@@ -80,7 +83,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Devenv Results"
+            echo "## Devenv Update Results"
             echo ""
             echo "### Test Status"
             echo "| Step | Status |"
@@ -88,26 +91,19 @@ jobs:
             echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Report status
-        if: always()
-        shell: devenv shell --quiet bash -- -e {0}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ "${{ steps.devenv_test.outcome }}" == "success" ]]; then
-            RESULT="success"
-            DESCRIPTION="Devenv test passed!"
-          else
-            RESULT="failure"
-            DESCRIPTION="Devenv test failed!"
-          fi
-
-          gh api \
-            "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
-            -f state="${RESULT}" \
-            -f context="${{ github.workflow }}" \
-            -f description="${DESCRIPTION}" \
-            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || {
-              echo "Failed to report devenv status!"
-              exit 1
-            }
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: Update devenv.lock"
+          title: "chore: Update devenv.lock"
+          body: "This PR updates the devenv input dependencies"
+          branch: "update-devenv-lock"
+          base: ${{ github.event.repository.default_branch }}
+          labels: "dependencies"
+          assignees: "MAHDTech"
+          reviewers: "MAHDTech"
+          draft: false
+          signoff: true
+          delete-branch: true
+          sign-commits: true

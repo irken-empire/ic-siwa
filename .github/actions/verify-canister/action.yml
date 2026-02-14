@@ -58,8 +58,10 @@ runs:
         fi
 
         # Test 2: get_principal (should return Err for unknown address)
+        # Use a distinct address that has never authenticated (NOT the test address above)
+        UNKNOWN_ADDRESS="0x0000000000000000000000000000000000000000"
         echo "Test 2: get_principal (unknown address)..."
-        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_principal "(\"${TEST_ADDRESS}\")" 2>&1) || true
+        RESULT=$(dfx canister --network ic call ${{ inputs.canister }} get_principal "(\"${UNKNOWN_ADDRESS}\")" 2>&1) || true
         if echo "$RESULT" | grep -q "Err"; then
           echo "  PASSED: get_principal correctly returns Err for unknown address"
           PASSED=$((PASSED + 1))

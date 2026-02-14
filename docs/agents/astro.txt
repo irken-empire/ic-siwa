@@ -2219,22 +2219,22 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![piro-hiroki](https://avatars.githubusercontent.com/u/103011756?s=64 "piro-hiroki")](https://github.com/piro-hiroki)
 * [![sarasate](https://avatars.githubusercontent.com/u/1528803?s=64 "sarasate")](https://github.com/sarasate)
 * [![bjohansebas](https://avatars.githubusercontent.com/u/103585995?s=64 "bjohansebas")](https://github.com/bjohansebas)
-* [![opaquem](https://avatars.githubusercontent.com/u/258272880?s=64 "opaquem")](https://github.com/opaquem)
+* [![haskbit](https://avatars.githubusercontent.com/u/258272880?s=64 "haskbit")](https://github.com/haskbit)
 * [![mrienstra](https://avatars.githubusercontent.com/u/669326?s=64 "mrienstra")](https://github.com/mrienstra)
 * [![JuanM04](https://avatars.githubusercontent.com/u/16712703?s=64 "JuanM04")](https://github.com/JuanM04)
 * [![VoxelMC](https://avatars.githubusercontent.com/u/20650404?s=64 "VoxelMC")](https://github.com/VoxelMC)
 * [![tarikrital](https://avatars.githubusercontent.com/u/52907282?s=64 "tarikrital")](https://github.com/tarikrital)
 * [![ascorbic](https://avatars.githubusercontent.com/u/213306?s=64 "ascorbic")](https://github.com/ascorbic)
+* [![Yusaku01](https://avatars.githubusercontent.com/u/64152685?s=64 "Yusaku01")](https://github.com/Yusaku01)
 * [![dragomano](https://avatars.githubusercontent.com/u/229402?s=64 "dragomano")](https://github.com/dragomano)
 * [![kirii86](https://avatars.githubusercontent.com/u/47194884?s=64 "kirii86")](https://github.com/kirii86)
-* [![antonyfaris](https://avatars.githubusercontent.com/u/11766500?s=64 "antonyfaris")](https://github.com/antonyfaris)
-* [![Yusaku01](https://avatars.githubusercontent.com/u/64152685?s=64 "Yusaku01")](https://github.com/Yusaku01)
 * [![glopzel](https://avatars.githubusercontent.com/u/74939915?s=64 "glopzel")](https://github.com/glopzel)
+* [![antonyfaris](https://avatars.githubusercontent.com/u/11766500?s=64 "antonyfaris")](https://github.com/antonyfaris)
 * [![afucher](https://avatars.githubusercontent.com/u/3756185?s=64 "afucher")](https://github.com/afucher)
-* [![shuuji3](https://avatars.githubusercontent.com/u/1425259?s=64 "shuuji3")](https://github.com/shuuji3)
 * [![kimulaco](https://avatars.githubusercontent.com/u/11986753?s=64 "kimulaco")](https://github.com/kimulaco)
-* [![martrapp](https://avatars.githubusercontent.com/u/94928215?s=64 "martrapp")](https://github.com/martrapp)
+* [![shuuji3](https://avatars.githubusercontent.com/u/1425259?s=64 "shuuji3")](https://github.com/shuuji3)
 * [![helmerdx](https://avatars.githubusercontent.com/u/11061182?s=64 "helmerdx")](https://github.com/helmerdx)
+* [![martrapp](https://avatars.githubusercontent.com/u/94928215?s=64 "martrapp")](https://github.com/martrapp)
 * [![randomguy-2650](https://avatars.githubusercontent.com/u/150704902?s=64 "randomguy-2650")](https://github.com/randomguy-2650)
 * [![DerTimonius](https://avatars.githubusercontent.com/u/103483059?s=64 "DerTimonius")](https://github.com/DerTimonius)
 * [![luoingly](https://avatars.githubusercontent.com/u/101558384?s=64 "luoingly")](https://github.com/luoingly)
@@ -2296,7 +2296,7 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![ninuzdellalb](https://avatars.githubusercontent.com/u/68387835?s=64 "ninuzdellalb")](https://github.com/ninuzdellalb)
 * [![sujang958](https://avatars.githubusercontent.com/u/59335584?s=64 "sujang958")](https://github.com/sujang958)
 * [![tejapaturu](https://avatars.githubusercontent.com/u/37566594?s=64 "tejapaturu")](https://github.com/tejapaturu)
-* [![ankddev](https://avatars.githubusercontent.com/u/190183925?s=64 "ankddev")](https://github.com/ankddev)
+* [![Njong392](https://avatars.githubusercontent.com/u/81039882?s=64 "Njong392")](https://github.com/Njong392)
 * [![Pukimaa](https://avatars.githubusercontent.com/u/58347116?s=64 "Pukimaa")](https://github.com/Pukimaa)
 * [![RafidMuhymin](https://avatars.githubusercontent.com/u/63650415?s=64 "RafidMuhymin")](https://github.com/RafidMuhymin)
 * [![ralacerda](https://avatars.githubusercontent.com/u/19380403?s=64 "ralacerda")](https://github.com/ralacerda)
@@ -2308,23 +2308,24 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![manchan4869](https://avatars.githubusercontent.com/u/65327974?s=64 "manchan4869")](https://github.com/manchan4869)
 * [![staticWagomU](https://avatars.githubusercontent.com/u/34824645?s=64 "staticWagomU")](https://github.com/staticWagomU)
 * [![imbant](https://avatars.githubusercontent.com/u/17983739?s=64 "imbant")](https://github.com/imbant)
+* [![ankddev](https://avatars.githubusercontent.com/u/190183925?s=64 "ankddev")](https://github.com/ankddev)
 * [![angelmarfil](https://avatars.githubusercontent.com/u/59626670?s=64 "angelmarfil")](https://github.com/angelmarfil)
 * [![bandantonio](https://avatars.githubusercontent.com/u/16765690?s=64 "bandantonio")](https://github.com/bandantonio)
+* [![avilyre](https://avatars.githubusercontent.com/u/66757451?s=64 "avilyre")](https://github.com/avilyre)
 * [![BassamXYZ](https://avatars.githubusercontent.com/u/100040151?s=64 "BassamXYZ")](https://github.com/BassamXYZ)
 * [![wtchnm](https://avatars.githubusercontent.com/u/37726261?s=64 "wtchnm")](https://github.com/wtchnm)
 * [![garysassano](https://avatars.githubusercontent.com/u/10464497?s=64 "garysassano")](https://github.com/garysassano)
 * [![olets](https://avatars.githubusercontent.com/u/3282350?s=64 "olets")](https://github.com/olets)
 * [![IgorKowalczyk](https://avatars.githubusercontent.com/u/49127376?s=64 "IgorKowalczyk")](https://github.com/IgorKowalczyk)
-* [![Singebob](https://avatars.githubusercontent.com/u/24290044?s=64 "Singebob")](https://github.com/Singebob)
-* [![Njong392](https://avatars.githubusercontent.com/u/81039882?s=64 "Njong392")](https://github.com/Njong392)
 * [![NightFeather0615](https://avatars.githubusercontent.com/u/77222233?s=64 "NightFeather0615")](https://github.com/NightFeather0615)
 * [![nermalcat69](https://avatars.githubusercontent.com/u/73933669?s=64 "nermalcat69")](https://github.com/nermalcat69)
 * [![mogeko](https://avatars.githubusercontent.com/u/26341224?s=64 "mogeko")](https://github.com/mogeko)
 * [![tinymachine](https://avatars.githubusercontent.com/u/171986?s=64 "tinymachine")](https://github.com/tinymachine)
-* [![Kenzo-Wada](https://avatars.githubusercontent.com/u/79452224?s=64 "Kenzo-Wada")](https://github.com/Kenzo-Wada)
-* [![lorenzolewis](https://avatars.githubusercontent.com/u/15347255?s=64 "lorenzolewis")](https://github.com/lorenzolewis)
 * [![mhstrkmp](https://avatars.githubusercontent.com/u/5558193?s=64 "mhstrkmp")](https://github.com/mhstrkmp)
+* [![Singebob](https://avatars.githubusercontent.com/u/24290044?s=64 "Singebob")](https://github.com/Singebob)
+* [![Kenzo-Wada](https://avatars.githubusercontent.com/u/79452224?s=64 "Kenzo-Wada")](https://github.com/Kenzo-Wada)
 * [![marsidev](https://avatars.githubusercontent.com/u/56328053?s=64 "marsidev")](https://github.com/marsidev)
+* [![lorenzolewis](https://avatars.githubusercontent.com/u/15347255?s=64 "lorenzolewis")](https://github.com/lorenzolewis)
 * [![dependabot\[bot\]](https://avatars.githubusercontent.com/u/49699333?s=64 "dependabot\[bot\]")](https://github.com/dependabot\[bot])
 * [![dorasans](https://avatars.githubusercontent.com/u/75212478?s=64 "dorasans")](https://github.com/dorasans)
 * [![ktym4a](https://avatars.githubusercontent.com/u/51779800?s=64 "ktym4a")](https://github.com/ktym4a)
@@ -2370,7 +2371,7 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![DevRohit06](https://avatars.githubusercontent.com/u/66678395?s=64 "DevRohit06")](https://github.com/DevRohit06)
 * [![radenpioneer](https://avatars.githubusercontent.com/u/7355835?s=64 "radenpioneer")](https://github.com/radenpioneer)
 * [![thepassle](https://avatars.githubusercontent.com/u/17054057?s=64 "thepassle")](https://github.com/thepassle)
-* [![nicdun](https://avatars.githubusercontent.com/u/28926450?s=64 "nicdun")](https://github.com/nicdun)
+* [![fflaten](https://avatars.githubusercontent.com/u/3436158?s=64 "fflaten")](https://github.com/fflaten)
 * [![darusk](https://avatars.githubusercontent.com/u/110596249?s=64 "darusk")](https://github.com/darusk)
 * [![emily-shen](https://avatars.githubusercontent.com/u/69125074?s=64 "emily-shen")](https://github.com/emily-shen)
 * [![VLTHellolin](https://avatars.githubusercontent.com/u/119287439?s=64 "VLTHellolin")](https://github.com/VLTHellolin)
@@ -2400,29 +2401,27 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![emjio](https://avatars.githubusercontent.com/u/26915891?s=64 "emjio")](https://github.com/emjio)
 * [![breadadams](https://avatars.githubusercontent.com/u/5795227?s=64 "breadadams")](https://github.com/breadadams)
 * [![Because789](https://avatars.githubusercontent.com/u/867257?s=64 "Because789")](https://github.com/Because789)
-* [![avilyre](https://avatars.githubusercontent.com/u/66757451?s=64 "avilyre")](https://github.com/avilyre)
 * [![ahmed-n-abdeltwab](https://avatars.githubusercontent.com/u/62723180?s=64 "ahmed-n-abdeltwab")](https://github.com/ahmed-n-abdeltwab)
 * [![0xflotus](https://avatars.githubusercontent.com/u/26602940?s=64 "0xflotus")](https://github.com/0xflotus)
-* [![Morritz](https://avatars.githubusercontent.com/u/12800230?s=64 "Morritz")](https://github.com/Morritz)
 * [![leen-neel](https://avatars.githubusercontent.com/u/49027876?s=64 "leen-neel")](https://github.com/leen-neel)
+* [![nicdun](https://avatars.githubusercontent.com/u/28926450?s=64 "nicdun")](https://github.com/nicdun)
+* [![Morritz](https://avatars.githubusercontent.com/u/12800230?s=64 "Morritz")](https://github.com/Morritz)
 * [![pReya](https://avatars.githubusercontent.com/u/4677417?s=64 "pReya")](https://github.com/pReya)
 * [![mhdcodes](https://avatars.githubusercontent.com/u/9967336?s=64 "mhdcodes")](https://github.com/mhdcodes)
 * [![debiru](https://avatars.githubusercontent.com/u/36402166?s=64 "debiru")](https://github.com/debiru)
 * [![baevm](https://avatars.githubusercontent.com/u/91272406?s=64 "baevm")](https://github.com/baevm)
 * [![MartinFerret](https://avatars.githubusercontent.com/u/90469240?s=64 "MartinFerret")](https://github.com/MartinFerret)
-* [![kannansuresh](https://avatars.githubusercontent.com/u/61264139?s=64 "kannansuresh")](https://github.com/kannansuresh)
-* [![fflaten](https://avatars.githubusercontent.com/u/3436158?s=64 "fflaten")](https://github.com/fflaten)
 * [![LiHowe](https://avatars.githubusercontent.com/u/30686223?s=64 "LiHowe")](https://github.com/LiHowe)
 * [![newtoallofthis123](https://avatars.githubusercontent.com/u/78465651?s=64 "newtoallofthis123")](https://github.com/newtoallofthis123)
 * [![jacobdalamb](https://avatars.githubusercontent.com/u/44789941?s=64 "jacobdalamb")](https://github.com/jacobdalamb)
+* [![swift502](https://avatars.githubusercontent.com/u/24359130?s=64 "swift502")](https://github.com/swift502)
+* [![kannansuresh](https://avatars.githubusercontent.com/u/61264139?s=64 "kannansuresh")](https://github.com/kannansuresh)
 * [![kanadgupta](https://avatars.githubusercontent.com/u/8854718?s=64 "kanadgupta")](https://github.com/kanadgupta)
 * [![jdbruxelles](https://avatars.githubusercontent.com/u/18559798?s=64 "jdbruxelles")](https://github.com/jdbruxelles)
-* [![Je12emy](https://avatars.githubusercontent.com/u/34408108?s=64 "Je12emy")](https://github.com/Je12emy)
-* [![swift502](https://avatars.githubusercontent.com/u/24359130?s=64 "swift502")](https://github.com/swift502)
 * [![sunapi386](https://avatars.githubusercontent.com/u/1029022?s=64 "sunapi386")](https://github.com/sunapi386)
-* [![RobertAKARobin](https://avatars.githubusercontent.com/u/6268177?s=64 "RobertAKARobin")](https://github.com/RobertAKARobin)
-* [![inwardmovement](https://avatars.githubusercontent.com/u/9438102?s=64 "inwardmovement")](https://github.com/inwardmovement)
+* [![Je12emy](https://avatars.githubusercontent.com/u/34408108?s=64 "Je12emy")](https://github.com/Je12emy)
 * [![millette](https://avatars.githubusercontent.com/u/50741?s=64 "millette")](https://github.com/millette)
+* [![XinChou16](https://avatars.githubusercontent.com/u/24493056?s=64 "XinChou16")](https://github.com/XinChou16)
 * [![Rolanddoda](https://avatars.githubusercontent.com/u/18482346?s=64 "Rolanddoda")](https://github.com/Rolanddoda)
 * [![RolginRoman](https://avatars.githubusercontent.com/u/5978625?s=64 "RolginRoman")](https://github.com/RolginRoman)
 * [![ffxsam](https://avatars.githubusercontent.com/u/12532733?s=64 "ffxsam")](https://github.com/ffxsam)
@@ -2435,7 +2434,7 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![motss](https://avatars.githubusercontent.com/u/10607759?s=64 "motss")](https://github.com/motss)
 * [![tem235](https://avatars.githubusercontent.com/u/5091416?s=64 "tem235")](https://github.com/tem235)
 * [![tobySolutions](https://avatars.githubusercontent.com/u/96334363?s=64 "tobySolutions")](https://github.com/tobySolutions)
-* [![aaronlamz](https://avatars.githubusercontent.com/u/3964466?s=64 "aaronlamz")](https://github.com/aaronlamz)
+* [![inwardmovement](https://avatars.githubusercontent.com/u/9438102?s=64 "inwardmovement")](https://github.com/inwardmovement)
 * [![lukemcdonald](https://avatars.githubusercontent.com/u/299173?s=64 "lukemcdonald")](https://github.com/lukemcdonald)
 * [![MareStare](https://avatars.githubusercontent.com/u/193320883?s=64 "MareStare")](https://github.com/MareStare)
 * [![MaxTheTurtle0](https://avatars.githubusercontent.com/u/129096443?s=64 "MaxTheTurtle0")](https://github.com/MaxTheTurtle0)
@@ -2452,8 +2451,8 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![serhalp](https://avatars.githubusercontent.com/u/1377702?s=64 "serhalp")](https://github.com/serhalp)
 * [![Scalamando](https://avatars.githubusercontent.com/u/16595528?s=64 "Scalamando")](https://github.com/Scalamando)
 * [![wobsoriano](https://avatars.githubusercontent.com/u/13049130?s=64 "wobsoriano")](https://github.com/wobsoriano)
-* [![XinChou16](https://avatars.githubusercontent.com/u/24493056?s=64 "XinChou16")](https://github.com/XinChou16)
-* [![lhz960904](https://avatars.githubusercontent.com/u/29157111?s=64 "lhz960904")](https://github.com/lhz960904)
+* [![RobertAKARobin](https://avatars.githubusercontent.com/u/6268177?s=64 "RobertAKARobin")](https://github.com/RobertAKARobin)
+* [![vitoriapena](https://avatars.githubusercontent.com/u/16581093?s=64 "vitoriapena")](https://github.com/vitoriapena)
 * [![lstephensca](https://avatars.githubusercontent.com/u/31998110?s=64 "lstephensca")](https://github.com/lstephensca)
 * [![my-astro](https://avatars.githubusercontent.com/u/190968675?s=64 "my-astro")](https://github.com/my-astro)
 * [![pilcrowonpaper](https://avatars.githubusercontent.com/u/80624252?s=64 "pilcrowonpaper")](https://github.com/pilcrowonpaper)
@@ -2467,9 +2466,9 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![dei8bit](https://avatars.githubusercontent.com/u/83183656?s=64 "dei8bit")](https://github.com/dei8bit)
 * [![shinonomelon](https://avatars.githubusercontent.com/u/70379917?s=64 "shinonomelon")](https://github.com/shinonomelon)
 * [![Tsukistar](https://avatars.githubusercontent.com/u/36409869?s=64 "Tsukistar")](https://github.com/Tsukistar)
+* [![xingwangzhe](https://avatars.githubusercontent.com/u/162127610?s=64 "xingwangzhe")](https://github.com/xingwangzhe)
 * [![zhuchentong](https://avatars.githubusercontent.com/u/4535888?s=64 "zhuchentong")](https://github.com/zhuchentong)
 * [![abhikjain360](https://avatars.githubusercontent.com/u/43034252?s=64 "abhikjain360")](https://github.com/abhikjain360)
-* [![vitoriapena](https://avatars.githubusercontent.com/u/16581093?s=64 "vitoriapena")](https://github.com/vitoriapena)
 * [![vivitt](https://avatars.githubusercontent.com/u/91918142?s=64 "vivitt")](https://github.com/vivitt)
 * [![Zastinian](https://avatars.githubusercontent.com/u/82119938?s=64 "Zastinian")](https://github.com/Zastinian)
 * [![peng](https://avatars.githubusercontent.com/u/26745086?s=64 "peng")](https://github.com/peng)
@@ -2485,6 +2484,8 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![eiis](https://avatars.githubusercontent.com/u/88193046?s=64 "eiis")](https://github.com/eiis)
 * [![jose8a](https://avatars.githubusercontent.com/u/817855?s=64 "jose8a")](https://github.com/jose8a)
 * [![kikonavarro](https://avatars.githubusercontent.com/u/78880702?s=64 "kikonavarro")](https://github.com/kikonavarro)
+* [![lhz960904](https://avatars.githubusercontent.com/u/29157111?s=64 "lhz960904")](https://github.com/lhz960904)
+* [![aaronlamz](https://avatars.githubusercontent.com/u/3964466?s=64 "aaronlamz")](https://github.com/aaronlamz)
 * [![colbyfayock](https://avatars.githubusercontent.com/u/1045274?s=64 "colbyfayock")](https://github.com/colbyfayock)
 * [![conradagramont](https://avatars.githubusercontent.com/u/41589731?s=64 "conradagramont")](https://github.com/conradagramont)
 * [![WooDaeHyun](https://avatars.githubusercontent.com/u/113018070?s=64 "WooDaeHyun")](https://github.com/WooDaeHyun)
@@ -2563,7 +2564,6 @@ These docs are brought to you by all these helpful people. [Join us on GitHub!](
 * [![alexpdraper](https://avatars.githubusercontent.com/u/6441503?s=64 "alexpdraper")](https://github.com/alexpdraper)
 * [![AlexNodex](https://avatars.githubusercontent.com/u/17162626?s=64 "AlexNodex")](https://github.com/AlexNodex)
 * [![haasal](https://avatars.githubusercontent.com/u/104835302?s=64 "haasal")](https://github.com/haasal)
-* [![alex-drocks](https://avatars.githubusercontent.com/u/69808183?s=64 "alex-drocks")](https://github.com/alex-drocks)
 * [![adrian-burkhart](https://avatars.githubusercontent.com/u/59536294?s=64 "adrian-burkhart")](https://github.com/adrian-burkhart)
 * [![ADRlANO](https://avatars.githubusercontent.com/u/35582648?s=64 "ADRlANO")](https://github.com/ADRlANO)
 * [![armgitaar](https://avatars.githubusercontent.com/u/30202878?s=64 "armgitaar")](https://github.com/armgitaar)
@@ -8194,9 +8194,19 @@ Tip
 
 Find [community-maintained integrations](https://astro.build/integrations/?search=cms) for connecting a CMS to your project in our integrations directory.
 
-## CMS Guides
+## Featured CMS partners
 
-[Section titled “CMS Guides”](#cms-guides)
+[Section titled “Featured CMS partners”](#featured-cms-partners)
+
+* ![](/logos/cloudcannon.svg)
+
+  ### [CloudCannon](/en/guides/cms/cloudcannon/)
+
+  Git-based CMS built for speed, security, and zero headaches.
+
+## CMS guides
+
+[Section titled “CMS guides”](#cms-guides)
 
 Note that many of these pages are **stubs**: they’re collections of resources waiting for your contribution!
 
@@ -8355,6 +8365,10 @@ Note that many of these pages are **stubs**: they’re collections of resources 
 * ![](/logos/umbraco.svg)
 
   ### [Umbraco](/en/guides/cms/umbraco/)
+
+* ![](/logos/vault-cms.svg)
+
+  ### [Vault CMS](/en/guides/cms/vault-cms/)
 
 * ![](/logos/wordpress.svg)
 
@@ -9591,7 +9605,7 @@ const post = gqlResponse?.allBlogArticle?.edges?.[0]?.node;
 
 Tip
 
-If you’re starting a project from scratch, you can use the [CloudCannon Astro Starter Template](https://cloudcannon.com/templates/astro-starter/) with commonly used CloudCannon features to cut down on setup time.
+If you’re starting a project from scratch, you can use the [CloudCannon Astro Sendit Template](https://cloudcannon.com/templates/sendit/?ssg=astro) with commonly used CloudCannon features to cut down on setup time.
 
 ## Integrating with Astro
 
@@ -9623,10 +9637,11 @@ The following steps will configure a new CloudCannon Site from your dashboard. T
 1. In your CloudCannon Organization Home page, create a new Site.
 2. Authenticate your Git provider and select the Astro repository you want to connect to.
 3. Choose a name for your Site, then CloudCannon will create the Site and start syncing your files.
-4. Follow CloudCannon’s guided tasks in your Site dashboard for completing your Site setup, including creating a CloudCannon configuration file (`cloudcannnon.config.yml`)
-5. Save your configuration file to commit it with your CloudCannon preferences to your Git repository.
+4. Follow CloudCannon’s guided tasks in your Site dashboard for completing your Site setup, including creating a CloudCannon configuration file (`cloudcannon.config.yml`).
+5. Configure how CloudCannon looks and behaves for editors by adding configuration to your CloudCannon config file. You can make edits using CloudCannon’s [Configuration Mode](https://cloudcannon.com/documentation/articles/what-is-configuration-mode/), or you can add config manually yourself in a code editor.
+6. Turn off Configuration Mode to return to the editing interface for content creators. Your configuration file will be saved back to your repository with the rest of your files.
 
-You can now explore your Site Dashboard to see your Astro files and edit them with the Content Editor.
+You can now explore your Site Dashboard to see your Astro site’s content files and edit them with the [Content Editor](https://cloudcannon.com/documentation/articles/what-is-the-content-editor/) (e.g. `.md`, `.mdx`), [Data Editor](https://cloudcannon.com/documentation/articles/what-is-the-data-editor/) (e.g. `.yml`, `.json`), and [Visual Editor](https://cloudcannon.com/documentation/articles/what-is-the-visual-editor/) (e.g. `.astro`) as appropriate.
 
 You may also want to take advantage of some CloudCannon features, such as [organizing your files into collections](#cloudcannon-collections-and-schemas), [creating CloudCannon schemas](#create-a-cloudcannon-schema-for-a-collection), and setting up your project for [visual editing](#configure-visual-editing).
 
@@ -9696,7 +9711,7 @@ The following example will create a new blog post from the CloudCannon Site Dash
 
 2. Use the “Add” button to create a new post. If you have configured CloudCannon’s `post.md` schema, then you can choose the default blog post entry to create a new post.
 
-3. Fill the necessary fields in the sidebar of your Content Editor (e.g. `title`, `author`, `date`), and post content and save your post.
+3. Fill in the necessary fields in the sidebar of your Content Editor (e.g. `title`, `author`, `date`), and post content and save your post.
 
 4. This post is saved locally in CloudCannon and should now be visible from your Site Dashboard in your “Posts” collection. You can view and edit all your individual posts from this dashboard page.
 
@@ -9786,6 +9801,8 @@ For more information on querying, filtering, displaying your collections content
 
 [Section titled “Deploying CloudCannon + Astro”](#deploying-cloudcannon--astro)
 
+[CloudCannon offers free web hosting](https://cloudcannon.com/documentation/articles/what-is-web-hosting/) as part of all of its plans, which uses Cloudflare under the hood. However, you can host with almost any hosting provider that can deploy from a Git repository.
+
 To deploy your website, visit our [deployment guides](/en/guides/deploy/) and follow the instructions for your preferred hosting provider.
 
 ## Configure Visual Editing
@@ -9862,25 +9879,15 @@ CloudCannon allows you to [define Component Editable Regions](https://cloudcanno
    </a>
    ```
 
-Tip
-
-Also see CloudCannon’s [Astro Bookshop integration](https://cloudcannon.com/blog/how-cloudcannons-live-editing-works-with-astro-and-bookshop/) that allows you to add a `bookshop:live` directive to mark any component in your Astro template for live editing. It also allows you to configure live-editable [CloudCannon Snippets](https://cloudcannon.com/documentation/articles/what-is-a-snippet/) for visual editing and page building with components, including in your MDX Markdown content.
-
 ## Official Resources
 
 [Section titled “Official Resources”](#official-resources)
 
 * [CloudCannon: The Astro CMS](https://cloudcannon.com/astro-cms/)
-* [Astro Starter Template](https://cloudcannon.com/templates/astro-starter/)
+* [Astro Sendit Template](https://cloudcannon.com/templates/sendit/?ssg=astro)
 * Video: [Getting started with Astro and CloudCannon CMS: WYSIWYG blogging](https://www.youtube.com/watch?v=VCbZV-SCr20)
-* Blog: [How CloudCannon’s live editing works with Astro and Bookshop](https://cloudcannon.com/blog/how-cloudcannons-live-editing-works-with-astro-and-bookshop/)
-* [Bookshop & Astro Guide](https://cloudcannon.com/documentation/guides/bookshop-astro-guide/)
-
-## Community Resources
-
-[Section titled “Community Resources”](#community-resources)
-
-* Video: [Astro CMS for Visual Editing: Getting Started with CloudCannon](https://www.youtube.com/watch?v=YcH53e1YamE)
+* Video: [Using CloudCannon’s configuration mode](https://www.youtube.com/watch?v=3OOyYcPD46Y)
+* Video: [Visually edit your Astro site](https://www.youtube.com/watch?v=RMbPsyJ5Gms)
 
 # Contentful & Astro
 
@@ -16855,6 +16862,19 @@ This method is described in more detail in this [blog post showing how to config
 * [Jamstack For Free With Azure And CloudFlare - Kenn Jacobsen](https://kjac.dev/posts/jamstack-for-free-with-azure-and-cloudflare/)
 * [Quick n’ dirty blog with Astro and Umbraco - Kenn Jacobsen](https://kjac.dev/posts/quick-n-dirty-blog-with-astro-and-umbraco/)
 * [Talk: Bake, Don’t Fry - Astro & The Content Delivery API - Adam Prendergast](https://www.youtube.com/watch?v=zNxqI25dtx4)
+
+# Vault CMS & Astro
+
+> Add content to your Astro project using Vault CMS
+
+[Vault CMS](https://vaultcms.org) is a headless CMS for Astro powered by Obsidian and Git. Write in Markdown with live preview inside a preconfigured Obsidian vault, then deploy to your Astro site.
+
+## Official Resources
+
+[Section titled “Official Resources”](#official-resources)
+
+* [Vault CMS Documentation](https://docs.vaultcms.org/)
+* [Vault CMS Source Code](https://github.com/davidvkimball/vault-cms)
 
 # Headless WordPress & Astro
 
@@ -24774,13 +24794,13 @@ The following integrations are maintained by Astro.
 
   ### [@astrojs/​db](/en/guides/integrations-guide/db/)
 
-* ![](/logos/markdoc.svg)
-
-  ### [@astrojs/​markdoc](/en/guides/integrations-guide/markdoc/)
-
 * ![](/logos/mdx.svg)
 
   ### [@astrojs/​mdx](/en/guides/integrations-guide/mdx/)
+
+* ![](/logos/markdoc.svg)
+
+  ### [@astrojs/​markdoc](/en/guides/integrations-guide/markdoc/)
 
 * ![](/logos/partytown.svg)
 
@@ -46362,6 +46382,10 @@ See guided examples of adding features to your Astro project.
 
 Astro’s official recipes are short, focused how-to guides that walk a reader through completing a working example of a specific task. Recipes are a great way to add new features or behavior to your Astro project by following step-by-step instructions!
 
+* ### [Installing a Vite or Rollup plugin](/en/recipes/add-yaml-support/)
+
+  Learn how you can import YAML data by adding a Rollup plugin to your project.
+
 * ### [Analyze bundle size](/en/recipes/analyze-bundle-size/)
 
   Learn how to analyze the bundle generated by Astro using \`rollup-plugin-visualizer\`.
@@ -46369,10 +46393,6 @@ Astro’s official recipes are short, focused how-to guides that walk a reader t
 * ### [Build a custom image component](/en/recipes/build-custom-img-component/)
 
   Learn how to build a custom image component that supports media queries using the getImage function.
-
-* ### [Installing a Vite or Rollup plugin](/en/recipes/add-yaml-support/)
-
-  Learn how you can import YAML data by adding a Rollup plugin to your project.
 
 * ### [Build forms with API routes](/en/recipes/build-forms-api/)
 
@@ -46430,6 +46450,10 @@ Astro’s official recipes are short, focused how-to guides that walk a reader t
 
   Add an RSS feed to your Astro site to let users subscribe to your content.
 
+* ### [Share state between islands](/en/recipes/sharing-state-islands/)
+
+  Learn how to share state across framework components with Nano Stores.
+
 * ### [Share state between Astro components](/en/recipes/sharing-state/)
 
   Learn how to share state across Astro components with Nano Stores.
@@ -46437,10 +46461,6 @@ Astro’s official recipes are short, focused how-to guides that walk a reader t
 * ### [Using streaming to improve page performance](/en/recipes/streaming-improve-page-performance/)
 
   Learn how to use streaming to improve page performance.
-
-* ### [Share state between islands](/en/recipes/sharing-state-islands/)
-
-  Learn how to share state across framework components with Nano Stores.
 
 * ### [Style rendered Markdown with Tailwind Typography](/en/recipes/tailwind-rendered-markdown/)
 
@@ -77948,7 +77968,7 @@ This guide covers how to update your version of Astro and related dependencies, 
 
 [Section titled “What has changed?”](#what-has-changed)
 
-The latest release of Astro is v5.17.1.
+The latest release of Astro is v5.17.2.
 
 You can find an exhaustive list of all changes in [Astro’s changelog](https://github.com/withastro/astro/blob/main/packages/astro/CHANGELOG.md), and important instructions for upgrading to each new [major version](#major-changes) in our [upgrade guides](#upgrade-guides).
 
