@@ -3,7 +3,8 @@
 # Name: cd-mainnet.yaml
 # Description: Mainnet deployment pipeline
 #
-# Trigger: released event (from cd-release.yml promote)
+# Called by: cd-release.yml (promote job)
+# Manual: workflow_dispatch
 #
 # This workflow:
 #   1. Builds all canisters and npm package
@@ -21,9 +22,30 @@
 name: Deploy Mainnet
 
 on:
-  release:
-    types:
-      - released
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version tag (e.g. v0.1.0)"
+        type: string
+        required: false
+        default: ""
+      accept_breaking_changes:
+        description: "Accept breaking candid interface changes"
+        type: boolean
+        required: false
+        default: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version tag (leave empty for current)"
+        type: string
+        required: false
+        default: ""
+      accept_breaking_changes:
+        description: "Accept breaking candid interface changes"
+        type: boolean
+        required: false
+        default: false
 
 concurrency:
   group: deploy-mainnet
@@ -69,10 +91,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Get version from release tag
+      - name: Get version
         id: version
         run: |
-          echo "version=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          if [[ -n "${{ inputs.version }}" ]]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION="v$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Read config
         id: config

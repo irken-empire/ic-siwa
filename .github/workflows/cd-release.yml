@@ -10,9 +10,9 @@
 # Flow:
 #   1. Read version from Cargo.toml
 #   2. Testnet: Tag as v{version}, create pre-release
-#      → triggers cd-testnet.yaml (on: prereleased)
+#      → calls cd-testnet.yaml (workflow_call)
 #   3. Mainnet: Promote existing pre-release tag to release
-#      → triggers cd-mainnet.yaml (on: released)
+#      → calls cd-mainnet.yaml (workflow_call)
 ##################################################
 
 name: Release
@@ -76,6 +76,11 @@ jobs:
     timeout-minutes: 10
     continue-on-error: false
 
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      skip: ${{ steps.version.outputs.skip }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -123,6 +128,21 @@ jobs:
             --target "${{ github.sha }}"
 
   ##################################################
+  # Deploy to Testnet
+  # Calls cd-testnet.yaml via workflow_call
+  ##################################################
+
+  deploy-testnet:
+    name: Deploy (Testnet)
+    needs: pre-release
+    if: needs.pre-release.outputs.skip != 'true'
+    uses: ./.github/workflows/cd-testnet.yaml
+    with:
+      version: ${{ needs.pre-release.outputs.tag }}
+      accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes == 'true' }}
+    secrets: inherit
+
+  ##################################################
   # Promote a pre-release to release (mainnet)
   # Triggers: manual dispatch with Mainnet
   # Requires GitHub Environment "Mainnet" approvers
@@ -139,6 +159,9 @@ jobs:
 
     timeout-minutes: 5
     continue-on-error: false
+
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
 
     steps:
       - name: Validate release tag
@@ -176,3 +199,17 @@ jobs:
             --title "Release ${{ steps.validate.outputs.tag }}"
 
           echo "Promoted ${{ steps.validate.outputs.tag }} to release"
+
+  ##################################################
+  # Deploy to Mainnet
+  # Calls cd-mainnet.yaml via workflow_call
+  ##################################################
+
+  deploy-mainnet:
+    name: Deploy (Mainnet)
+    needs: promote
+    uses: ./.github/workflows/cd-mainnet.yaml
+    with:
+      version: ${{ needs.promote.outputs.tag }}
+      accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes == 'true' }}
+    secrets: inherit
