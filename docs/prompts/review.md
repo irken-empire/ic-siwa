@@ -25,6 +25,46 @@ and log backlog tickets to improve/fix.
 
 ## Deliverables
 
-- Complete ticket review of all tickets in docs/tickets/done
-- Create any new backlog items in docs/tickets/todo ensuring they have enough detail to be implemented by an AI Agent without mistakes or incorrect implementation details.
-- Prioritize the tickets in order and write the results to docs/tickets/todo/TICKETS.md
+- Complete ticket review of all tickets in `docs/tickets/done/`.
+- Create any new backlog items in `docs/tickets/todo/` as GitHub issue
+  bodies. Format ticket files for use with `gh issue create`:
+
+  ### Ticket Body Template (file content)
+
+  ```markdown
+  ## Description
+
+  <What the issue is and why it matters.>
+
+  ## Problem
+
+  <Exact file paths, line numbers, and code snippets showing the issue.>
+
+  ## Acceptance Criteria
+
+  - [ ] <Specific, testable requirement>
+  - [ ] <Another requirement>
+
+  ## Files to Modify
+
+  - `<exact/file/path.rs>` (<brief note on what changes>)
+
+  ## Related Issues
+
+  - #<issue_number> (if applicable)
+  ```
+
+  ### Creating the Issue
+
+  ```bash
+  gh issue create \
+    --title "Ticket NNN: <Short descriptive title>" \
+    --body-file docs/tickets/todo/NNN.md \
+    --label "<priority>,<category>"
+  ```
+
+  Labels: `critical`, `high`, `medium`, `low` for priority; `bug`,
+  `security`, `performance`, `cleanup` for category.
+
+- Prioritize the tickets in order and write the results to
+  `docs/tickets/todo/TICKETS.md`.
