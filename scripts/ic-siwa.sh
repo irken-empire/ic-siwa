@@ -219,6 +219,7 @@ show_help() {
 		  urls               Show deployed canister URLs
 		  cycles             Show cycles balance for all canisters and ledgers
 		  cleanup            Clean up build artifacts (add --prune to delete canisters)
+		  reset              Clear stale .dfx/{network}/ state (for fresh deployments)
 		  loop               Full development loop: fmt, lint, candid, build, test, deploy
 		  start              Start local DFX replica
 		  stop               Stop local DFX replica
@@ -251,6 +252,7 @@ show_help() {
 		  ic-siwa test
 		  ic-siwa loop --network juno
 		  ic-siwa cleanup --network juno --prune
+		  ic-siwa reset --network juno
 		  ic-siwa update
 		  ic-siwa version --bump
 
@@ -279,7 +281,7 @@ declare -A CMD_DEPS=(
 	["test-integration"]="dfx,cast,yq"
 	["fmt"]="cargo"
 	["lint"]="cargo"
-	["deploy"]="dfx,cargo,bun,yq"
+	["deploy"]="dfx,cargo,bun,yq,jq"
 	["upgrade"]="dfx,cargo,bun,yq"
 	["loop"]="dfx,cargo,bun,yq,candid-extractor,didc,cast"
 	["start"]="dfx"
@@ -288,6 +290,7 @@ declare -A CMD_DEPS=(
 	["update"]="cargo,bun,cargo-upgrade"
 	["version"]="toml"
 	["cleanup"]="dfx"
+	["reset"]=""
 	["urls"]="dfx"
 	["cycles"]="dfx,jq"
 	["agent-docs"]="curl"
@@ -1917,6 +1920,19 @@ cmd_deploy() {
 			log_error "Juno not running on port ${JUNO_PORT}"
 			return 1
 		fi
+		# Detect stale canister IDs from a previous Juno instance
+		local juno_ids="${PROJECT_ROOT}/.dfx/juno/canister_ids.json"
+		if [[ -f ${juno_ids} ]]; then
+			local test_id
+			test_id=$(jq -r '.ic_siwa_provider.juno // empty' "${juno_ids}" 2>/dev/null)
+			if [[ -n ${test_id} ]]; then
+				if ! dfx canister status "${test_id}" --network juno &>/dev/null; then
+					log_warn "Stale canister IDs detected (Juno was restarted?)"
+					log_info "Auto-resetting DFX state for fresh deployment..."
+					cmd_reset "juno"
+				fi
+			fi
+		fi
 		;;
 	ic)
 		log_warn "Deploying to IC mainnet - ensure you have cycles"
@@ -2223,6 +2239,52 @@ cmd_cycles() {
 }
 
 # Clean up artifacts
+# Reset DFX state for a network (clear stale canister IDs)
+cmd_reset() {
+	local network="${1:-dfx}"
+
+	if [[ ${network} == "ic" ]]; then
+		log_error "Cannot reset IC mainnet state - use 'cleanup --prune --network ic' instead"
+		return 1
+	fi
+
+	cd "${PROJECT_ROOT}"
+	local dfx_dir="${PROJECT_ROOT}/.dfx/${network}"
+
+	if [[ -d ${dfx_dir} ]]; then
+		log_warn "Removing stale DFX state: ${dfx_dir}"
+		rm -rf "${dfx_dir}"
+		log_success "DFX state cleared for network '${network}'"
+	else
+		log_info "No DFX state found for network '${network}'"
+	fi
+
+	# Clear stale wallet canister entries for this network
+	# dfx stores wallet IDs per-identity in .dfx/local/wallets.json, keyed by network name
+	local wallets_file="${PROJECT_ROOT}/.dfx/local/wallets.json"
+	if [[ -f ${wallets_file} ]] && command -v jq &>/dev/null; then
+		if jq -e ".identities | to_entries[] | .value.\"${network}\"" "${wallets_file}" &>/dev/null; then
+			log_info "Clearing stale wallet entries for network '${network}'..."
+			local tmp_wallets
+			tmp_wallets=$(jq "(.identities // {}) |= with_entries(.value |= del(.\"${network}\"))" "${wallets_file}")
+			echo "${tmp_wallets}" >"${wallets_file}"
+			log_success "Wallet state cleared for network '${network}'"
+		fi
+	fi
+
+	# Clear .env canister entries (DFX writes both CANISTER_ID= and CANISTER_ID_*= forms)
+	if [[ -f "${PROJECT_ROOT}/.env" ]]; then
+		log_info "Clearing canister IDs from .env..."
+		sed -i '/^CANISTER_ID/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+		sed -i '/^CANISTER_CANDID_PATH/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+		sed -i '/^DFX_/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+		sed -i '/^# DFX CANISTER ENVIRONMENT VARIABLES/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+		sed -i '/^# END DFX CANISTER ENVIRONMENT VARIABLES/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+	fi
+
+	log_success "Reset complete - ready for fresh deployment"
+}
+
 cmd_cleanup() {
 	local network="${1:-dfx}"
 	local prune="${2:-false}"
@@ -2269,6 +2331,13 @@ cmd_cleanup() {
 			sed -i '/^CANISTER_ID_/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
 			sed -i '/^CANISTER_CANDID_PATH/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
 			sed -i '/^DFX_/d' "${PROJECT_ROOT}/.env" 2>/dev/null || true
+		fi
+
+		# Also clear .dfx network state (canister_ids.json, cached wasm, etc.)
+		local dfx_dir="${PROJECT_ROOT}/.dfx/${network}"
+		if [[ -d ${dfx_dir} ]]; then
+			log_info "Clearing DFX state: ${dfx_dir}"
+			rm -rf "${dfx_dir}"
 		fi
 	fi
 
@@ -2435,6 +2504,9 @@ parse_args() {
 		;;
 	cleanup)
 		cmd_cleanup "${NETWORK}" "${PRUNE}"
+		;;
+	reset)
+		cmd_reset "${NETWORK}"
 		;;
 	cycles)
 		cmd_cycles
