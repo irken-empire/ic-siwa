@@ -1,16 +1,14 @@
 ---
 ##################################################
-# Name: release-testnet.yml
-# Description: Automated testnet release pipeline
+# Name: cd-testnet.yaml
+# Description: Testnet deployment pipeline
 #
-# Triggers:
-#   - Push to trunk branch
-#   - Manual workflow dispatch (with breaking changes option)
+# Trigger: prereleased event (from cd-release.yml)
 #
-# This is a self-contained workflow that:
+# This workflow:
 #   1. Builds all canisters and npm package
 #   2. Deploys to IC (testnet configuration)
-#   3. Creates a GitHub pre-release
+#   3. Verifies deployment
 #   4. Publishes npm package (dry run)
 #
 # Uses Testnet GitHub Environment for secrets:
@@ -18,21 +16,15 @@
 #   - IC_SIWA_SALT
 ##################################################
 
-name: Release Testnet
+name: Deploy Testnet
 
 on:
-  push:
-    branches:
-      - trunk
-  workflow_dispatch:
-    inputs:
-      accept_breaking_changes:
-        description: "Accept breaking candid interface changes (auto-accept upgrade prompts)"
-        type: boolean
-        default: false
+  release:
+    types:
+      - prereleased
 
 concurrency:
-  group: release-testnet
+  group: deploy-testnet
   cancel-in-progress: false
 
 permissions:
@@ -75,11 +67,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Get version
+      - name: Get version from release tag
         id: version
         run: |
-          VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
-          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
 
       - name: Read config
         id: config
@@ -272,7 +263,7 @@ jobs:
         with:
           canister: ic_siwa_provider
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
-          accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes || 'false' }}
+          accept_breaking_changes: "false"
           init_args: |
             (record {
               domain = "${{ needs.setup.outputs.domain }}";
@@ -369,7 +360,7 @@ jobs:
         with:
           canister: test_canister_rs
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
-          accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes || 'false' }}
+          accept_breaking_changes: "false"
 
       - name: Deploy test_canister_ts
         id: deploy-ts
@@ -377,7 +368,7 @@ jobs:
         with:
           canister: test_canister_ts
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
-          accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes || 'false' }}
+          accept_breaking_changes: "false"
 
   ##################################################
   # Register Custom Domain (when debug=true)
@@ -429,73 +420,6 @@ jobs:
           dry_run: "true"
 
   ##################################################
-  # Create Release
-  ##################################################
-  create-release:
-    name: Create Release
-    needs:
-      [
-        setup,
-        deploy-provider,
-        verify-deployment,
-        deploy-test-canisters,
-        register-domain,
-        publish-npm,
-      ]
-    if: always() && needs.verify-deployment.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: Testnet
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Create pre-release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.setup.outputs.version }}-testnet
-          name: "${{ needs.setup.outputs.version }} (Testnet)"
-          body: |
-            ## IC-SIWA Testnet Release
-
-            ### Provider Canister
-
-            | Property | Value |
-            |----------|-------|
-            | **Network** | IC Mainnet |
-            | **Avalanche Chain** | Fuji Testnet (${{ needs.setup.outputs.chain_id }}) |
-            | **Canister ID** | `${{ needs.deploy-provider.outputs.canister_id }}` |
-            | **Candid UI** | [Open](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |
-
-            ### Test Canisters
-
-            | Canister | ID | Link |
-            |----------|----|----- |
-            | **test_canister_ts** | `${{ needs.deploy-test-canisters.outputs.test_canister_ts_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id && format('[Open UI](https://{0}.icp0.io)', needs.deploy-test-canisters.outputs.test_canister_ts_id) || 'N/A' }} |
-            | **test_canister_rs** | `${{ needs.deploy-test-canisters.outputs.test_canister_rs_id || 'N/A' }}` | ${{ needs.deploy-test-canisters.outputs.test_canister_rs_id && format('[Candid UI](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id={0})', needs.deploy-test-canisters.outputs.test_canister_rs_id) || 'N/A' }} |
-
-            ### Custom Domain
-
-            | Domain | Status |
-            |--------|--------|
-            | `${{ needs.setup.outputs.domain }}` | ${{ needs.register-domain.result == 'success' && 'Registered' || needs.register-domain.result == 'skipped' && 'Skipped' || 'Check DNS' }} |
-
-            **Custom Domain URL:** https://${{ needs.setup.outputs.domain }}
-
-            ### npm Package
-
-            **Version:** `ic-siwa@${{ needs.publish-npm.outputs.version }}`
-
-            *This is a testnet deployment. npm package was validated with dry run.*
-          draft: false
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  ##################################################
   # Status
   ##################################################
   status:
@@ -512,7 +436,6 @@ jobs:
         deploy-test-canisters,
         register-domain,
         publish-npm,
-        create-release,
       ]
     if: always()
     runs-on: ubuntu-latest
@@ -522,7 +445,7 @@ jobs:
       - name: Write results summary
         run: |
           {
-            echo "## Testnet Release Results"
+            echo "## Testnet Deployment Results"
             echo ""
             echo "### Job Status"
             echo "| Job | Status |"
@@ -537,7 +460,6 @@ jobs:
             echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
             echo "| Register Domain | ${{ needs.register-domain.result }} |"
             echo "| Publish npm | ${{ needs.publish-npm.result }} |"
-            echo "| Create Release | ${{ needs.create-release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [[ "${{ needs.deploy-provider.result }}" == "success" ]]; then
@@ -545,7 +467,7 @@ jobs:
               echo ""
               echo "### Deployed Canisters"
               echo "| Canister | ID |"
-              echo "|----------|----|"
+              echo "|----------|---|"
               echo "| ic_siwa_provider | \`${{ needs.deploy-provider.outputs.canister_id }}\` |"
             } >> "$GITHUB_STEP_SUMMARY"
 
@@ -561,8 +483,8 @@ jobs:
         run: |
           CRITICAL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }}"
           if echo "${CRITICAL_JOBS}" | grep -qE "(failure|cancelled)"; then
-            echo "::error::Testnet release failed"
+            echo "::error::Testnet deployment failed"
             exit 1
           fi
 
-          echo "Testnet release completed successfully!"
+          echo "Testnet deployment completed successfully!"

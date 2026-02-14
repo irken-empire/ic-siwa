@@ -1,0 +1,178 @@
+---
+##################################################
+# Name: cd-release.yml
+# Description: Single entrypoint for all releases
+#
+# Triggers:
+#   - Push to trunk → Create pre-release (automatic)
+#   - Manual dispatch → Create pre-release (Testnet) or promote to release (Mainnet)
+#
+# Flow:
+#   1. Read version from Cargo.toml
+#   2. Testnet: Tag as v{version}, create pre-release
+#      → triggers cd-testnet.yaml (on: prereleased)
+#   3. Mainnet: Promote existing pre-release tag to release
+#      → triggers cd-mainnet.yaml (on: released)
+##################################################
+
+name: Release
+
+on:
+  push:
+    branches:
+      - trunk
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - Testnet
+          - Mainnet
+        default: Testnet
+      release_tag:
+        description: "Tag to promote (Mainnet only, e.g. v0.2.0)"
+        required: false
+        type: string
+        default: ""
+      accept_breaking_changes:
+        description: "Accept breaking candid interface changes (passed to deploy)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Create a pre-release
+  # Triggers: push to trunk (auto) OR manual with Testnet
+  ##################################################
+
+  pre-release:
+    name: Pre-Release
+
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Testnet')
+
+    runs-on: ubuntu-latest
+    environment: Testnet
+
+    timeout-minutes: 10
+    continue-on-error: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: version
+        run: |
+          VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
+          TAG="v${VERSION}"
+
+          # Check if tag already exists
+          if git tag --list | grep -q "^${TAG}$"; then
+            echo "Tag ${TAG} already exists, skipping release"
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Version: ${VERSION}, Tag: ${TAG}"
+
+      - name: Generate changelog
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          {
+            echo "## IC-SIWA Pre-Release"
+            echo ""
+            echo "**Version:** \`${{ steps.version.outputs.tag }}\`"
+            echo ""
+            echo "This is a pre-release deployed to testnet. Promote to release for mainnet deployment."
+          } > /tmp/changelog.md
+
+      - name: Create pre-release
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Pre-Release ${{ steps.version.outputs.tag }}" \
+            --notes-file /tmp/changelog.md \
+            --prerelease \
+            --target "${{ github.sha }}"
+
+  ##################################################
+  # Promote a pre-release to release (mainnet)
+  # Triggers: manual dispatch with Mainnet
+  # Requires GitHub Environment "Mainnet" approvers
+  ##################################################
+
+  promote:
+    name: Promote to Release (Mainnet)
+
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Mainnet'
+
+    runs-on: ubuntu-latest
+    environment: Mainnet
+
+    timeout-minutes: 5
+    continue-on-error: false
+
+    steps:
+      - name: Validate release tag
+        id: validate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          if [[ -z "${RELEASE_TAG}" ]]; then
+            echo "::error::release_tag is required for Mainnet promotion"
+            exit 1
+          fi
+
+          # Verify the release exists and is a pre-release
+          RELEASE_INFO=$(gh release view "${RELEASE_TAG}" --json isPrerelease,tagName 2>&1) || {
+            echo "::error::Release '${RELEASE_TAG}' not found"
+            exit 1
+          }
+
+          IS_PRERELEASE=$(echo "${RELEASE_INFO}" | jq -r '.isPrerelease')
+          if [[ "${IS_PRERELEASE}" != "true" ]]; then
+            echo "::error::Release '${RELEASE_TAG}' is not a pre-release (already promoted?)"
+            exit 1
+          fi
+
+          echo "tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Validated: ${RELEASE_TAG} is a pre-release, ready to promote"
+
+      - name: Promote pre-release to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ steps.validate.outputs.tag }}" \
+            --prerelease=false \
+            --title "Release ${{ steps.validate.outputs.tag }}"
+
+          echo "Promoted ${{ steps.validate.outputs.tag }} to release"

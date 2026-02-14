@@ -74,6 +74,7 @@ packtool
 prek
 prebuild
 precaching
+prereleased
 softprops
 webp
 webps
