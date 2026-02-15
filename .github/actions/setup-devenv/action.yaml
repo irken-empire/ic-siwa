@@ -24,6 +24,10 @@ runs:
       with:
         github_access_token: ${{ inputs.github-token }}
 
+    - id: magic_nix_cache
+      name: Magic Nix Cache
+      uses: DeterminateSystems/magic-nix-cache-action@main
+
     - id: enable_cachix
       name: Enable Cachix
       if: inputs.cachix-cache-name != ''
