@@ -10,37 +10,41 @@ inputs:
 outputs:
   version:
     description: "Published package version"
-    value: ${{ steps.verify.outputs.version }}
+    value: ${{ steps.verify_package.outputs.version }}
   published:
     description: "Whether the package was actually published (false for dry run)"
-    value: ${{ steps.publish.outputs.published }}
+    value: ${{ steps.publish_npm.outputs.published }}
 
 runs:
   using: "composite"
   steps:
-    - name: Setup Bun
+    - id: setup_bun
+      name: Setup Bun
       uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
 
-    - name: Setup Node (for npm publish)
+    - id: setup_node
+      name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: "24"
         registry-url: "https://registry.npmjs.org"
 
-    - name: Install dependencies
+    - id: install_deps
+      name: Install Dependencies
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: bun install
 
-    - name: Build package
+    - id: build_package
+      name: Build Package
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: bun run build
 
-    - name: Verify package contents
-      id: verify
+    - id: verify_package
+      name: Verify Package Contents
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: |
@@ -58,8 +62,8 @@ runs:
         echo "Package contents:"
         npm pack --dry-run
 
-    - name: Publish to npm
-      id: publish
+    - id: publish_npm
+      name: Publish to npm
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: |

@@ -13,13 +13,13 @@ inputs:
 outputs:
   success:
     description: "Whether verification passed"
-    value: ${{ steps.verify.outputs.success }}
+    value: ${{ steps.verify_provider.outputs.success }}
 
 runs:
   using: "composite"
   steps:
-    - name: Verify ic_siwa_provider
-      id: verify
+    - id: verify_provider
+      name: Verify ic_siwa_provider
       if: inputs.canister == 'ic_siwa_provider'
       shell: devenv shell --quiet bash -- -e {0}
       env:
@@ -98,7 +98,8 @@ runs:
           echo "Candid UI: https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=$CANISTER_ID"
         fi
 
-    - name: Verify test_canister_rs
+    - id: verify_test_canister
+      name: Verify test_canister_rs
       if: inputs.canister == 'test_canister_rs'
       shell: devenv shell --quiet bash -- -e {0}
       run: |

@@ -13,49 +13,49 @@ inputs:
 outputs:
   config_file:
     description: "Path to config file"
-    value: ${{ steps.read.outputs.config_file }}
+    value: ${{ steps.read_config.outputs.config_file }}
   chain_id:
     description: "Avalanche chain ID"
-    value: ${{ steps.read.outputs.chain_id }}
+    value: ${{ steps.read_config.outputs.chain_id }}
   domain:
     description: "SIWA domain for wallet signing prompt"
-    value: ${{ steps.read.outputs.domain }}
+    value: ${{ steps.read_config.outputs.domain }}
   uri:
     description: "SIWA URI for wallet signing prompt"
-    value: ${{ steps.read.outputs.uri }}
+    value: ${{ steps.read_config.outputs.uri }}
   session_expiration_ns:
     description: "Session expiration in nanoseconds"
-    value: ${{ steps.read.outputs.session_expiration_ns }}
+    value: ${{ steps.read_config.outputs.session_expiration_ns }}
   allowed_domains:
     description: "Allowed domains as Candid vec format"
-    value: ${{ steps.read.outputs.allowed_domains }}
+    value: ${{ steps.read_config.outputs.allowed_domains }}
   allowed_canisters:
     description: "Allowed canisters as Candid vec format"
-    value: ${{ steps.read.outputs.allowed_canisters }}
+    value: ${{ steps.read_config.outputs.allowed_canisters }}
   delegation_targets:
     description: "Delegation targets as Candid vec format"
-    value: ${{ steps.read.outputs.delegation_targets }}
+    value: ${{ steps.read_config.outputs.delegation_targets }}
   rate_limit_per_address:
     description: "Max logins per address per window"
-    value: ${{ steps.read.outputs.rate_limit_per_address }}
+    value: ${{ steps.read_config.outputs.rate_limit_per_address }}
   rate_limit_total:
     description: "Max total logins per window"
-    value: ${{ steps.read.outputs.rate_limit_total }}
+    value: ${{ steps.read_config.outputs.rate_limit_total }}
   rate_limit_window:
     description: "Rate limit window in seconds"
-    value: ${{ steps.read.outputs.rate_limit_window }}
+    value: ${{ steps.read_config.outputs.rate_limit_window }}
   provider_canister_id:
     description: "IC SIWA Provider canister ID"
-    value: ${{ steps.read.outputs.provider_canister_id }}
+    value: ${{ steps.read_config.outputs.provider_canister_id }}
   debug:
     description: "Debug mode enabled"
-    value: ${{ steps.read.outputs.debug }}
+    value: ${{ steps.read_config.outputs.debug }}
 
 runs:
   using: "composite"
   steps:
-    - name: Read config values
-      id: read
+    - id: read_config
+      name: Read Config Values
       shell: bash
       run: |
         # Map environment to config file

@@ -28,13 +28,13 @@ inputs:
 outputs:
   artifact_path:
     description: "Path to built artifact"
-    value: ${{ steps.paths.outputs.artifact_path }}
+    value: ${{ steps.set_paths.outputs.artifact_path }}
 
 runs:
   using: "composite"
   steps:
-    - name: Set paths
-      id: paths
+    - id: set_paths
+      name: Set Paths
       shell: bash
       run: |
         if [ "${{ inputs.type }}" == "rust" ]; then
@@ -44,14 +44,16 @@ runs:
         fi
 
     # Build Rust WASM canister
-    - name: Build WASM canister
+    - id: build_wasm
+      name: Build WASM Canister
       if: inputs.type == 'rust'
       shell: devenv shell --quiet bash -- -e {0}
       run: |
         echo "Building ${{ inputs.canister }} (Rust WASM)..."
         cargo build --release --target wasm32-unknown-unknown -p ${{ inputs.canister }}
 
-    - name: Optimize WASM
+    - id: optimize_wasm
+      name: Optimize WASM
       if: inputs.type == 'rust' && inputs.optimize == 'true'
       shell: devenv shell --quiet bash -- -e {0}
       run: |
@@ -65,7 +67,8 @@ runs:
         fi
 
     # Build TypeScript library (dependency for assets)
-    - name: Build TypeScript library
+    - id: build_typescript_lib
+      name: Build TypeScript Library
       if: inputs.type == 'assets'
       shell: devenv shell --quiet bash -- -e {0}
       run: |
@@ -75,9 +78,9 @@ runs:
         bun run build
 
     # Build Assets canister
-    - name: Read provider canister ID from config
+    - id: read_provider_id
+      name: Read Provider Canister ID
       if: inputs.type == 'assets'
-      id: config
       shell: bash
       run: |
         # Map environment to config file
@@ -94,9 +97,9 @@ runs:
         echo "Config file: ${CONFIG_FILE}"
         echo "Provider canister ID: ${PROVIDER_ID}"
 
-    - name: Read custom domain from config
+    - id: read_custom_domain
+      name: Read Custom Domain
       if: inputs.type == 'assets'
-      id: domain
       shell: bash
       run: |
         # Map environment to config file
@@ -111,11 +114,12 @@ runs:
         echo "custom_domain=${CUSTOM_DOMAIN}" >> $GITHUB_OUTPUT
         echo "Custom domain: ${CUSTOM_DOMAIN}"
 
-    - name: Generate ic-domains file
+    - id: generate_ic_domains
+      name: Generate ic-domains File
       if: inputs.type == 'assets'
       shell: bash
       run: |
-        DOMAIN="${{ steps.domain.outputs.custom_domain }}"
+        DOMAIN="${{ steps.read_custom_domain.outputs.custom_domain }}"
         if [ -n "${DOMAIN}" ]; then
           WELL_KNOWN_DIR="canisters/${{ inputs.canister }}/public/.well-known"
           echo "Generating ic-domains file for: ${DOMAIN}"
@@ -127,11 +131,12 @@ runs:
           echo "No custom domain configured, skipping ic-domains generation"
         fi
 
-    - name: Build Assets canister
+    - id: build_assets
+      name: Build Assets Canister
       if: inputs.type == 'assets'
       shell: devenv shell --quiet bash -- -e {0}
       env:
-        PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ steps.config.outputs.provider_canister_id }}
+        PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ steps.read_provider_id.outputs.provider_canister_id }}
         PUBLIC_IC_HOST: ${{ inputs.ic_host }}
         PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ inputs.walletconnect_project_id }}
       run: |
@@ -140,7 +145,8 @@ runs:
         bun install
         bun run build
 
-    - name: Verify ic-domains in build output
+    - id: verify_ic_domains
+      name: Verify ic-domains in Build Output
       if: inputs.type == 'assets'
       shell: bash
       run: |

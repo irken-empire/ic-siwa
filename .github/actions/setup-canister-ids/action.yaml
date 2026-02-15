@@ -9,7 +9,8 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup canister IDs
+    - id: setup_canister_ids
+      name: Setup Canister IDs
       shell: bash
       run: |
         CANISTER_IDS_FILE="canister_ids.${{ inputs.environment }}.json"

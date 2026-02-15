@@ -1,13 +1,12 @@
 ---
 ##################################################
 # Name: ci-devenv.yaml
-# Description: Workflow for Developer Environment Testing
+# Description: Developer environment testing on PRs
 ##################################################
 
-name: CI Devenv
+name: Devenv CI
 
 on:
-  # Test Development Environment on PRs.
   pull_request:
     branches:
       - trunk
@@ -31,16 +30,14 @@ defaults:
     shell: bash
 
 jobs:
-  ##################################################
-  # Test the Development environment shell
-  ##################################################
   test:
     name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - name: Configuration summary
+      - id: config_summary
+        name: Configuration Summary
         run: |
           {
             echo "## Devenv Configuration"
@@ -52,31 +49,32 @@ jobs:
             echo "| PR | ${{ github.event.pull_request.number || 'N/A' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Checkout repository
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Secretspec check
-        shell: devenv shell --quiet bash -- -e {0}
-        run: secretspec check
-
-      - name: Install dependencies
+      - id: install_deps
+        name: Install Dependencies
         shell: devenv shell --quiet bash -- -e {0}
         run: bun run install-deps
 
-      - name: Devenv test
-        id: devenv_test
+      - id: devenv_test
+        name: Run Devenv Test
         run: devenv test
 
-      - name: Write results summary
+      - id: write_summary
+        name: Write Results Summary
         if: always()
         run: |
           {
@@ -88,26 +86,16 @@ jobs:
             echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Report status
+      - id: report_status
+        name: Report Status
         if: always()
-        shell: devenv shell --quiet bash -- -e {0}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ "${{ steps.devenv_test.outcome }}" == "success" ]]; then
-            RESULT="success"
-            DESCRIPTION="Devenv test passed!"
-          else
-            RESULT="failure"
-            DESCRIPTION="Devenv test failed!"
-          fi
-
-          gh api \
-            "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
-            -f state="${RESULT}" \
-            -f context="${{ github.workflow }}" \
-            -f description="${DESCRIPTION}" \
-            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || {
-              echo "Failed to report devenv status!"
-              exit 1
-            }
+        uses: ./.github/actions/report-status
+        with:
+          result: ${{ steps.devenv_test.outcome }}
+          success-message: "Devenv test passed!"
+          failure-message: "Devenv test failed!"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          workflow-name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

@@ -1,6 +1,6 @@
 ---
 ##################################################
-# Name: cd-release.yml
+# Name: cd-release.yaml
 # Description: Single entrypoint for all releases
 #
 # Triggers:
@@ -77,18 +77,19 @@ jobs:
     continue-on-error: false
 
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
-      skip: ${{ steps.version.outputs.skip }}
+      version: ${{ steps.compute_version.outputs.version }}
+      tag: ${{ steps.compute_version.outputs.tag }}
+      skip: ${{ steps.compute_version.outputs.skip }}
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Compute version
-        id: version
+      - id: compute_version
+        name: Compute Version
         run: |
           VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
           TAG="v${VERSION}"
@@ -105,24 +106,26 @@ jobs:
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
           echo "Version: ${VERSION}, Tag: ${TAG}"
 
-      - name: Generate changelog
-        if: steps.version.outputs.skip != 'true'
+      - id: generate_changelog
+        name: Generate Changelog
+        if: steps.compute_version.outputs.skip != 'true'
         run: |
           {
             echo "## IC-SIWA Pre-Release"
             echo ""
-            echo "**Version:** \`${{ steps.version.outputs.tag }}\`"
+            echo "**Version:** \`${{ steps.compute_version.outputs.tag }}\`"
             echo ""
             echo "This is a pre-release deployed to testnet. Promote to release for mainnet deployment."
           } > /tmp/changelog.md
 
-      - name: Create pre-release
-        if: steps.version.outputs.skip != 'true'
+      - id: create_release
+        name: Create Pre-Release
+        if: steps.compute_version.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            --title "Pre-Release ${{ steps.version.outputs.tag }}" \
+          gh release create "${{ steps.compute_version.outputs.tag }}" \
+            --title "Pre-Release ${{ steps.compute_version.outputs.tag }}" \
             --notes-file /tmp/changelog.md \
             --prerelease \
             --target "${{ github.sha }}"
@@ -161,11 +164,11 @@ jobs:
     continue-on-error: false
 
     outputs:
-      tag: ${{ steps.validate.outputs.tag }}
+      tag: ${{ steps.validate_tag.outputs.tag }}
 
     steps:
-      - name: Validate release tag
-        id: validate
+      - id: validate_tag
+        name: Validate Release Tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.inputs.release_tag }}
@@ -190,15 +193,16 @@ jobs:
           echo "tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
           echo "Validated: ${RELEASE_TAG} is a pre-release, ready to promote"
 
-      - name: Promote pre-release to release
+      - id: promote_release
+        name: Promote Pre-Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release edit "${{ steps.validate.outputs.tag }}" \
+          gh release edit "${{ steps.validate_tag.outputs.tag }}" \
             --prerelease=false \
-            --title "Release ${{ steps.validate.outputs.tag }}"
+            --title "Release ${{ steps.validate_tag.outputs.tag }}"
 
-          echo "Promoted ${{ steps.validate.outputs.tag }} to release"
+          echo "Promoted ${{ steps.validate_tag.outputs.tag }} to release"
 
   ##################################################
   # Deploy to Mainnet

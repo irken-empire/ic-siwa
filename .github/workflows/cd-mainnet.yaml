@@ -3,23 +3,21 @@
 # Name: cd-mainnet.yaml
 # Description: Mainnet deployment pipeline
 #
-# Called by: cd-release.yml (promote job)
+# Called by: cd-release.yaml (promote job)
 # Manual: workflow_dispatch
 #
-# This workflow:
-#   1. Builds all canisters and npm package
-#   2. Deploys to IC (mainnet configuration)
-#   3. Verifies deployment
-#   4. Publishes npm package (real publish)
-#
-# Uses Mainnet GitHub Environment for:
-#   - Required reviewers (approval gate)
-#   - Secrets: DFX_IDENTITY_PEM, IC_SIWA_SALT
+# Pipeline:
+#   1. Lint + test (skipped when called from release)
+#   2. Build all canisters and npm package
+#   3. Deploy to IC (mainnet configuration, requires approval)
+#   4. Verify deployment
+#   5. Publish npm package
+#   6. Update release notes
 #
 # npm OIDC trusted publishing is configured for this workflow.
 ##################################################
 
-name: Deploy Mainnet
+name: Deploy (Mainnet)
 
 on:
   workflow_call:
@@ -74,25 +72,35 @@ jobs:
     runs-on: ubuntu-latest
     environment: Mainnet
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      debug: ${{ steps.config.outputs.debug }}
-      domain: ${{ steps.config.outputs.domain }}
-      uri: ${{ steps.config.outputs.uri }}
-      chain_id: ${{ steps.config.outputs.chain_id }}
-      session_expiration_ns: ${{ steps.config.outputs.session_expiration_ns }}
-      allowed_domains: ${{ steps.config.outputs.allowed_domains }}
-      allowed_canisters: ${{ steps.config.outputs.allowed_canisters }}
-      delegation_targets: ${{ steps.config.outputs.delegation_targets }}
-      rate_limit_per_address: ${{ steps.config.outputs.rate_limit_per_address }}
-      rate_limit_total: ${{ steps.config.outputs.rate_limit_total }}
-      rate_limit_window: ${{ steps.config.outputs.rate_limit_window }}
+      version: ${{ steps.get_version.outputs.version }}
+      debug: ${{ steps.read_config.outputs.debug }}
+      domain: ${{ steps.read_config.outputs.domain }}
+      uri: ${{ steps.read_config.outputs.uri }}
+      chain_id: ${{ steps.read_config.outputs.chain_id }}
+      session_expiration_ns: ${{ steps.read_config.outputs.session_expiration_ns }}
+      allowed_domains: ${{ steps.read_config.outputs.allowed_domains }}
+      allowed_canisters: ${{ steps.read_config.outputs.allowed_canisters }}
+      delegation_targets: ${{ steps.read_config.outputs.delegation_targets }}
+      rate_limit_per_address: ${{ steps.read_config.outputs.rate_limit_per_address }}
+      rate_limit_total: ${{ steps.read_config.outputs.rate_limit_total }}
+      rate_limit_window: ${{ steps.read_config.outputs.rate_limit_window }}
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Get version
-        id: version
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: get_version
+        name: Get Version
         run: |
           if [[ -n "${{ inputs.version }}" ]]; then
             echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
@@ -101,65 +109,81 @@ jobs:
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Read config
-        id: config
+      - id: read_config
+        name: Read Config
         uses: ./.github/actions/read-config
         with:
           environment: mainnet
 
   ##################################################
-  # Lint - Check code quality
+  # Lint - Check code quality (skipped on workflow_call)
   ##################################################
   lint:
     name: Lint
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: Mainnet
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Rust formatting
+      - id: rust_fmt
+        name: Check Rust Formatting
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo fmt --all -- --check
 
-      - name: Rust clippy
+      - id: rust_clippy
+        name: Run Clippy
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo clippy --all-targets -- -D warnings
 
   ##################################################
-  # Test - Run unit tests
+  # Test - Run unit tests (skipped on workflow_call)
   ##################################################
   test:
     name: Test
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: Mainnet
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Rust tests
+      - id: rust_tests
+        name: Run Rust Tests
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo test -p ic_siwa
 
-      - name: TypeScript tests
+      - id: typescript_tests
+        name: Run TypeScript Tests
         shell: devenv shell --quiet bash -- -e {0}
         run: |
           cd libs/ic_siwa_ts
@@ -172,6 +196,7 @@ jobs:
   build-canisters:
     name: Build Canister ${{ matrix.canister }}
     needs: [lint]
+    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: Mainnet
@@ -188,17 +213,23 @@ jobs:
             type: assets
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build canister
+      - id: build_canister
+        name: Build Canister
         uses: ./.github/actions/build-canister
         with:
           canister: ${{ matrix.canister }}
@@ -207,7 +238,8 @@ jobs:
           optimize: "true"
           walletconnect_project_id: ${{ vars.PUBLIC_WALLETCONNECT_PROJECT_ID }}
 
-      - name: Upload artifact
+      - id: upload_artifact
+        name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.canister }}-mainnet
@@ -221,28 +253,35 @@ jobs:
   build-npm:
     name: Build npm
     needs: [lint]
+    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: Mainnet
     outputs:
-      version: ${{ steps.build.outputs.version }}
+      version: ${{ steps.build_npm.outputs.version }}
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build npm package
-        id: build
+      - id: build_npm
+        name: Build npm Package
         uses: ./.github/actions/build-npm
 
-      - name: Upload artifact
+      - id: upload_artifact
+        name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
           name: ic-siwa-npm-mainnet
@@ -258,36 +297,44 @@ jobs:
   deploy-provider:
     name: Deploy Provider
     needs: [setup, build-canisters, test]
+    if: always() && needs.build-canisters.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: Mainnet
     outputs:
-      canister_id: ${{ steps.deploy.outputs.canister_id }}
+      canister_id: ${{ steps.deploy_canister.outputs.canister_id }}
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Setup canister IDs
+      - id: setup_canister_ids
+        name: Setup Canister IDs
         uses: ./.github/actions/setup-canister-ids
         with:
           environment: mainnet
 
-      - name: Download artifact
+      - id: download_artifact
+        name: Download Artifact
         uses: actions/download-artifact@v7
         with:
           name: ic_siwa_provider-mainnet
           path: target/wasm32-unknown-unknown/release/
 
-      - name: Deploy canister
-        id: deploy
+      - id: deploy_canister
+        name: Deploy Canister
         uses: ./.github/actions/deploy-canister
         with:
           canister: ic_siwa_provider
@@ -322,20 +369,27 @@ jobs:
     environment: Mainnet
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup canister IDs
+      - id: setup_canister_ids
+        name: Setup Canister IDs
         uses: ./.github/actions/setup-canister-ids
         with:
           environment: mainnet
 
-      - name: Verify canister
+      - id: verify_canister
+        name: Verify Canister
         uses: ./.github/actions/verify-canister
         with:
           canister: ic_siwa_provider
@@ -352,47 +406,55 @@ jobs:
     timeout-minutes: 30
     environment: Mainnet
     outputs:
-      test_canister_rs_id: ${{ steps.deploy-rs.outputs.canister_id }}
-      test_canister_ts_id: ${{ steps.deploy-ts.outputs.canister_id }}
+      test_canister_rs_id: ${{ steps.deploy_test_rs.outputs.canister_id }}
+      test_canister_ts_id: ${{ steps.deploy_test_ts.outputs.canister_id }}
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Setup canister IDs
+      - id: setup_canister_ids
+        name: Setup Canister IDs
         uses: ./.github/actions/setup-canister-ids
         with:
           environment: mainnet
 
-      - name: Download test_canister_rs
+      - id: download_test_rs
+        name: Download test_canister_rs
         uses: actions/download-artifact@v7
         with:
           name: test_canister_rs-mainnet
           path: target/wasm32-unknown-unknown/release/
 
-      - name: Download test_canister_ts
+      - id: download_test_ts
+        name: Download test_canister_ts
         uses: actions/download-artifact@v7
         with:
           name: test_canister_ts-mainnet
           path: canisters/test_canister_ts/dist/
 
-      - name: Deploy test_canister_rs
-        id: deploy-rs
+      - id: deploy_test_rs
+        name: Deploy test_canister_rs
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_rs
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
           accept_breaking_changes: "false"
 
-      - name: Deploy test_canister_ts
-        id: deploy-ts
+      - id: deploy_test_ts
+        name: Deploy test_canister_ts
         uses: ./.github/actions/deploy-canister
         with:
           canister: test_canister_ts
@@ -411,10 +473,21 @@ jobs:
     environment: Mainnet
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Register domain
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: register_domain
+        name: Register Domain
         uses: ./.github/actions/register-domain
         with:
           domain: ${{ needs.setup.outputs.domain }}
@@ -430,20 +503,31 @@ jobs:
     timeout-minutes: 15
     environment: Mainnet
     outputs:
-      version: ${{ steps.publish.outputs.version }}
+      version: ${{ steps.publish_npm.outputs.version }}
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Download artifact
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: download_artifact
+        name: Download Artifact
         uses: actions/download-artifact@v7
         with:
           name: ic-siwa-npm-mainnet
           path: libs/ic_siwa_ts/
 
-      - name: Publish npm package
-        id: publish
+      - id: publish_npm
+        name: Publish npm Package
         uses: ./.github/actions/publish-npm
         with:
           dry_run: "false"
@@ -468,7 +552,8 @@ jobs:
     environment: Mainnet
 
     steps:
-      - name: Update release body
+      - id: update_release
+        name: Update Release Body
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -525,7 +610,8 @@ jobs:
     environment: Mainnet
 
     steps:
-      - name: Write results summary
+      - id: write_summary
+        name: Write Results Summary
         run: |
           {
             echo "## Mainnet Deployment Results"
@@ -573,9 +659,10 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Check for failures
+      - id: check_failures
+        name: Check for Failures
         run: |
-          CRITICAL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }},${{ needs.publish-npm.result }}"
+          CRITICAL_JOBS="${{ needs.build-canisters.result }},${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }},${{ needs.publish-npm.result }}"
           if echo "${CRITICAL_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::Mainnet deployment failed"
             exit 1

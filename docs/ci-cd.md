@@ -1,95 +1,88 @@
-# CI/CD Pipeline
-
-## Overview
-
-The ic-siwa project uses GitHub Actions for CI/CD with a release-driven deployment model.
-Workflows are chained using `workflow_call` for reliable, explicit orchestration.
+# CI/CD Architecture
 
 ## Release Flow
 
 ```mermaid
-flowchart TD
-    A["Push to trunk"] --> B["cd-release.yml"]
-    C["Manual dispatch<br/>(Testnet)"] --> B
-    D["Manual dispatch<br/>(Mainnet)"] --> B
+graph TD
+    A["Push to trunk"] --> B["cd-release.yaml"]
+    C["Manual dispatch"] --> B
 
-    B --> E{"Environment?"}
+    B --> D{"Environment?"}
+    D -->|"Testnet (auto/manual)"| E["pre-release job"]
+    D -->|"Mainnet (manual)"| F["promote job"]
 
-    E -->|"Testnet<br/>(auto or manual)"| F["pre-release job"]
-    E -->|"Mainnet<br/>(manual only)"| G["promote job"]
+    E --> G["Create GitHub Pre-Release"]
+    G --> H["cd-testnet.yaml<br/>(workflow_call)"]
 
-    F --> F1["Read version<br/>from Cargo.toml"]
-    F1 --> F2["Create GitHub<br/>Pre-Release"]
-    F2 --> H["deploy-testnet<br/>(workflow_call)"]
+    F --> I["Promote Pre-Release → Release"]
+    I --> J["cd-mainnet.yaml<br/>(workflow_call)"]
 
-    G --> G1["Validate release tag"]
-    G1 --> G2["Promote to<br/>full release"]
-    G2 --> I["deploy-mainnet<br/>(workflow_call)"]
-
-    H --> T1["Lint + Test"]
-    T1 --> T2["Build Canisters"]
-    T2 --> T3["Build npm"]
-    T3 --> T4["Deploy Provider"]
-    T4 --> T5["Verify Deployment"]
-    T5 --> T6["Deploy Test Canisters<br/>(if debug)"]
-    T6 --> T7["Publish npm<br/>(dry run)"]
-
-    I --> M1["Lint + Test"]
-    M1 --> M2["Build Canisters"]
-    M2 --> M3["Build npm"]
-    M3 --> M4["Deploy Provider<br/>(requires approval)"]
-    M4 --> M5["Verify Deployment"]
-    M5 --> M6["Publish npm"]
-    M6 --> M7["Update Release Notes"]
+    H --> K["Build → Deploy → Verify → npm (dry run)"]
+    J --> L["Build → Deploy → Verify → npm (publish)"]
 ```
 
-## CI Pipelines
+## CI Pipeline
 
 ```mermaid
-flowchart LR
-    subgraph "CI (Pull Requests)"
-        CI1["ci-devenv.yaml<br/>Devenv health check"]
-        CI2["ci.yml<br/>Lint + Test + Build"]
-    end
+graph LR
+    PR["Pull Request"] --> CI["ci.yaml"]
+    PR --> DEV["ci-devenv.yaml"]
 
-    subgraph "CD (Releases)"
-        CD1["cd-release.yml<br/>Version + tag"]
-        CD2["cd-testnet.yaml<br/>Full testnet deploy"]
-        CD3["cd-mainnet.yaml<br/>Full mainnet deploy"]
-    end
+    CI --> L["Lint"]
+    CI --> T["Test"]
+    CI --> BC["Build Canisters"]
+    CI --> BT["Build TypeScript"]
+    CI --> VC["Verify Candid"]
 
-    CD1 -->|workflow_call| CD2
-    CD1 -->|workflow_call| CD3
+    DEV --> DT["devenv test"]
 ```
 
-## Workflows
+## `workflow_call` Design
 
-| Workflow          | Trigger                      | Description                                |
-| ----------------- | ---------------------------- | ------------------------------------------ |
-| `ci-devenv.yaml`  | PR, push                     | Validates devenv builds correctly          |
-| `ci.yml`          | PR, push                     | Lint, test, and build canisters + npm      |
-| `cd-release.yml`  | Push to trunk, manual        | Creates pre-release or promotes to release |
-| `cd-testnet.yaml` | Called by cd-release, manual | Full testnet deployment pipeline           |
-| `cd-mainnet.yaml` | Called by cd-release, manual | Full mainnet deployment pipeline           |
+Deploy workflows (`cd-testnet.yaml`, `cd-mainnet.yaml`) accept both `workflow_call` and `workflow_dispatch` triggers:
 
-## Environments
+- **`workflow_call`** — called by `cd-release.yaml` after creating/promoting a release.
+  Version and `accept_breaking_changes` are passed as inputs. Uses `secrets: inherit`.
+  Lint/test jobs are **skipped** (already run by CI on the PR).
+- **`workflow_dispatch`** — manual fallback. Lint/test jobs **run** since there's no prior CI guarantee.
 
-| Environment | Purpose                        | Secrets                                           |
-| ----------- | ------------------------------ | ------------------------------------------------- |
-| **Testnet** | Staging deployments            | `DFX_IDENTITY_PEM`, `IC_SIWA_SALT`, Cachix tokens |
-| **Mainnet** | Production (requires approval) | `DFX_IDENTITY_PEM`, `IC_SIWA_SALT`, Cachix tokens |
+This replaces the previous event-based chaining (`release: types: [prereleased/released]`), which required a Personal Access Token because `GITHUB_TOKEN` events don't trigger further workflows.
 
-## Design Decisions
+## Workflow Inventory
 
-### workflow_call over event chaining
+| Workflow                   | Prefix | Trigger                     | Purpose                                          |
+| -------------------------- | ------ | --------------------------- | ------------------------------------------------ |
+| `cd-release.yaml`          | cd     | push to trunk, dispatch     | Create pre-release or promote to release         |
+| `cd-testnet.yaml`          | cd     | workflow_call, dispatch     | Build, deploy, verify on IC Testnet              |
+| `cd-mainnet.yaml`          | cd     | workflow_call, dispatch     | Build, deploy, verify, publish npm on IC Mainnet |
+| `ci.yaml`                  | ci     | pull_request                | Lint, test, build canisters, verify Candid       |
+| `ci-devenv.yaml`           | ci     | pull_request                | Test devenv shell                                |
+| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch | Update devenv.lock, create PR                    |
 
-Deploy workflows are called directly via `workflow_call` rather than triggered by `release` events
-(`prereleased`/`released`). This avoids [GitHub's `GITHUB_TOKEN` limitation](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/triggering-a-workflow#triggering-a-workflow-from-a-workflow)
-where events created by `GITHUB_TOKEN` do not trigger other workflows.
+## Composite Actions
 
-Deploy workflows also support `workflow_dispatch` for manual re-runs independent of the release flow.
+| Action               | Purpose                                                |
+| -------------------- | ------------------------------------------------------ |
+| `setup-devenv`       | Nix + Cachix + devenv + secretspec (checkout separate) |
+| `report-status`      | Report CI status to GitHub commit status API           |
+| `read-config`        | Read environment-specific YAML config                  |
+| `build-canister`     | Build Rust WASM or Assets canister                     |
+| `deploy-canister`    | Deploy canister to IC mainnet                          |
+| `verify-canister`    | Run smoke tests against deployed canister              |
+| `setup-canister-ids` | Copy env-specific `canister_ids.json`                  |
+| `build-npm`          | Build ic-siwa TypeScript library                       |
+| `publish-npm`        | Publish to npm (supports dry run)                      |
+| `register-domain`    | Register custom domain with IC boundary nodes          |
 
-### Canister build matrix
+## Naming Conventions
 
-Canisters are built in parallel using a matrix strategy. Artifacts are uploaded and shared
-between the build and deploy jobs to avoid rebuilding.
+| Element           | Convention                                 | Example                    |
+| ----------------- | ------------------------------------------ | -------------------------- |
+| Workflow filename | `{ci\|cd\|chore}-{component}[-{env}].yaml` | `chore-devenv-update.yaml` |
+| Workflow `name:`  | Title Case                                 | `Deploy (Testnet)`         |
+| Job ID            | `kebab-case`                               | `deploy-provider`          |
+| Job `name:`       | Title Case                                 | `Deploy Provider`          |
+| Step ID           | `snake_case`                               | `setup_devenv`             |
+| Step `name:`      | Title Case Verb-Noun                       | `Setup Devenv`             |
+| Action inputs     | `kebab-case`                               | `github-token`             |
+| File extension    | `.yaml`                                    | —                          |
