@@ -11,6 +11,10 @@ on:
     branches:
       - trunk
 
+  merge_group:
+    branches:
+      - trunk
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

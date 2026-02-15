@@ -16,8 +16,12 @@ on:
     branches:
       - trunk
 
+  merge_group:
+    branches:
+      - trunk
+
 concurrency:
-  group: ci-${{ github.head_ref }}
+  group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:

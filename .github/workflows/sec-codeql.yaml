@@ -29,6 +29,10 @@ on:
       - master
       - trunk
 
+  merge_group:
+    branches:
+      - trunk
+
   schedule:
     - cron: "0 0 * * 0"
 

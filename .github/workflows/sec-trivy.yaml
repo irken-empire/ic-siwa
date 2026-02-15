@@ -28,6 +28,10 @@ on:
       - "docs/**"
       - "**/*.md"
 
+  merge_group:
+    branches:
+      - trunk
+
   schedule:
     - cron: "0 0 * * 0"
 
