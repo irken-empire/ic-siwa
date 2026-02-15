@@ -157,8 +157,26 @@ jobs:
         run: |
           TAG="${{ steps.compute_version.outputs.tag }}"
           CHANGELOG=$(convco changelog "${TAG}" --max-versions 1 2>/dev/null || echo "Release ${TAG}")
-          echo "${CHANGELOG}" > /tmp/changelog.md
-          echo "Generated changelog for ${TAG}"
+
+          # Build testnet canister table from JSON
+          TESTNET_TABLE="| Canister | ID |\n|----------|----|"
+          while IFS=$'\t' read -r name id; do
+            TESTNET_TABLE+="\n| ${name} | \`${id}\` |"
+          done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.testnet.json)
+
+          cat > /tmp/changelog.md <<EOF
+          ${CHANGELOG}
+
+          ---
+
+          ## 🚀 Testnet Deployment
+
+          $(echo -e "${TESTNET_TABLE}")
+          EOF
+
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' /tmp/changelog.md
+          echo "Generated changelog with testnet deployment for ${TAG}"
 
       - id: create_release
         name: Create Pre-Release
@@ -262,11 +280,31 @@ jobs:
       - id: generate_changelog
         name: Generate Release Changelog
         shell: devenv shell --quiet bash -- -e {0}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.validate_tag.outputs.tag }}"
-          CHANGELOG=$(convco changelog "${TAG}" --max-versions 1 2>/dev/null || echo "Release ${TAG}")
-          echo "${CHANGELOG}" > /tmp/changelog.md
-          echo "Generated release changelog for ${TAG}"
+
+          # Get existing release body (has changelog + testnet table)
+          EXISTING=$(gh release view "${TAG}" --json body -q '.body')
+
+          # Build mainnet canister table from JSON
+          MAINNET_TABLE="| Canister | ID |\n|----------|----|"
+          while IFS=$'\t' read -r name id; do
+            MAINNET_TABLE+="\n| ${name} | \`${id}\` |"
+          done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.mainnet.json)
+
+          cat > /tmp/changelog.md <<EOF
+          ${EXISTING}
+
+          ## 🌐 Mainnet Deployment
+
+          $(echo -e "${MAINNET_TABLE}")
+          EOF
+
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' /tmp/changelog.md
+          echo "Generated release changelog with mainnet deployment for ${TAG}"
 
       - id: promote_release
         name: Promote Pre-Release

@@ -626,7 +626,6 @@ jobs:
         deploy-test-canisters,
         register-domain,
         publish-npm,
-        update-release,
       ]
     if: always()
     runs-on: ubuntu-latest
@@ -652,7 +651,6 @@ jobs:
             echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
             echo "| Register Domain | ${{ needs.register-domain.result }} |"
             echo "| Publish npm | ${{ needs.publish-npm.result }} |"
-            echo "| Update Release | ${{ needs.update-release.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [[ "${{ needs.deploy-provider.result }}" == "success" ]]; then
