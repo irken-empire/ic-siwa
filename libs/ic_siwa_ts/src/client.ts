@@ -41,6 +41,8 @@ export interface SiwaClientOptions {
   autoRefresh?: boolean;
   /** Refresh threshold in milliseconds (default: 5 minutes before expiry) */
   refreshThreshold?: number;
+  /** Callback fired after a successful delegation refresh */
+  onRefresh?: (identity: SiwaIdentity) => void;
 }
 
 /**
@@ -52,6 +54,7 @@ export class SiwaClient {
   private storage: StorageProvider;
   private autoRefresh: boolean;
   private refreshThreshold: number;
+  private onRefresh?: (identity: SiwaIdentity) => void;
   private identity: SiwaIdentity | null = null;
   private agent: HttpAgent | null = null;
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -63,6 +66,7 @@ export class SiwaClient {
     this.storage = options.storage ?? new SessionStorageProvider();
     this.autoRefresh = options.autoRefresh ?? true;
     this.refreshThreshold = options.refreshThreshold ?? 5 * 60 * 1000; // 5 minutes
+    this.onRefresh = options.onRefresh;
   }
 
   /**
@@ -618,12 +622,21 @@ export class SiwaClient {
         this.scheduleRefresh();
       }
 
+      // Notify consumer of the refreshed identity
+      if (this.onRefresh && this.identity) {
+        try {
+          this.onRefresh(this.identity);
+        } catch {
+          // Don't let callback errors break the refresh flow
+        }
+      }
+
       return {
         principal: this.identity.getPrincipal(),
         address,
         expiration: expirationMs,
       };
-    } catch (error) {
+    } catch {
       // Failed to refresh, clear state
       await this.logout();
       return null;
