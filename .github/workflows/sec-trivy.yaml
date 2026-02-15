@@ -45,6 +45,7 @@ permissions:
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
 
 defaults:
   run:
@@ -71,13 +72,16 @@ jobs:
           fetch-depth: 1
           submodules: recursive
 
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
+      - id: install_nix
+        name: Install Nix
+        uses: cachix/install-nix-action@v31
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: install_devenv
+        name: Install Devenv
+        run: |
+          nix profile install --accept-flake-config nixpkgs#devenv
 
       - id: trivy_scan
         name: Trivy Filesystem Scan
@@ -92,8 +96,8 @@ jobs:
 
       - id: trivy_upload
         name: Upload SARIF Results
-        if: always() && steps.trivy_scan.outcome != 'cancelled'
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.trivy_scan.outcome == 'success'
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 
