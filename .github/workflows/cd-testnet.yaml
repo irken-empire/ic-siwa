@@ -4,7 +4,6 @@
 # Description: Testnet deployment pipeline
 #
 # Called by: cd-release.yaml (pre-release job)
-# Manual: workflow_dispatch
 #
 # Pipeline:
 #   1. Lint + test (skipped when called from release)
@@ -21,18 +20,6 @@ on:
     inputs:
       version:
         description: "Release version tag (e.g. v0.1.0)"
-        type: string
-        required: false
-        default: ""
-      accept_breaking_changes:
-        description: "Accept breaking candid interface changes"
-        type: boolean
-        required: false
-        default: false
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Release version tag (leave empty for current)"
         type: string
         required: false
         default: ""
@@ -102,7 +89,12 @@ jobs:
           if [[ -n "${{ inputs.version }}" ]]; then
             echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           else
-            VERSION="v$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
+            # Get latest git tag (requires fetch-depth: 0)
+            VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo "")"
+            if [[ -z "${VERSION}" ]]; then
+              echo "::error::No git tags found and no version input provided"
+              exit 1
+            fi
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 

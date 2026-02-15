@@ -155,11 +155,10 @@ jobs:
         if: steps.compute_version.outputs.skip != 'true'
         shell: devenv shell --quiet bash -- -e {0}
         run: |
-          # Generate changelog for unreleased commits
-          CHANGELOG=$(convco changelog --unreleased 2>/dev/null || echo "No changelog available")
-          # Write to file for the release step (multiline output)
+          TAG="${{ steps.compute_version.outputs.tag }}"
+          CHANGELOG=$(convco changelog "${TAG}" --max-versions 1 2>/dev/null || echo "Release ${TAG}")
           echo "${CHANGELOG}" > /tmp/changelog.md
-          echo "Generated changelog for release"
+          echo "Generated changelog for ${TAG}"
 
       - id: create_release
         name: Create Pre-Release
@@ -228,33 +227,44 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.inputs.release_tag }}
         run: |
-          if [[ -z "${RELEASE_TAG}" ]]; then
-            echo "::error::release_tag is required for Mainnet promotion"
-            exit 1
+          if [[ -n "${RELEASE_TAG}" ]]; then
+            # User specified a tag — use it directly
+            TAG="${RELEASE_TAG}"
+            echo "Using provided release tag: ${TAG}"
+          else
+            # Auto-discover the latest pre-release
+            TAG=$(gh release list --json tagName,isPrerelease \
+              --jq '[.[] | select(.isPrerelease==true)] | first | .tagName' 2>/dev/null || echo "")
+
+            if [[ -z "${TAG}" || "${TAG}" == "null" ]]; then
+              echo "::error::No pre-releases found. Create one first via a Testnet deployment."
+              exit 1
+            fi
+            echo "Auto-discovered latest pre-release: ${TAG}"
           fi
 
-          # Verify the release exists and is a pre-release
-          RELEASE_INFO=$(gh release view "${RELEASE_TAG}" --json isPrerelease,tagName 2>&1) || {
-            echo "::error::Release '${RELEASE_TAG}' not found"
+          # Verify the release exists and IS a pre-release
+          RELEASE_INFO=$(gh release view "${TAG}" --json isPrerelease,tagName 2>&1) || {
+            echo "::error::Release '${TAG}' not found"
             exit 1
           }
 
           IS_PRERELEASE=$(echo "${RELEASE_INFO}" | jq -r '.isPrerelease')
           if [[ "${IS_PRERELEASE}" != "true" ]]; then
-            echo "::error::Release '${RELEASE_TAG}' is not a pre-release (already promoted?)"
+            echo "::error::Release '${TAG}' has already been promoted to a full release."
+            echo "::error::If you want to promote a specific pre-release, enter the tag (e.g. v0.2.3)."
             exit 1
           fi
 
-          echo "tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
-          echo "Validated: ${RELEASE_TAG} is a pre-release, ready to promote"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Validated: ${TAG} is a pre-release, ready to promote"
 
       - id: generate_changelog
         name: Generate Release Changelog
         shell: devenv shell --quiet bash -- -e {0}
         run: |
-          # Generate full changelog for this release version
           TAG="${{ steps.validate_tag.outputs.tag }}"
-          CHANGELOG=$(convco changelog "${TAG}" 2>/dev/null || echo "Release ${TAG}")
+          CHANGELOG=$(convco changelog "${TAG}" --max-versions 1 2>/dev/null || echo "Release ${TAG}")
           echo "${CHANGELOG}" > /tmp/changelog.md
           echo "Generated release changelog for ${TAG}"
 

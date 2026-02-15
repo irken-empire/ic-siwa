@@ -9,17 +9,55 @@ graph TD
 
     B --> D{"Environment?"}
     D -->|"Testnet (auto/manual)"| E["pre-release job"]
-    D -->|"Mainnet (manual)"| F["promote job"]
+    D -->|"Mainnet (manual only)"| F["promote job"]
 
-    E --> G["Create GitHub Pre-Release"]
+    E --> G["Create GitHub Pre-Release<br/>(with convco changelog)"]
     G --> H["cd-testnet.yaml<br/>(workflow_call)"]
 
-    F --> I["Promote Pre-Release → Release"]
-    I --> J["cd-mainnet.yaml<br/>(workflow_call)"]
+    F --> I["Auto-discover or validate tag"]
+    I --> J["Promote Pre-Release → Release<br/>(with convco changelog)"]
+    J --> K["cd-mainnet.yaml<br/>(workflow_call)"]
 
-    H --> K["Build → Deploy → Verify → npm (dry run)"]
-    J --> L["Build → Deploy → Verify → npm (publish)"]
+    H --> L["Build → Deploy → Verify → npm (dry run)"]
+    K --> M["Build → Deploy → Verify → npm (publish)"]
 ```
+
+## Developer Workflow
+
+```mermaid
+graph LR
+    A["Create branch"] --> B["Open PR"]
+    B --> C["CI runs<br/>(lint, test, build, security)"]
+    C --> D["PR approved"]
+    D --> E["Merge queue"]
+    E --> F["Merged to trunk"]
+    F --> G["Pre-release created<br/>(automatic)"]
+    G --> H["Testnet deployed"]
+    H --> I["UAT / QA"]
+    I --> J["Run cd-release<br/>(Mainnet)"]
+    J --> K["Promoted + deployed"]
+```
+
+## Manually Runnable Workflows
+
+Only these workflows can be triggered manually via `workflow_dispatch`:
+
+| Workflow                   | Purpose                                           |
+| -------------------------- | ------------------------------------------------- |
+| `cd-release.yaml`          | Create pre-release (Testnet) or promote (Mainnet) |
+| `chore-devenv-update.yaml` | Update devenv.lock, create PR                     |
+
+All other workflows are triggered automatically by events (PR, push, merge_group, schedule, workflow_call).
+
+## Mainnet Promotion
+
+When running `cd-release.yaml` with `Environment: Mainnet`:
+
+- **With `release_tag`**: Promotes that specific pre-release
+- **Without `release_tag`**: Auto-discovers the latest pre-release and promotes it
+- **If latest release is already promoted**: Errors with a helpful message
+
+The GitHub `Mainnet` environment requires manual approval before the promote job runs.
 
 ## CI Pipeline
 
@@ -37,27 +75,19 @@ graph LR
     DEV --> DT["devenv test"]
 ```
 
-## `workflow_call` Design
-
-Deploy workflows (`cd-testnet.yaml`, `cd-mainnet.yaml`) accept both `workflow_call` and `workflow_dispatch` triggers:
-
-- **`workflow_call`** — called by `cd-release.yaml` after creating/promoting a release.
-  Version and `accept_breaking_changes` are passed as inputs. Uses `secrets: inherit`.
-  Lint/test jobs are **skipped** (already run by CI on the PR).
-- **`workflow_dispatch`** — manual fallback. Lint/test jobs **run** since there's no prior CI guarantee.
-
-This replaces the previous event-based chaining (`release: types: [prereleased/released]`), which required a Personal Access Token because `GITHUB_TOKEN` events don't trigger further workflows.
-
 ## Workflow Inventory
 
-| Workflow                   | Prefix | Trigger                     | Purpose                                          |
-| -------------------------- | ------ | --------------------------- | ------------------------------------------------ |
-| `cd-release.yaml`          | cd     | push to trunk, dispatch     | Create pre-release or promote to release         |
-| `cd-testnet.yaml`          | cd     | workflow_call, dispatch     | Build, deploy, verify on IC Testnet              |
-| `cd-mainnet.yaml`          | cd     | workflow_call, dispatch     | Build, deploy, verify, publish npm on IC Mainnet |
-| `ci.yaml`                  | ci     | pull_request                | Lint, test, build canisters, verify Candid       |
-| `ci-devenv.yaml`           | ci     | pull_request                | Test devenv shell                                |
-| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch | Update devenv.lock, create PR                    |
+| Workflow                   | Prefix | Trigger                         | Purpose                                          |
+| -------------------------- | ------ | ------------------------------- | ------------------------------------------------ |
+| `cd-release.yaml`          | cd     | push to trunk, dispatch         | Create pre-release or promote to release         |
+| `cd-testnet.yaml`          | cd     | workflow_call only              | Build, deploy, verify on IC Testnet              |
+| `cd-mainnet.yaml`          | cd     | workflow_call only              | Build, deploy, verify, publish npm on IC Mainnet |
+| `ci.yaml`                  | ci     | pull_request, merge_group       | Lint, test, build canisters, verify Candid       |
+| `ci-devenv.yaml`           | ci     | pull_request, merge_group       | Test devenv shell                                |
+| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch     | Update devenv.lock, create PR                    |
+| `chore-pr-title.yaml`      | chore  | pull_request                    | Validate conventional commit PR titles           |
+| `sec-codeql.yaml`          | sec    | PR, push, merge_group, schedule | CodeQL security analysis                         |
+| `sec-trivy.yaml`           | sec    | PR, merge_group, schedule       | Trivy vulnerability scanning                     |
 
 ## Composite Actions
 
