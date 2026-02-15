@@ -556,60 +556,6 @@ jobs:
           version: ${{ needs.setup.outputs.version }}
 
   ##################################################
-  # Update release notes
-  ##################################################
-  update-release:
-    name: Update Release Notes
-    needs:
-      [
-        setup,
-        deploy-provider,
-        verify-deployment,
-        deploy-test-canisters,
-        register-domain,
-        publish-npm,
-      ]
-    if: always() && needs.verify-deployment.result == 'success' && needs.publish-npm.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    environment: Mainnet
-
-    steps:
-      - id: update_release
-        name: Update Release Body
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BODY=$(cat <<'EOF'
-          ## IC-SIWA Release
-
-          ### Provider Canister
-
-          | Property | Value |
-          |----------|-------|
-          | **Network** | IC Mainnet |
-          | **Avalanche Chain** | Mainnet (${{ needs.setup.outputs.chain_id }}) |
-          | **Canister ID** | `${{ needs.deploy-provider.outputs.canister_id }}` |
-          | **Candid UI** | [Open](https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${{ needs.deploy-provider.outputs.canister_id }}) |
-
-          ### npm Package
-
-          **Version:** `ic-siwa@${{ needs.publish-npm.outputs.version }}`
-
-          ```bash
-          bun add ic-siwa@${{ needs.publish-npm.outputs.version }}
-          # or
-          npm install ic-siwa@${{ needs.publish-npm.outputs.version }}
-          ```
-
-          [View on npm](https://www.npmjs.com/package/ic-siwa/v/${{ needs.publish-npm.outputs.version }})
-          EOF
-          )
-
-          gh release edit "${{ needs.setup.outputs.version }}" \
-            --notes "${BODY}"
-
-  ##################################################
   # Status
   ##################################################
   status:

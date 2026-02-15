@@ -158,24 +158,20 @@ jobs:
           TAG="${{ steps.compute_version.outputs.tag }}"
           CHANGELOG=$(convco changelog "${TAG}" --max-versions 1 2>/dev/null || echo "Release ${TAG}")
 
-          # Build testnet canister table from JSON
-          TESTNET_TABLE="| Canister | ID |\n|----------|----|"
-          while IFS=$'\t' read -r name id; do
-            TESTNET_TABLE+="\n| ${name} | \`${id}\` |"
-          done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.testnet.json)
+          {
+            echo "${CHANGELOG}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## :rocket: Testnet Deployment"
+            echo ""
+            echo "| Canister | ID |"
+            echo "|----------|-----|"
+            while IFS=$'\t' read -r name id; do
+              echo "| ${name} | ${id} |"
+            done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.testnet.json)
+          } > /tmp/changelog.md
 
-          cat > /tmp/changelog.md <<EOF
-          ${CHANGELOG}
-
-          ---
-
-          ## 🚀 Testnet Deployment
-
-          $(echo -e "${TESTNET_TABLE}")
-          EOF
-
-          # Remove leading whitespace from heredoc
-          sed -i 's/^          //' /tmp/changelog.md
           echo "Generated changelog with testnet deployment for ${TAG}"
 
       - id: create_release
@@ -288,22 +284,18 @@ jobs:
           # Get existing release body (has changelog + testnet table)
           EXISTING=$(gh release view "${TAG}" --json body -q '.body')
 
-          # Build mainnet canister table from JSON
-          MAINNET_TABLE="| Canister | ID |\n|----------|----|"
-          while IFS=$'\t' read -r name id; do
-            MAINNET_TABLE+="\n| ${name} | \`${id}\` |"
-          done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.mainnet.json)
+          {
+            echo "${EXISTING}"
+            echo ""
+            echo "## :globe_with_meridians: Mainnet Deployment"
+            echo ""
+            echo "| Canister | ID |"
+            echo "|----------|-----|"
+            while IFS=$'\t' read -r name id; do
+              echo "| ${name} | ${id} |"
+            done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.mainnet.json)
+          } > /tmp/changelog.md
 
-          cat > /tmp/changelog.md <<EOF
-          ${EXISTING}
-
-          ## 🌐 Mainnet Deployment
-
-          $(echo -e "${MAINNET_TABLE}")
-          EOF
-
-          # Remove leading whitespace from heredoc
-          sed -i 's/^          //' /tmp/changelog.md
           echo "Generated release changelog with mainnet deployment for ${TAG}"
 
       - id: promote_release
