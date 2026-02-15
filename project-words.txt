@@ -169,6 +169,12 @@ Irken
 # Networking and misc tools
 netcat
 
+# Security
+misconfig
+sarif
+SARIF
+trivy
+
 # UI and wallet
 daisyui
 oisy
