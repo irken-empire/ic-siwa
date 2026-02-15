@@ -6,6 +6,9 @@ inputs:
     description: "Perform a dry run without actually publishing"
     required: false
     default: "false"
+  version:
+    description: "Package version to publish (e.g. v0.2.2 or 0.2.2)"
+    required: true
 
 outputs:
   version:
@@ -30,6 +33,16 @@ runs:
       with:
         node-version: "24"
         registry-url: "https://registry.npmjs.org"
+
+    - id: set_version
+      name: Set Package Version
+      shell: bash
+      working-directory: libs/ic_siwa_ts
+      run: |
+        VERSION="${{ inputs.version }}"
+        VERSION="${VERSION#v}"  # Strip leading 'v' if present
+        echo "Setting package version to ${VERSION}"
+        npm version "${VERSION}" --no-git-tag-version --allow-same-version
 
     - id: install_deps
       name: Install Dependencies
