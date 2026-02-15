@@ -525,7 +525,7 @@ jobs:
   ##################################################
   publish-npm:
     name: Publish npm (dry run)
-    needs: [build-npm, verify-deployment]
+    needs: [setup, build-npm, verify-deployment]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: Testnet
@@ -558,6 +558,7 @@ jobs:
         uses: ./.github/actions/publish-npm
         with:
           dry_run: "true"
+          version: ${{ needs.setup.outputs.version }}
 
   ##################################################
   # Status

@@ -528,7 +528,7 @@ jobs:
   ##################################################
   publish-npm:
     name: Publish npm
-    needs: [build-npm, verify-deployment]
+    needs: [setup, build-npm, verify-deployment]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: Mainnet
@@ -561,6 +561,7 @@ jobs:
         uses: ./.github/actions/publish-npm
         with:
           dry_run: "false"
+          version: ${{ needs.setup.outputs.version }}
 
   ##################################################
   # Update release notes
