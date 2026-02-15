@@ -8,10 +8,11 @@
 #   - Manual dispatch → Create pre-release (Testnet) or promote to release (Mainnet)
 #
 # Flow:
-#   1. Read version from Cargo.toml
-#   2. Testnet: Tag as v{version}, create pre-release
+#   1. Compute next version via convco (or use version_override if provided)
+#   2. Bump version in Cargo.toml, package.json files, TypeScript VERSION
+#   3. Testnet: Tag as v{version}, create pre-release
 #      → calls cd-testnet.yaml (workflow_call)
-#   3. Mainnet: Promote existing pre-release tag to release
+#   4. Mainnet: Promote existing pre-release tag to release
 #      → calls cd-mainnet.yaml (workflow_call)
 ##################################################
 
@@ -34,6 +35,11 @@ on:
         default: Testnet
       release_tag:
         description: "Tag to promote (Mainnet only, e.g. v0.2.0)"
+        required: false
+        type: string
+        default: ""
+      version_override:
+        description: "Force a specific version (Testnet only, e.g. 0.3.0 or v0.3.0)"
         required: false
         type: string
         default: ""
@@ -87,12 +93,41 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          submodules: recursive
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - id: compute_version
         name: Compute Version
+        shell: devenv shell --quiet bash -- -e {0}
         run: |
-          VERSION="$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')"
-          TAG="v${VERSION}"
+          OVERRIDE="${{ github.event.inputs.version_override }}"
+
+          if [[ -n "${OVERRIDE}" ]]; then
+            # Strip leading 'v' if present and validate
+            NEXT_VERSION="${OVERRIDE#v}"
+
+            if ! [[ "${NEXT_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+              echo "::error::Invalid version format: '${OVERRIDE}'. Expected semver (e.g. 0.3.0 or v0.3.0)"
+              exit 1
+            fi
+
+            echo "Using manual version override: ${NEXT_VERSION}"
+          else
+            # Get next version from conventional commits
+            NEXT_VERSION=$(convco version --bump 2>/dev/null || echo "")
+
+            if [[ -z "${NEXT_VERSION}" ]]; then
+              echo "No conventional commits found to bump version"
+              NEXT_VERSION=$(convco version)
+            fi
+          fi
+
+          TAG="v${NEXT_VERSION}"
 
           # Check if tag already exists
           if git tag --list | grep -q "^${TAG}$"; then
@@ -102,21 +137,27 @@ jobs:
             echo "skip=false" >> "${GITHUB_OUTPUT}"
           fi
 
-          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "version=${NEXT_VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
-          echo "Version: ${VERSION}, Tag: ${TAG}"
+          echo "Version: ${NEXT_VERSION}, Tag: ${TAG}"
+
+      - id: bump_version
+        name: Bump Version Files
+        if: steps.compute_version.outputs.skip != 'true'
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          ic-siwa version --force-set ${{ steps.compute_version.outputs.version }}
 
       - id: generate_changelog
         name: Generate Changelog
         if: steps.compute_version.outputs.skip != 'true'
+        shell: devenv shell --quiet bash -- -e {0}
         run: |
-          {
-            echo "## IC-SIWA Pre-Release"
-            echo ""
-            echo "**Version:** \`${{ steps.compute_version.outputs.tag }}\`"
-            echo ""
-            echo "This is a pre-release deployed to testnet. Promote to release for mainnet deployment."
-          } > /tmp/changelog.md
+          # Generate changelog for unreleased commits
+          CHANGELOG=$(convco changelog --unreleased 2>/dev/null || echo "No changelog available")
+          # Write to file for the release step (multiline output)
+          echo "${CHANGELOG}" > /tmp/changelog.md
+          echo "Generated changelog for release"
 
       - id: create_release
         name: Create Pre-Release
@@ -142,7 +183,7 @@ jobs:
     uses: ./.github/workflows/cd-testnet.yaml
     with:
       version: ${{ needs.pre-release.outputs.tag }}
-      accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes == 'true' }}
+      accept_breaking_changes: ${{ inputs.accept_breaking_changes == true }}
     secrets: inherit
 
   ##################################################
@@ -167,6 +208,18 @@ jobs:
       tag: ${{ steps.validate_tag.outputs.tag }}
 
     steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - id: validate_tag
         name: Validate Release Tag
         env:
@@ -193,6 +246,16 @@ jobs:
           echo "tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
           echo "Validated: ${RELEASE_TAG} is a pre-release, ready to promote"
 
+      - id: generate_changelog
+        name: Generate Release Changelog
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          # Generate full changelog for this release version
+          TAG="${{ steps.validate_tag.outputs.tag }}"
+          CHANGELOG=$(convco changelog "${TAG}" 2>/dev/null || echo "Release ${TAG}")
+          echo "${CHANGELOG}" > /tmp/changelog.md
+          echo "Generated release changelog for ${TAG}"
+
       - id: promote_release
         name: Promote Pre-Release
         env:
@@ -200,7 +263,8 @@ jobs:
         run: |
           gh release edit "${{ steps.validate_tag.outputs.tag }}" \
             --prerelease=false \
-            --title "Release ${{ steps.validate_tag.outputs.tag }}"
+            --title "Release ${{ steps.validate_tag.outputs.tag }}" \
+            --notes-file /tmp/changelog.md
 
           echo "Promoted ${{ steps.validate_tag.outputs.tag }} to release"
 
@@ -215,5 +279,5 @@ jobs:
     uses: ./.github/workflows/cd-mainnet.yaml
     with:
       version: ${{ needs.promote.outputs.tag }}
-      accept_breaking_changes: ${{ github.event.inputs.accept_breaking_changes == 'true' }}
+      accept_breaking_changes: ${{ inputs.accept_breaking_changes == true }}
     secrets: inherit

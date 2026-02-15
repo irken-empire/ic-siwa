@@ -52,7 +52,7 @@ AVALANCHE_WALLET_ADDRESS="${AVALANCHE_WALLET_ADDRESS:-0xb81749C72DB5B5209098f2bd
 EXPECTED_PRINCIPAL_ID="h4ntr-oyuvq-xwuyv-252i6-hm3qe-hwy4w-7p5ud-kwpgd-7kwpd-y7tje-2a"
 
 # NPM package.json files to manage (for version sync)
-# Used by: cmd_version, cmd_version_force, cmd_version_check, cmd_version_sync
+# Used by: cmd_version, cmd_version_force, cmd_version_check, cmd_version_sync, cmd_version_reset, cmd_version_force_set
 NPM_PACKAGES=(
 	"package.json"
 	"libs/ic_siwa_ts/package.json"
@@ -229,6 +229,8 @@ show_help() {
 		  check              Check if all required dependencies are installed
 		  version            Show current version (from Cargo.toml)
 		  version --bump     Bump version based on conventional commits
+		  version --reset    Reset all version files to 0.0.0 (CI uses convco)
+		  version --force-set <ver>  Set exact version in all files
 		  version --check    Check if all versions are in sync
 		  version --sync     Sync all versions to match Cargo.toml
 		  version --major    Force bump major version (x.0.0)
@@ -546,8 +548,8 @@ cmd_version() {
 	log_info "  3. Push to trunk: git push"
 	log_info ""
 	log_info "GitHub Actions will automatically:"
-	log_info "  - Testnet: Create tag v${next_version}-testnet (prerelease) on push to trunk"
-	log_info "  - Mainnet: Create tag v${next_version} (release) via manual workflow dispatch"
+	log_info "  - Pre-release: Create tag v${next_version} (prerelease) on push to trunk"
+	log_info "  - Release: Promote pre-release via manual workflow dispatch"
 }
 
 # Force version bump (major/minor/patch)
@@ -674,6 +676,84 @@ cmd_version_sync() {
 	fi
 
 	log_success "Versions synced to ${cargo_version}"
+}
+
+# Reset all version files to 0.0.0 (CI/convco is the source of truth)
+cmd_version_reset() {
+	cd "${PROJECT_ROOT}"
+
+	local BASE_VERSION="0.0.0"
+
+	log_info "Resetting all versions to ${BASE_VERSION}..."
+
+	# Update Cargo.toml (workspace version)
+	toml set Cargo.toml workspace.package.version "${BASE_VERSION}" >Cargo.toml.tmp
+	mv Cargo.toml.tmp Cargo.toml
+
+	# Update all npm package.json files
+	for npm_package in "${NPM_PACKAGES[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_package}"
+		if [[ -f ${full_path} ]]; then
+			jq --arg v "${BASE_VERSION}" '.version = $v' "${full_path}" >"${full_path}.tmp"
+			mv "${full_path}.tmp" "${full_path}"
+		fi
+	done
+
+	# Update TypeScript VERSION constant
+	local ts_index="${PROJECT_ROOT}/libs/ic_siwa_ts/src/index.ts"
+	if [[ -f ${ts_index} ]]; then
+		sed -i "s/export const VERSION = \".*\"/export const VERSION = \"${BASE_VERSION}\"/" "${ts_index}"
+	fi
+
+	# Update Cargo.lock
+	cargo check --quiet 2>/dev/null || true
+
+	log_success "All versions reset to ${BASE_VERSION}"
+}
+
+# Force set an exact version in all files (used by CI)
+cmd_version_force_set() {
+	local target_version="${1:-}"
+	cd "${PROJECT_ROOT}"
+
+	if [[ -z ${target_version} ]]; then
+		log_error "Usage: ic-siwa version --force-set <semver>"
+		return 1
+	fi
+
+	# Strip leading 'v' if present
+	target_version="${target_version#v}"
+
+	if ! [[ ${target_version} =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+		log_error "Invalid version format: '${target_version}'. Expected semver (e.g. 0.3.0)"
+		return 1
+	fi
+
+	log_info "Setting version to ${target_version} in all files..."
+
+	# Update Cargo.toml (workspace version)
+	toml set Cargo.toml workspace.package.version "${target_version}" >Cargo.toml.tmp
+	mv Cargo.toml.tmp Cargo.toml
+
+	# Update all npm package.json files
+	for npm_package in "${NPM_PACKAGES[@]}"; do
+		local full_path="${PROJECT_ROOT}/${npm_package}"
+		if [[ -f ${full_path} ]]; then
+			jq --arg v "${target_version}" '.version = $v' "${full_path}" >"${full_path}.tmp"
+			mv "${full_path}.tmp" "${full_path}"
+		fi
+	done
+
+	# Update TypeScript VERSION constant
+	local ts_index="${PROJECT_ROOT}/libs/ic_siwa_ts/src/index.ts"
+	if [[ -f ${ts_index} ]]; then
+		sed -i "s/export const VERSION = \".*\"/export const VERSION = \"${target_version}\"/" "${ts_index}"
+	fi
+
+	# Update Cargo.lock
+	cargo check --quiet 2>/dev/null || true
+
+	log_success "All versions set to ${target_version}"
 }
 
 # Update all dependencies
@@ -2409,6 +2489,7 @@ parse_args() {
 
 	# Version sub-options
 	local VERSION_ACTION=""
+	local FORCE_SET_VERSION=""
 
 	# Parse options
 	while [[ $# -gt 0 ]]; do
@@ -2452,6 +2533,15 @@ parse_args() {
 		--patch)
 			VERSION_ACTION="patch"
 			shift
+			;;
+		--reset)
+			VERSION_ACTION="reset"
+			shift
+			;;
+		--force-set)
+			VERSION_ACTION="force-set"
+			FORCE_SET_VERSION="${2:-}"
+			shift 2
 			;;
 		--help | -h)
 			show_help
@@ -2546,6 +2636,12 @@ parse_args() {
 			;;
 		major | minor | patch)
 			cmd_version_force "${VERSION_ACTION}"
+			;;
+		reset)
+			cmd_version_reset
+			;;
+		force-set)
+			cmd_version_force_set "${FORCE_SET_VERSION:-}"
 			;;
 		*)
 			cmd_version false

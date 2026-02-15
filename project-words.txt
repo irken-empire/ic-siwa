@@ -97,6 +97,7 @@ Pickel
 # Word fragments from hyphenated compounds
 # cspell splits on hyphens and suffixes, producing these fragments
 alnum
+amannn
 ated
 ator
 authenti

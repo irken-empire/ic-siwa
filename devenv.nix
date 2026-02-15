@@ -407,11 +407,11 @@ in
           '';
         };
       };
-      version-check = {
+      version-reset = {
         enable = true;
-        name = "version-check";
-        description = "Verify all package versions are in sync with Cargo.toml";
-        entry = "ic-siwa version --check";
+        name = "version-reset";
+        description = "Reset all version files to 0.0.0 (CI/convco is the source of truth)";
+        entry = "ic-siwa version --reset";
         files = "(^Cargo\\.toml$|^package\\.json$|libs/ic_siwa_ts/package\\.json$|canisters/test_canister_ts/package\\.json$)";
         pass_filenames = false;
       };
