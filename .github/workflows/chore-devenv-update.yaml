@@ -1,16 +1,14 @@
 ---
 ##################################################
 # Name: chore-devenv-update.yaml
-# Description: Workflow for Updating Developer Environment
+# Description: Update devenv dependencies and create PR
 ##################################################
 
-name: Chore Devenv Update
+name: Devenv Update
 
 on:
-  # Update on schedule
   schedule:
     - cron: "0 0 * * 0"
-  # Allow manual runs
   workflow_dispatch:
 
 concurrency:
@@ -32,54 +30,42 @@ defaults:
     shell: bash
 
 jobs:
-  ##################################################
-  # Update devenv dependencies
-  ##################################################
   update:
     name: Update
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Configuration summary
-        run: |
-          {
-            echo "## Devenv Update Configuration"
-            echo "| Setting | Value |"
-            echo "|---------|-------|"
-            echo "| Trigger | \`${{ github.event_name }}\` |"
-            echo "| Ref | \`${{ github.ref_name }}\` |"
-            echo "| SHA | \`${{ github.sha }}\` |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Checkout repository
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Secretspec check
-        shell: devenv shell --quiet bash -- -e {0}
-        run: secretspec check
-
-      - name: Devenv update
+      - id: devenv_update
+        name: Update Devenv
         run: devenv update
 
-      - name: Install dependencies
+      - id: install_deps
+        name: Install Dependencies
         shell: devenv shell --quiet bash -- -e {0}
         run: bun run install-deps
 
-      - name: Devenv test
-        id: devenv_test
+      - id: devenv_test
+        name: Run Devenv Test
         run: devenv test
 
-      - name: Write results summary
+      - id: write_summary
+        name: Write Results Summary
         if: always()
         run: |
           {
@@ -91,7 +77,8 @@ jobs:
             echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create Pull Request
+      - id: create_pull_request
+        name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

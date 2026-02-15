@@ -12,16 +12,16 @@ inputs:
 outputs:
   status:
     description: "Registration status"
-    value: ${{ steps.register.outputs.status }}
+    value: ${{ steps.register_domain.outputs.status }}
   message:
     description: "Status message"
-    value: ${{ steps.register.outputs.message }}
+    value: ${{ steps.register_domain.outputs.message }}
 
 runs:
   using: "composite"
   steps:
-    - name: Register domain with IC boundary nodes
-      id: register
+    - id: register_domain
+      name: Register Domain
       shell: bash
       run: |
         DOMAIN="${{ inputs.domain }}"
@@ -71,7 +71,8 @@ runs:
           fi
         fi
 
-    - name: Verify DNS configuration
+    - id: verify_dns
+      name: Verify DNS Configuration
       shell: bash
       run: |
         DOMAIN="${{ inputs.domain }}"

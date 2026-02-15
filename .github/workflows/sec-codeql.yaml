@@ -1,0 +1,95 @@
+---
+##################################################
+# Name: sec-codeql.yaml
+# Description: CodeQL static analysis for security vulnerabilities
+#
+# Triggers:
+#   - Push to trunk
+#   - Pull request to trunk
+#   - Weekly schedule (Sunday 00:00 UTC)
+#
+# Scans:
+#   - Rust code
+#   - TypeScript code
+#   - GitHub Actions workflows
+#
+# Results uploaded to GitHub Security tab
+##################################################
+
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - trunk
+
+  pull_request:
+    branches:
+      - main
+      - master
+      - trunk
+
+  merge_group:
+    branches:
+      - trunk
+
+  schedule:
+    - cron: "0 0 * * 0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+  security-events: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ##################################################
+  # Run CodeQL analysis per language
+  ##################################################
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+    continue-on-error: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: rust
+            build-mode: none
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - id: init_codeql
+        name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - id: analyze_codeql
+        name: Run CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

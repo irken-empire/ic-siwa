@@ -1,13 +1,12 @@
 ---
 ##################################################
-# Name: ci.yml
+# Name: ci.yaml
 # Description: CI checks for pull requests
 #
 # Triggers:
 #   - Pull requests to trunk
 #
-# This workflow runs lint, test, and build checks without deploying
-# or uploading artifacts. It validates that the code is ready to merge.
+# Validates lint, test, build, and Candid interface without deploying.
 ##################################################
 
 name: CI
@@ -17,8 +16,12 @@ on:
     branches:
       - trunk
 
+  merge_group:
+    branches:
+      - trunk
+
 concurrency:
-  group: ci-${{ github.head_ref }}
+  group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -44,21 +47,34 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Rust formatting
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+        with:
+          cache-key-prefix: ci-lint
+
+      - id: rust_fmt
+        name: Check Rust Formatting
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo fmt --all -- --check
 
-      - name: Rust clippy
+      - id: rust_clippy
+        name: Run Clippy
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo clippy --all-targets -- -D warnings
 
@@ -71,21 +87,38 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Rust tests
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+        with:
+          cache-key-prefix: ci-test
+
+      - id: cache_bun
+        name: Cache Bun
+        uses: ./.github/actions/cache-bun
+
+      - id: rust_tests
+        name: Run Rust Tests
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo test -p ic_siwa
 
-      - name: TypeScript tests
+      - id: typescript_tests
+        name: Run TypeScript Tests
         shell: devenv shell --quiet bash -- -e {0}
         run: |
           cd libs/ic_siwa_ts
@@ -113,22 +146,47 @@ jobs:
             type: assets
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build canister
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+        with:
+          cache-key-prefix: ci-build
+
+      - id: cache_bun
+        name: Cache Bun
+        uses: ./.github/actions/cache-bun
+
+      - id: build_canister
+        name: Build Canister
         uses: ./.github/actions/build-canister
         with:
           canister: ${{ matrix.canister }}
           type: ${{ matrix.type }}
           environment: development
+
+      - id: upload_artifact
+        name: Upload Build Artifact
+        if: matrix.canister == 'ic_siwa_provider'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.canister }}-ci
+          path: target/wasm32-unknown-unknown/release/${{ matrix.canister }}.wasm
+          retention-days: 1
 
   ##################################################
   # Build TypeScript - Verify npm package builds
@@ -140,17 +198,23 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_cache_name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build npm package
+      - id: build_npm
+        name: Build npm Package
         uses: ./.github/actions/build-npm
 
   ##################################################
@@ -163,22 +227,28 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - id: checkout_repository
+        name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Setup devenv
+      - id: setup_devenv
+        name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build provider canister
-        uses: ./.github/actions/build-canister
+      - id: download_artifact
+        name: Download Provider WASM
+        uses: actions/download-artifact@v4
         with:
-          canister: ic_siwa_provider
-          type: rust
-          environment: development
+          name: ic_siwa_provider-ci
+          path: target/wasm32-unknown-unknown/release/
 
-      - name: Verify Candid
+      - id: verify_candid
+        name: Verify Candid Interface
         shell: devenv shell --quiet bash -- -e {0}
         run: |
           candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
@@ -205,7 +275,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Write results summary
+      - id: write_summary
+        name: Write Results Summary
         run: |
           {
             echo "## CI Results"
@@ -219,7 +290,8 @@ jobs:
             echo "| Verify Candid | ${{ needs.verify-candid.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Check for failures
+      - id: check_failures
+        name: Check for Failures
         run: |
           ALL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.build-typescript.result }},${{ needs.verify-candid.result }}"
 

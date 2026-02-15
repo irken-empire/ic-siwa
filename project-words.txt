@@ -97,6 +97,7 @@ Pickel
 # Word fragments from hyphenated compounds
 # cspell splits on hyphens and suffixes, producing these fragments
 alnum
+amannn
 ated
 ator
 authenti
@@ -167,6 +168,12 @@ Irken
 
 # Networking and misc tools
 netcat
+
+# Security
+misconfig
+sarif
+SARIF
+trivy
 
 # UI and wallet
 daisyui

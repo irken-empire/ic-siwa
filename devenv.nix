@@ -161,20 +161,25 @@ in
     ++ lib.optionals (!config.container.isBuilding || config.name == "devenv") devPackages;
 
   enterShell = ''
-    figlet -f starwars -w 180 $PROJECT
+    if [[ "''${CI:-false}" == "true" ]];
+    then
+      echo "devenv running in CI"
+    else
+      figlet -f starwars -w 180 $PROJECT
 
-    hello --greeting="Hello ''${USER:-user}, welcome to the $PROJECT project!"
+      hello --greeting="Hello ''${USER:-user}, welcome to the $PROJECT project!"
 
-    echo ""
-    echo "#########################"
-    echo "#### Helper scripts #####"
-    echo "#########################"
-    echo "🦾"
-    ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<EOF | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|🦾 |' -e 's|••| |g'
-    ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
-    EOF
-    echo "🦾"
-    echo "#########################"
+      echo ""
+      echo "#########################"
+      echo "#### Helper scripts #####"
+      echo "#########################"
+      echo "🦾"
+      ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<'SCRIPTS' | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|🦾 |' -e 's|••| |g'
+      ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
+      SCRIPTS
+      echo "🦾"
+      echo "#########################"
+    fi
   '';
 
   # AI - Claude Code Integration
@@ -402,11 +407,11 @@ in
           '';
         };
       };
-      version-check = {
+      version-reset = {
         enable = true;
-        name = "version-check";
-        description = "Verify all package versions are in sync with Cargo.toml";
-        entry = "ic-siwa version --check";
+        name = "version-reset";
+        description = "Reset all version files to 0.0.0 (CI/convco is the source of truth)";
+        entry = "ic-siwa version --reset";
         files = "(^Cargo\\.toml$|^package\\.json$|libs/ic_siwa_ts/package\\.json$|canisters/test_canister_ts/package\\.json$)";
         pass_filenames = false;
       };

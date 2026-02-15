@@ -4,7 +4,7 @@ description: "Build the ic-siwa TypeScript library for npm"
 outputs:
   version:
     description: "Package version"
-    value: ${{ steps.version.outputs.version }}
+    value: ${{ steps.get_version.outputs.version }}
   artifact_path:
     description: "Path to built artifacts"
     value: "libs/ic_siwa_ts/"
@@ -12,7 +12,8 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Install dependencies
+    - id: install_deps
+      name: Install Dependencies
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: |
@@ -20,7 +21,8 @@ runs:
         cd "$GITHUB_WORKSPACE"
         devenv shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun install"
 
-    - name: Build library
+    - id: build_library
+      name: Build Library
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: |
@@ -28,8 +30,8 @@ runs:
         cd "$GITHUB_WORKSPACE"
         devenv shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun run build"
 
-    - name: Get version
-      id: version
+    - id: get_version
+      name: Get Version
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: |

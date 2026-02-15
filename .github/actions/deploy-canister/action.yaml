@@ -24,12 +24,13 @@ inputs:
 outputs:
   canister_id:
     description: "Deployed canister ID"
-    value: ${{ steps.deploy.outputs.canister_id }}
+    value: ${{ steps.deploy_canister.outputs.canister_id }}
 
 runs:
   using: "composite"
   steps:
-    - name: Configure DFX identity
+    - id: configure_identity
+      name: Configure DFX Identity
       shell: devenv shell --quiet bash -- -e {0}
       env:
         DFX_WARNING: "-mainnet_plaintext_identity"
@@ -39,8 +40,8 @@ runs:
         dfx identity use deploy
         rm /tmp/identity.pem
 
-    - name: Deploy canister
-      id: deploy
+    - id: deploy_canister
+      name: Deploy Canister
       shell: devenv shell --quiet bash -- -e {0}
       env:
         DFX_WARNING: "-mainnet_plaintext_identity"
