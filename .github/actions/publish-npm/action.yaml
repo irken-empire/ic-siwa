@@ -9,6 +9,10 @@ inputs:
   version:
     description: "Package version to publish (e.g. v0.2.2 or 0.2.2)"
     required: true
+  provenance:
+    description: "Enable npm provenance (requires public repo + OIDC)"
+    required: false
+    default: "false"
 
 outputs:
   version:
@@ -80,13 +84,18 @@ runs:
       shell: bash
       working-directory: libs/ic_siwa_ts
       run: |
+        PROVENANCE_FLAG=""
+        if [[ "${{ inputs.provenance }}" == "true" ]]; then
+          PROVENANCE_FLAG="--provenance"
+          echo "Provenance enabled (public repo + OIDC)"
+        fi
+
         if [[ "${{ inputs.dry_run }}" == "true" ]]; then
           echo "Performing dry run..."
           npm publish --dry-run
           echo "published=false" >> "$GITHUB_OUTPUT"
         else
           echo "Publishing to npm..."
-          # Trusted publishing via OIDC - provenance is automatically generated
-          npm publish --access public --provenance
+          npm publish --access public ${PROVENANCE_FLAG:-}
           echo "published=true" >> "$GITHUB_OUTPUT"
         fi
