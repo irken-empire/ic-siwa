@@ -91,6 +91,36 @@ When working on specific features, reference the relevant documentation file for
 
 ## Development Workflow
 
+### Devenv
+
+Context: The project uses devenv (built on Nix) to ensure a reproducible, hermetic development environment.
+
+Directives:
+
+- **Strictly usage of `devenv`**: Always assume tools (like dfx, node, bun, rust, juno) are managed via `devenv.nix`.
+- **Package Manager**: Use `bun` and `bunx` exclusively. Do not use `npm` or `npx` unless absolutely necessary (and verify why `bun` failed).
+- **No Global Installs**: Do not suggest installing global dependencies
+  (brew install, apt-get, bun install -g). Instead, suggest adding packages to the
+  `devenv.nix` file if a tool is missing.
+- **Shell Awareness**: Ensure commands are run within `devenv shell` or that `direnv` is active.
+- Use `devenv up` to start backing services or processes if configured.
+- Any changes to dotenv `.env` will required a `direnv reload` or `devenv shell` to take effect.
+- **Secret Management**: For non-secret variables, the dotenv `.env` file is acceptable however always use `secretspec` for managing secrets values like keys.
+- **IMPORTANT:** **1Password Integration** Due to the enablement of `secretspec`, and 1Password being unavailable in the AI Agent sandbox,
+  to run devenv shell commands, use this method:
+  - `SECRETSPEC_PROVIDER=env devenv shell --quiet -- <command>`
+  - As a fallback, ask the user to execute and paste the result.
+
+Devenv has it's own MCP server available at: <https://mcp.devenv.sh/> which can be started locally with `devenv mcp`. This can be used for additional knowledge about `devenv.nix` syntax.
+
+When the setup is becomes complex create `devenv.nix` and run commands within:
+
+```bash
+devenv shell -- cli args
+```
+
+See <https://devenv.sh/ad-hoc-developer-environments/>
+
 ### Helper Script
 
 The `ic-siwa` script (or `./scripts/ic-siwa.sh`) provides all common development tasks:
