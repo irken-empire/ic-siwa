@@ -141,6 +141,12 @@ jobs:
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+        with:
+          cache-key-prefix: cd-mainnet-lint
+
       - id: rust_fmt
         name: Check Rust Formatting
         shell: devenv shell --quiet bash -- -e {0}
@@ -176,6 +182,16 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+        with:
+          cache-key-prefix: cd-mainnet-test
+
+      - id: cache_bun
+        name: Cache Bun
+        uses: ./.github/actions/cache-bun
 
       - id: rust_tests
         name: Run Rust Tests
@@ -228,6 +244,16 @@ jobs:
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+        with:
+          cache-key-prefix: cd-mainnet-build
+
+      - id: cache_bun
+        name: Cache Bun
+        uses: ./.github/actions/cache-bun
+
       - id: build_canister
         name: Build Canister
         uses: ./.github/actions/build-canister
@@ -275,6 +301,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - id: cache_bun
+        name: Cache Bun
+        uses: ./.github/actions/cache-bun
 
       - id: build_npm
         name: Build npm Package
