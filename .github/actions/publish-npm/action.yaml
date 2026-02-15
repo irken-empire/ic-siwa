@@ -83,8 +83,6 @@ runs:
       name: Publish to npm
       shell: bash
       working-directory: libs/ic_siwa_ts
-      env:
-        NODE_AUTH_TOKEN: ${{ inputs.provenance == 'true' && '' || env.NPM_TOKEN }}
       run: |
         PROVENANCE_FLAG=""
         if [[ "${{ inputs.provenance }}" == "true" ]]; then

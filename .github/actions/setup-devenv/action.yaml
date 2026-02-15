@@ -24,9 +24,16 @@ runs:
       with:
         github_access_token: ${{ inputs.github-token }}
 
-    - id: magic_nix_cache
-      name: Magic Nix Cache
-      uses: DeterminateSystems/magic-nix-cache-action@main
+    - id: nix_cache
+      name: Cache Nix Store
+      uses: nix-community/cache-nix-action@v7
+      with:
+        primary-key: nix-${{ runner.os }}-${{ hashFiles('devenv.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-
+        gc-max-store-size-linux: 5G
+        purge: true
+        purge-created: P7D
+        token: ${{ inputs.github-token }}
 
     - id: enable_cachix
       name: Enable Cachix

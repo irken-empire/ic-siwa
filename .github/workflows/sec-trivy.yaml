@@ -46,7 +46,6 @@ permissions:
   statuses: write
   security-events: write
   actions: read
-  id-token: write
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1

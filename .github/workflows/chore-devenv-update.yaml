@@ -20,7 +20,6 @@ permissions:
   packages: write
   pull-requests: write
   statuses: read
-  id-token: write
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
