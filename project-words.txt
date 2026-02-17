@@ -188,3 +188,8 @@ credentials
 codescanning
 sarifv
 interpret
+endersonmenezes
+temurin
+rmz
+rmz_version
+micr

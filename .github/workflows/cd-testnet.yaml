@@ -76,6 +76,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -121,6 +125,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -162,6 +170,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
@@ -224,6 +236,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -282,6 +298,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -329,6 +349,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
@@ -394,6 +418,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -434,6 +462,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
@@ -498,6 +530,10 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -530,6 +566,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - id: free_disk_space
+        name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
