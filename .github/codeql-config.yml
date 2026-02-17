@@ -1,0 +1,23 @@
+---
+##################################################
+# Name: codeql-config.yml
+# Description: Custom CodeQL configuration
+#
+# Excludes test code paths from analysis to prevent
+# false positives on test fixtures (e.g. well-known
+# EIP-55 test vector addresses, test salts).
+##################################################
+
+name: "IC-SIWA CodeQL Configuration"
+
+# Exclude test files, fixtures, and generated code from analysis.
+# Test code contains well-known cryptographic test vectors
+# (e.g. EIP-55 addresses) that trigger false-positive
+# "hard-coded cryptographic value" alerts.
+paths-ignore:
+  - "**/tests/**"
+  - "**/test_*/**"
+  - "canisters/test_canister_rs/**"
+  - "canisters/test_canister_ts/**"
+  - "node_modules/**"
+  - "target/**"

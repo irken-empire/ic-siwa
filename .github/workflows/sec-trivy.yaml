@@ -21,8 +21,6 @@ name: Trivy
 on:
   pull_request:
     branches:
-      - main
-      - master
       - trunk
     paths-ignore:
       - "docs/**"

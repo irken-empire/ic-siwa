@@ -5,6 +5,7 @@
 #
 # Triggers:
 #   - Pull request opened, edited, or synchronized
+#   - Merge group (auto-pass to unblock merge queue)
 #
 # PR titles must follow the conventional commit format:
 #   type(scope): description
@@ -18,6 +19,10 @@ name: PR Title
 on:
   pull_request:
     types: [opened, edited, synchronize]
+
+  merge_group:
+    branches:
+      - trunk
 
 permissions:
   pull-requests: read
@@ -35,6 +40,7 @@ jobs:
     steps:
       - id: check_pr_title
         name: Check PR Title
+        if: github.event_name == 'pull_request'
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

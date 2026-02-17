@@ -65,5 +65,9 @@ devenv.local.yaml
 *.log
 
 # Ignore ticket notes
-docs/tickets/
+docs/issues/
 TODO/
+
+# CodeQL local analysis
+.codeql-db/
+.codeql-results/
