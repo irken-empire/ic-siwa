@@ -67,8 +67,8 @@ impl SiwaMessage {
         let now_ns = ic_cdk::api::time();
         let now_secs = now_ns / 1_000_000_000;
 
-        // Calculate expiration
-        let exp_ns = now_ns + settings.login_expiration_time;
+        // Calculate expiration (saturating to avoid overflow)
+        let exp_ns = now_ns.saturating_add(settings.login_expiration_time);
         let exp_secs = exp_ns / 1_000_000_000;
 
         Self {
