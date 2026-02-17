@@ -39,12 +39,12 @@ impl RateLimiter {
 
     /// Get window duration in nanoseconds
     fn window_ns(&self) -> u64 {
-        self.settings.window_seconds * 1_000_000_000
+        self.settings.window_seconds.saturating_mul(1_000_000_000)
     }
 
     /// Check if a timestamp is within the current window
     fn is_in_window(&self, window_start: u64, now: u64) -> bool {
-        now < window_start + self.window_ns()
+        now < window_start.saturating_add(self.window_ns())
     }
 
     /// Check rate limit and record an attempt for the given address
@@ -141,11 +141,11 @@ impl RateLimiter {
 
         // Clean up per-address entries
         self.per_address
-            .retain(|_, &mut (_, window_start)| now_ns < window_start + window_ns);
+            .retain(|_, &mut (_, window_start)| now_ns < window_start.saturating_add(window_ns));
 
         // Reset global if window expired
         let (_, window_start) = self.global;
-        if now_ns >= window_start + window_ns {
+        if now_ns >= window_start.saturating_add(window_ns) {
             self.global = (0, 0);
         }
     }
