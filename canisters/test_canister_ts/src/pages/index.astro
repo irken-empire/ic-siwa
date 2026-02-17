@@ -459,7 +459,7 @@ const title = "IC-SIWA Test";
           log.info("AppKit initialized with WagmiAdapter");
 
           // Use wagmi core's watchAccount to track connection state
-          watchAccount(state.wagmiConfig, {
+          const unwatchAccount = watchAccount(state.wagmiConfig, {
             onChange: (account) => {
               log.debug("Account state changed", {
                 address: account.address,
@@ -477,13 +477,19 @@ const title = "IC-SIWA Test";
           });
 
           // Also watch for chain changes
-          watchChainId(state.wagmiConfig, {
+          const unwatchChainId = watchChainId(state.wagmiConfig, {
             onChange: (chainId) => {
               log.debug("Chain changed", { chainId });
               state.chainId = chainId;
               updateDiagnostics();
               handleConnectionState();
             }
+          });
+
+          // Clean up watchers on page unload to prevent memory leaks
+          window.addEventListener("beforeunload", () => {
+            unwatchAccount();
+            unwatchChainId();
           });
 
           // Get initial state
