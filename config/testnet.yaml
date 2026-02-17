@@ -201,5 +201,5 @@ library:
 #   - Additional logging in canister
 #   - Test canister deployments
 #
-# Set to true for testnet to aid debugging. MUST be false for mainnet.
-debug: true
+# MUST be false for any public network to avoid information leakage.
+debug: false
