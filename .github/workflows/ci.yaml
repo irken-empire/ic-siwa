@@ -82,6 +82,11 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
         run: cargo clippy --all-targets -- -D warnings
 
+      - id: check_canister_ids
+        name: Check Canister ID Consistency
+        shell: devenv shell --quiet bash -- -e {0}
+        run: bash scripts/check-canister-ids.sh
+
   ##################################################
   # Test - Run unit tests
   ##################################################
