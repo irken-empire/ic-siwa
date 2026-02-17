@@ -6,22 +6,44 @@
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk_macros::{init, query, update};
 
-/// Response types matching ic_siwa_provider
+/// Response types matching ic_siwa_provider.did interface
+
+#[derive(CandidType, Deserialize)]
+pub struct PrepareLoginOk {
+    pub expiration: u64,
+    pub message: String,
+    pub nonce: String,
+}
+
 #[derive(CandidType, Deserialize)]
 pub enum PrepareLoginResponse {
-    Ok(String),
+    Ok(PrepareLoginOk),
     Err(String),
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct LoginOk {
+    pub user_principal: Principal,
+    pub user_canister_pubkey: Vec<u8>,
+    pub expiration: u64,
 }
 
 #[derive(CandidType, Deserialize)]
 pub enum LoginResponse {
-    Ok(Principal),
+    Ok(LoginOk),
     Err(String),
 }
 
 #[derive(CandidType, Deserialize)]
+pub struct Delegation {
+    pub pubkey: Vec<u8>,
+    pub targets: Option<Vec<Principal>>,
+    pub expiration: u64,
+}
+
+#[derive(CandidType, Deserialize)]
 pub struct SignedDelegation {
-    pub delegation: Vec<u8>,
+    pub delegation: Delegation,
     pub signature: Vec<u8>,
 }
 
@@ -74,7 +96,7 @@ async fn test_prepare_login(provider_id: Principal, address: String) -> Result<S
                 .candid()
                 .map_err(|e| format!("Decode error: {:?}", e))?;
             match resp {
-                PrepareLoginResponse::Ok(message) => Ok(message),
+                PrepareLoginResponse::Ok(data) => Ok(data.message),
                 PrepareLoginResponse::Err(e) => Err(format!("Provider error: {}", e)),
             }
         }
@@ -101,7 +123,7 @@ async fn test_login(
                 .candid()
                 .map_err(|e| format!("Decode error: {:?}", e))?;
             match resp {
-                LoginResponse::Ok(principal) => Ok(principal),
+                LoginResponse::Ok(data) => Ok(data.user_principal),
                 LoginResponse::Err(e) => Err(format!("Provider error: {}", e)),
             }
         }
