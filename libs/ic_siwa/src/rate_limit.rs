@@ -323,10 +323,10 @@ mod tests {
         let now = 1_000_000_000_000u64;
         let window_ns = 60 * 1_000_000_000u64;
 
-        // Fill up 150 unique addresses in the first window
+        // Fill up 150 unique addresses in the same window
         for i in 0..150u32 {
             let addr = format!("0x{:08x}", i);
-            limiter.check_and_record(&addr, now + i as u64).unwrap();
+            limiter.check_and_record(&addr, now).unwrap();
         }
         assert!(limiter.per_address.len() >= 100);
 
