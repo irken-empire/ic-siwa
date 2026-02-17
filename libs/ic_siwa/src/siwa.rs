@@ -395,12 +395,9 @@ pub fn validate_address(address: &str) -> Result<(), SiwaError> {
         )));
     }
 
-    // Validate hex
-    hex::decode(&address[2..])
+    // Validate and decode hex
+    let address_bytes = hex::decode(&address[2..])
         .map_err(|e| SiwaError::InvalidAddress(format!("Invalid hex: {}", e)))?;
-
-    // Optionally verify EIP-55 checksum
-    let address_bytes = hex::decode(&address[2..]).unwrap();
     let checksummed = to_eip55_checksum(&address_bytes);
 
     // Only enforce checksum if address has mixed case
