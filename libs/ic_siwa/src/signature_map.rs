@@ -52,6 +52,11 @@ impl PartialOrd for SigExpiration {
 /// This is used to create certified data that the IC can verify. When a delegation is
 /// created during login, its hash is stored in this map. When `siwa_get_delegation` is
 /// called, the map provides a witness (merkle proof) that the delegation exists.
+///
+/// **Important: Upgrade behavior.** This struct is stored on the heap and is **not**
+/// persisted to stable memory across canister upgrades. All active delegation signatures
+/// are lost on upgrade, which means users must re-authenticate after an upgrade. This
+/// is intentional — delegations are short-lived and re-authentication is cheap.
 #[derive(Default)]
 pub struct SignatureMap {
     certified_map: RbTree<Hash, RbTree<Hash, Unit>>,
