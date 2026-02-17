@@ -35,7 +35,7 @@ jobs:
   check:
     name: Conventional Commit
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
 
     steps:
       - id: check_pr_title

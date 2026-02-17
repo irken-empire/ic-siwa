@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Testnet
 
-    timeout-minutes: 10
+    timeout-minutes: 30
     continue-on-error: false
 
     outputs:
@@ -230,7 +230,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Mainnet
 
-    timeout-minutes: 5
+    timeout-minutes: 30
     continue-on-error: false
 
     outputs:

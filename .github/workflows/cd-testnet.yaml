@@ -114,7 +114,7 @@ jobs:
     name: Lint
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: Testnet
 
     steps:
@@ -160,7 +160,7 @@ jobs:
     name: Test
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: Testnet
 
     steps:
@@ -285,7 +285,7 @@ jobs:
     needs: [lint]
     if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: Testnet
     outputs:
       version: ${{ steps.build_npm.outputs.version }}
@@ -407,7 +407,7 @@ jobs:
     name: Verify Deployment
     needs: [deploy-provider]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: Testnet
 
     steps:
@@ -519,7 +519,7 @@ jobs:
     needs: [setup, deploy-test-canisters]
     if: needs.setup.outputs.debug == 'true' && needs.setup.outputs.domain != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     environment: Testnet
 
     steps:
@@ -554,7 +554,7 @@ jobs:
     name: Publish npm (dry run)
     needs: [setup, build-npm, verify-deployment]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment: Testnet
     outputs:
       version: ${{ steps.publish_npm.outputs.version }}
