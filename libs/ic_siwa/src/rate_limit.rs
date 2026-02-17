@@ -64,6 +64,12 @@ impl RateLimiter {
     pub fn check_and_record(&mut self, address: &str, now_ns: u64) -> Result<(), SiwaError> {
         let address_lower = address.to_lowercase();
 
+        // Periodically cleanup expired per-address entries to bound memory growth.
+        // Runs every 100 unique addresses to amortize the cost.
+        if self.per_address.len() > 100 {
+            self.cleanup_expired(now_ns);
+        }
+
         // Check and update global rate limit
         self.check_global(now_ns)?;
 
@@ -310,6 +316,32 @@ mod tests {
         // Cleanup after window should remove entries
         limiter.cleanup_expired(now + window_ns + 1);
         assert_eq!(limiter.per_address.len(), 0);
+    }
+
+    #[test]
+    fn test_rate_limiter_auto_cleanup_expired_entries() {
+        let settings = RateLimitSettings {
+            max_logins_per_address: 100,
+            max_logins_total: 10000,
+            window_seconds: 60,
+        };
+        let mut limiter = RateLimiter::new(settings);
+        let now = 1_000_000_000_000u64;
+        let window_ns = 60 * 1_000_000_000u64;
+
+        // Fill up 150 unique addresses in the same window
+        for i in 0..150u32 {
+            let addr = format!("0x{:08x}", i);
+            limiter.check_and_record(&addr, now).unwrap();
+        }
+        assert!(limiter.per_address.len() >= 100);
+
+        // Move past the window and add a new address — triggers auto cleanup
+        let after_window = now + window_ns + 1;
+        limiter.check_and_record("0xaa00bb", after_window).unwrap();
+
+        // Expired entries should have been cleaned up
+        assert_eq!(limiter.per_address.len(), 1);
     }
 
     #[test]
