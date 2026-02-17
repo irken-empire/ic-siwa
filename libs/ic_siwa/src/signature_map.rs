@@ -111,6 +111,11 @@ impl SignatureMap {
             self.certified_map.delete(&seed_hash[..]);
         }
         self.expiration_index.remove(&(seed_hash, delegation_hash));
+
+        // Lazy cleanup: drain stale queue entries when orphans exceed active entries
+        if self.expiration_queue.len() > self.expiration_index.len().saturating_mul(2).max(16) {
+            self.drain_stale();
+        }
     }
 
     /// Prune expired entries from the map
@@ -338,6 +343,31 @@ mod tests {
         assert_eq!(map.queue_len(), 1); // orphaned entry removed
         assert_eq!(map.len(), 1); // active entry still present
         assert!(map.witness(seed2, del2).is_some());
+    }
+
+    #[test]
+    fn test_delete_auto_drains_orphaned_queue_entries() {
+        let mut map = SignatureMap::new();
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
+
+        // Insert 20 entries
+        for i in 0..20u8 {
+            let seed = make_hash(&[i, 0]);
+            let del = make_hash(&[i, 1]);
+            map.put(seed, del, expires_at);
+        }
+        assert_eq!(map.len(), 20);
+        assert_eq!(map.queue_len(), 20);
+
+        // Delete all but one — triggers auto drain_stale when orphans exceed threshold
+        for i in 0..19u8 {
+            let seed = make_hash(&[i, 0]);
+            let del = make_hash(&[i, 1]);
+            map.delete(seed, del);
+        }
+        assert_eq!(map.len(), 1);
+        // Queue should have been drained (not still 20)
+        assert_eq!(map.queue_len(), 1);
     }
 
     #[test]
