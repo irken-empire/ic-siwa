@@ -534,9 +534,12 @@ export class SiwaClient {
     }
 
     // Convert hex back to Uint8Array
+    const hexPairs = serialized.canisterPubkey.match(/.{1,2}/g);
+    if (!hexPairs || hexPairs.length === 0) {
+      throw new Error("Invalid hex-encoded canister public key");
+    }
     const canisterPubkeyBytes = new Uint8Array(
-      serialized.canisterPubkey.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) ??
-        []
+      hexPairs.map((b) => parseInt(b, 16))
     );
 
     try {
