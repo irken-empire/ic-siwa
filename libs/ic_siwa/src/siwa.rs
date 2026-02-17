@@ -644,4 +644,40 @@ mod tests {
         assert!(is_leap_year(2024));
         assert!(!is_leap_year(2023));
     }
+
+    // EIP-55 checksum validation tests
+    #[test]
+    fn test_validate_address_all_lowercase() {
+        // All lowercase is valid per EIP-55 (no checksum required)
+        let addr = "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
+        assert!(validate_address(addr).is_ok());
+    }
+
+    #[test]
+    fn test_validate_address_all_uppercase() {
+        // All uppercase is valid per EIP-55 (no checksum required)
+        let addr = "0x5AAEB6053F3E94C9B9A09F33669435E7EF1BEAED";
+        assert!(validate_address(addr).is_ok());
+    }
+
+    #[test]
+    fn test_validate_address_valid_mixed_case() {
+        // Valid EIP-55 checksummed mixed-case address
+        let addr = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        assert!(validate_address(addr).is_ok());
+    }
+
+    #[test]
+    fn test_validate_address_invalid_mixed_case() {
+        // Invalid mixed-case (deliberately wrong checksum)
+        let addr = "0x5aAEB6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        assert!(validate_address(addr).is_err());
+    }
+
+    #[test]
+    fn test_validate_address_digits_only() {
+        // Address with only hex digits (no letters) — valid without checksum
+        let addr = "0x0000000000000000000000000000000000000001";
+        assert!(validate_address(addr).is_ok());
+    }
 }
