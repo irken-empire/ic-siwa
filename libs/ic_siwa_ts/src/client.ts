@@ -251,6 +251,35 @@ export class SiwaClient {
     options: PrepareLoginOptions
   ): Promise<PreparedLogin> {
     SiwaClient.validateAddress(options.address);
+
+    // Client-side domain validation
+    if (options.domain !== undefined) {
+      if (typeof options.domain !== "string" || options.domain.length === 0) {
+        throw new SiwaError(
+          SiwaErrorCode.InvalidInput,
+          "Domain must be a non-empty string"
+        );
+      }
+    }
+
+    // Client-side URI validation
+    if (options.uri !== undefined) {
+      if (typeof options.uri !== "string" || options.uri.length === 0) {
+        throw new SiwaError(
+          SiwaErrorCode.InvalidInput,
+          "URI must be a non-empty string"
+        );
+      }
+      try {
+        new URL(options.uri);
+      } catch {
+        throw new SiwaError(
+          SiwaErrorCode.InvalidInput,
+          `Invalid URI format: ${options.uri}`
+        );
+      }
+    }
+
     try {
       const actor = await this.createProviderActor();
 
