@@ -381,7 +381,7 @@ jobs:
         with:
           canister: ic_siwa_provider
           dfx_identity_pem: ${{ secrets.DFX_IDENTITY_PEM }}
-          accept_breaking_changes: "false"
+          accept_breaking_changes: ${{ inputs.accept_breaking_changes == true }}
           init_args: |
             (record {
               domain = "${{ needs.setup.outputs.domain }}";
