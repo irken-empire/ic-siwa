@@ -183,3 +183,8 @@ oisy
 aabb
 relogin
 startswith
+hardcoded
+credentials
+codescanning
+sarifv
+interpret

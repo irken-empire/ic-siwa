@@ -330,7 +330,7 @@ in
       };
       markdownlint = {
         excludes = [
-          "^docs/tickets/todo/.*\\.md$" # Ignore todo notes.
+          "^docs/issues/todo/.*\\.md$" # Ignore todo notes.
         ];
         enable = true;
         settings = {
@@ -486,6 +486,13 @@ in
       description = "Developer entrypoint script for ic-siwa.";
       exec = ''
         ./scripts/ic-siwa.sh "$@"
+      '';
+    };
+    codeql-run = {
+      package = pkgs.bash;
+      description = "Run CodeQL static analysis locally.";
+      exec = ''
+        ./scripts/codeql-run.sh "$@"
       '';
     };
   };

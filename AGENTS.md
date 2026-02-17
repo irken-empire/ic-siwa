@@ -251,7 +251,7 @@ Secrets are managed via `secretspec.toml`. Never commit actual secret values.
 ### Key Files to Reference
 
 - `docs/spec.md`: Functional specifications (source of truth for behavior)
-- `docs/tickets/todo/*.md`: Active tickets and tasks
+- `docs/issues/todo/*.md`: Active tickets and tasks
 - `Cargo.toml`: Workspace dependencies and members
 - `dfx.json`: Canister definitions and network configuration
 - `devenv.nix`: Development environment and available scripts
