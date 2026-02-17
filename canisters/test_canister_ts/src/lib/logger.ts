@@ -250,6 +250,11 @@ export function exportAllLogs(): string {
   );
 }
 
+/** Clear all global logs */
+export function clearAllLogs(): void {
+  globalLogStore.length = 0;
+}
+
 /** Get global log count by level */
 export function getLogCounts(): Record<LogLevel, number> {
   return {

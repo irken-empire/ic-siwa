@@ -250,7 +250,7 @@ const title = "IC-SIWA Test";
       import { SiwaClient } from "ic-siwa";
 
       // Local modules
-      import { createLogger, exportAllLogs } from "../lib/logger";
+      import { createLogger, exportAllLogs, clearAllLogs } from "../lib/logger";
 
       // Logger
       const log = createLogger("APP");
@@ -703,6 +703,7 @@ const title = "IC-SIWA Test";
       });
 
       ui.clearLogsBtn?.addEventListener("click", () => {
+        clearAllLogs();
         log.info("Logs cleared");
       });
 
