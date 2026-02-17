@@ -48,9 +48,9 @@ let
   #packages = with pkgs; [ ];
 
   packagesUnstable = with pkgsUnstable; [
-    tailwindcss_4
+    claude-code-bin
     gemini-cli-bin
-    claude-code
+    tailwindcss_4
   ];
 
   devPackages =
