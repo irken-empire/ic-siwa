@@ -273,9 +273,18 @@ pub fn with_settings<R>(f: impl FnOnce(&Settings) -> R) -> R {
     })
 }
 
-/// Check if settings have been initialized
+/// Check if settings have been initialized.
+///
+/// Checks both the in-memory cache and stable memory, since after a canister
+/// upgrade the heap is reset but settings persist in stable memory.
 pub fn has_settings() -> bool {
-    with_state(|state| state.settings_cache.is_some())
+    // First check the in-memory cache
+    let cached = with_state(|state| state.settings_cache.is_some());
+    if cached {
+        return true;
+    }
+    // Fall back to checking stable memory directly
+    SETTINGS_CELL.with(|cell| !cell.borrow().get().is_empty())
 }
 
 /// Load settings from stable memory into the in-memory cache.
