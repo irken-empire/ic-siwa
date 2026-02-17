@@ -100,6 +100,23 @@ impl SignatureMap {
         self.expiration_index.insert(key, signature_expires_at);
     }
 
+    /// Add a delegation hash to the map, pruning expired entries first.
+    ///
+    /// Convenience method that combines `prune_expired` + `put` to ensure
+    /// the map does not grow without bound. Prunes up to `max_prune` expired
+    /// entries before inserting the new one.
+    pub fn put_and_prune(
+        &mut self,
+        seed_hash: Hash,
+        delegation_hash: Hash,
+        delegation_expires_at: u64,
+        now: u64,
+        max_prune: usize,
+    ) {
+        self.prune_expired(now, max_prune);
+        self.put(seed_hash, delegation_hash, delegation_expires_at);
+    }
+
     /// Remove a delegation hash from the map
     pub fn delete(&mut self, seed_hash: Hash, delegation_hash: Hash) {
         let mut is_empty = false;
