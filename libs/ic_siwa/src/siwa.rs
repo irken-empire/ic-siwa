@@ -570,33 +570,41 @@ pub fn hash_session_key(session_key: &[u8]) -> String {
 mod tests {
     use super::*;
 
+    // Well-known EIP-55 test vector addresses (not secrets)
+    const TEST_ADDRESS: &str = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+    const TEST_ADDRESS_LOWER: &str = "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
+    const TEST_ADDRESS_UPPER: &str = "0x5AAEB6053F3E94C9B9A09F33669435E7EF1BEAED";
+    const TEST_ADDRESS_2: &str = "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B";
+    const TEST_ADDRESS_BYTES_HEX: &str = "5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
+    const ZERO_ADDRESS_BYTES_HEX: &str = "0000000000000000000000000000000000000000";
+
     #[test]
     fn test_to_eip55_checksum() {
         // Known test vectors
-        let bytes = hex::decode("5aaeb6053f3e94c9b9a09f33669435e7ef1beaed").unwrap();
+        let bytes = hex::decode(TEST_ADDRESS_BYTES_HEX).unwrap();
         let checksummed = to_eip55_checksum(&bytes);
-        assert_eq!(checksummed, "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed");
+        assert_eq!(checksummed, TEST_ADDRESS);
     }
 
     #[test]
     fn test_validate_address_valid() {
-        assert!(validate_address("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed").is_ok());
+        assert!(validate_address(TEST_ADDRESS).is_ok());
     }
 
     #[test]
     fn test_validate_address_invalid_prefix() {
-        assert!(validate_address("5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed").is_err());
+        assert!(validate_address(&TEST_ADDRESS[2..]).is_err());
     }
 
     #[test]
     fn test_validate_address_invalid_length() {
-        assert!(validate_address("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1Be").is_err());
+        assert!(validate_address(&TEST_ADDRESS[..40]).is_err());
     }
 
     #[test]
     fn test_validate_address_invalid_checksum() {
         // All lowercase is valid (no checksum enforcement)
-        assert!(validate_address("0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed").is_ok());
+        assert!(validate_address(TEST_ADDRESS_LOWER).is_ok());
         // Mixed case with wrong checksum should fail
         assert!(validate_address("0x5AAEB6053f3e94c9b9a09f33669435e7ef1beaed").is_err());
     }
@@ -650,7 +658,7 @@ mod tests {
         // Testing to_message() structure instead
         let msg = SiwaMessage {
             domain: "example.com".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: Some("Sign in with Avalanche to the app.".to_string()),
             uri: "https://example.com".to_string(),
             version: "1".to_string(),
@@ -665,7 +673,7 @@ mod tests {
 
         let message = msg.to_message();
         assert!(message.contains("example.com wants you to sign in with your Avalanche account"));
-        assert!(message.contains("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"));
+        assert!(message.contains(TEST_ADDRESS));
         assert!(message.contains("Chain ID: 43114"));
         assert!(message.contains("Nonce: abc123"));
     }
@@ -674,7 +682,7 @@ mod tests {
     fn test_siwa_message_with_all_optional_fields() {
         let msg = SiwaMessage {
             domain: "app.example.com".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: Some("Custom statement".to_string()),
             uri: "https://app.example.com".to_string(),
             version: "1".to_string(),
@@ -700,7 +708,7 @@ mod tests {
     fn test_siwa_message_without_optional_fields() {
         let msg = SiwaMessage {
             domain: "example.com".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: None,
             uri: "https://example.com".to_string(),
             version: "1".to_string(),
@@ -724,7 +732,7 @@ mod tests {
     fn test_from_message_roundtrip() {
         let msg = SiwaMessage {
             domain: "example.com".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: Some("Sign in with Avalanche to the app.".to_string()),
             uri: "https://example.com".to_string(),
             version: "1".to_string(),
@@ -741,7 +749,7 @@ mod tests {
         let parsed = SiwaMessage::from_message(&message_string).unwrap();
 
         assert_eq!(parsed.domain, "example.com");
-        assert_eq!(parsed.address, "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed");
+        assert_eq!(parsed.address, TEST_ADDRESS);
         assert_eq!(
             parsed.statement,
             Some("Sign in with Avalanche to the app.".to_string())
@@ -767,7 +775,7 @@ mod tests {
     fn test_from_message_roundtrip_all_fields() {
         let msg = SiwaMessage {
             domain: "app.example.com".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: Some("Custom statement".to_string()),
             uri: "https://app.example.com".to_string(),
             version: "1".to_string(),
@@ -801,7 +809,7 @@ mod tests {
     fn test_from_message_without_optional_fields() {
         let msg = SiwaMessage {
             domain: "example.com".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: None,
             uri: "https://example.com".to_string(),
             version: "1".to_string(),
@@ -828,7 +836,7 @@ mod tests {
         // that differs from the canister's default settings
         let msg = SiwaMessage {
             domain: "game.tresr.community".to_string(),
-            address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed".to_string(),
+            address: TEST_ADDRESS.to_string(),
             statement: Some("Sign in with Avalanche to the app.".to_string()),
             uri: "https://game.tresr.community".to_string(),
             version: "1".to_string(),
@@ -862,13 +870,13 @@ mod tests {
 
     #[test]
     fn test_from_message_missing_uri() {
-        let msg = "example.com wants you to sign in with your Avalanche account:\n0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed\n\nVersion: 1\nChain ID: 43114\nNonce: abc\nIssued At: 2024-01-15T12:00:00Z";
-        assert!(SiwaMessage::from_message(msg).is_err());
+        let msg = format!("example.com wants you to sign in with your Avalanche account:\n{}\n\nVersion: 1\nChain ID: 43114\nNonce: abc\nIssued At: 2024-01-15T12:00:00Z", TEST_ADDRESS);
+        assert!(SiwaMessage::from_message(&msg).is_err());
     }
 
     #[test]
     fn test_derive_principal_deterministic() {
-        let addr = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        let addr = TEST_ADDRESS;
         let salt = "test-salt";
 
         let principal1 = derive_principal(addr, salt).unwrap();
@@ -880,9 +888,9 @@ mod tests {
 
     #[test]
     fn test_derive_principal_case_insensitive() {
-        let lower = "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
-        let upper = "0x5AAEB6053F3E94C9B9A09F33669435E7EF1BEAED";
-        let mixed = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        let lower = TEST_ADDRESS_LOWER;
+        let upper = TEST_ADDRESS_UPPER;
+        let mixed = TEST_ADDRESS;
         let salt = "test-salt";
 
         let p1 = derive_principal(lower, salt).unwrap();
@@ -896,7 +904,7 @@ mod tests {
 
     #[test]
     fn test_derive_principal_different_salts() {
-        let addr = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        let addr = TEST_ADDRESS;
 
         let p1 = derive_principal(addr, "salt1").unwrap();
         let p2 = derive_principal(addr, "salt2").unwrap();
@@ -909,8 +917,8 @@ mod tests {
     fn test_derive_principal_different_addresses() {
         let salt = "same-salt";
 
-        let p1 = derive_principal("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", salt).unwrap();
-        let p2 = derive_principal("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B", salt).unwrap();
+        let p1 = derive_principal(TEST_ADDRESS, salt).unwrap();
+        let p2 = derive_principal(TEST_ADDRESS_2, salt).unwrap();
 
         // Different addresses should produce different principals
         assert_ne!(p1, p2);
@@ -944,7 +952,7 @@ mod tests {
     #[test]
     fn test_eip55_checksum_all_lowercase() {
         // Test with all lowercase
-        let bytes = hex::decode("0000000000000000000000000000000000000000").unwrap();
+        let bytes = hex::decode(ZERO_ADDRESS_BYTES_HEX).unwrap();
         let checksummed = to_eip55_checksum(&bytes);
         assert!(checksummed.starts_with("0x"));
         assert_eq!(checksummed.len(), 42);
@@ -959,7 +967,8 @@ mod tests {
     #[test]
     fn test_validate_address_invalid_hex_chars() {
         // Contains invalid hex characters
-        assert!(validate_address("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1Beaeg").is_err());
+        // 'g' is not valid hex
+        assert!(validate_address(&format!("{}g", &TEST_ADDRESS[..41])).is_err());
     }
 
     #[test]
