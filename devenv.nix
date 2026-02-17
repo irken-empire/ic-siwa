@@ -94,6 +94,7 @@ let
       npm-check-updates
 
       # Security
+      codeql
       trivy
     ]
     ++ ic-nix-packages;
