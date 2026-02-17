@@ -150,13 +150,32 @@ jobs:
         run: |
           ic-siwa version --force-set ${{ steps.compute_version.outputs.version }}
 
+      - id: create_release
+        name: Create Pre-Release
+        if: steps.compute_version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.compute_version.outputs.tag }}" \
+            --title "Pre-Release ${{ steps.compute_version.outputs.tag }}" \
+            --notes "Release ${{ steps.compute_version.outputs.tag }}" \
+            --prerelease \
+            --target "${{ github.sha }}"
+
       - id: generate_changelog
         name: Generate Changelog
         if: steps.compute_version.outputs.skip != 'true'
         shell: devenv shell --quiet bash -- -e {0}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.compute_version.outputs.tag }}"
-          CHANGELOG=$(convco changelog --unreleased 2>/dev/null || echo "Release ${TAG}")
+
+          # Fetch the tag created by gh release so convco can see it
+          git fetch --tags --force
+
+          # Generate changelog for the latest version (the one we just tagged)
+          CHANGELOG=$(convco changelog --max-versions 1 --no-links 2>/dev/null || echo "Release ${TAG}")
 
           {
             echo "${CHANGELOG}"
@@ -172,19 +191,10 @@ jobs:
             done < <(jq -r 'to_entries[] | [.key, .value.ic] | @tsv' canister_ids.testnet.json)
           } > /tmp/changelog.md
 
-          echo "Generated changelog with testnet deployment for ${TAG}"
+          # Update the release with the real changelog
+          gh release edit "${TAG}" --notes-file /tmp/changelog.md
 
-      - id: create_release
-        name: Create Pre-Release
-        if: steps.compute_version.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ steps.compute_version.outputs.tag }}" \
-            --title "Pre-Release ${{ steps.compute_version.outputs.tag }}" \
-            --notes-file /tmp/changelog.md \
-            --prerelease \
-            --target "${{ github.sha }}"
+          echo "Updated release ${TAG} with changelog"
 
   ##################################################
   # Deploy to Testnet
