@@ -534,9 +534,12 @@ export class SiwaClient {
     }
 
     // Convert hex back to Uint8Array
+    const hexPairs = serialized.canisterPubkey.match(/.{1,2}/g);
+    if (!hexPairs || hexPairs.length === 0) {
+      throw new Error("Invalid hex-encoded canister public key");
+    }
     const canisterPubkeyBytes = new Uint8Array(
-      serialized.canisterPubkey.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) ??
-        []
+      hexPairs.map((b) => parseInt(b, 16))
     );
 
     try {
@@ -661,11 +664,17 @@ export class SiwaClient {
     const timeUntilRefresh = expiration - Date.now() - this.refreshThreshold;
 
     if (timeUntilRefresh > 0) {
-      this.refreshTimer = setTimeout(() => {
-        this.refreshDelegation().catch(() => {
-          // Refresh failed, will be handled on next auth check
-        });
-      }, timeUntilRefresh);
+      // Clamp to 32-bit signed max: setTimeout uses a 32-bit int internally,
+      // so delays > ~24.8 days (2^31 - 1 ms) overflow and fire immediately.
+      const MAX_TIMEOUT = 2_147_483_647;
+      this.refreshTimer = setTimeout(
+        () => {
+          this.refreshDelegation().catch(() => {
+            // Refresh failed, will be handled on next auth check
+          });
+        },
+        Math.min(timeUntilRefresh, MAX_TIMEOUT)
+      );
     }
   }
 

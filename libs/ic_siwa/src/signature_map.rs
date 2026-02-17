@@ -135,7 +135,9 @@ impl SignatureMap {
                 _ => break, // No more expired entries or queue empty
             }
 
-            let entry = self.expiration_queue.pop().unwrap();
+            let Some(entry) = self.expiration_queue.pop() else {
+                break; // Queue emptied between peek and pop (should not happen)
+            };
             let key = (entry.seed_hash, entry.delegation_hash);
 
             // Only delete if the stored expiration matches (entry wasn't renewed)
