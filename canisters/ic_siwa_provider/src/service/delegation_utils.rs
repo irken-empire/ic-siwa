@@ -107,8 +107,8 @@ pub fn compute_final_expiration(requested_expiration: u64, session_expires_at: u
     // Cap the requested expiration to the session expiration
     let capped_expiration = requested_expiration.min(session_expires_at);
 
-    // Also cap to the configured session expiration time from now
-    let max_expiration = now + session_expiration_time;
+    // Also cap to the configured session expiration time from now (saturating to avoid overflow)
+    let max_expiration = now.saturating_add(session_expiration_time);
     capped_expiration.min(max_expiration)
 }
 
