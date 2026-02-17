@@ -120,7 +120,8 @@ security:
   # to call the SIWA provider (e.g., your app's frontend canister).
   #
   # Values are ICP Principal IDs (e.g., "rrkah-fqaaa-aaaaa-aaaaq-cai").
-  # TODO: Add canister IDs after deployment
+  # Populated per-deployment with the app canister IDs that should be allowed.
+  # Empty list allows ALL callers (acceptable for testing).
   allowed_canisters: []
 
   # ---------------------------------------------------------------------------
@@ -139,7 +140,8 @@ security:
   # canister, backend canisters, etc.).
   #
   # Values are ICP Principal IDs.
-  # TODO: Add your Juno Satellite and other app canister IDs after deployment
+  # Populated per-deployment with your Juno Satellite and other app canister IDs.
+  # Empty list allows delegations for ANY canister (acceptable for testing).
   delegation_targets: []
 
   # ---------------------------------------------------------------------------
@@ -201,5 +203,5 @@ library:
 #   - Additional logging in canister
 #   - Test canister deployments
 #
-# Set to true for testnet to aid debugging. MUST be false for mainnet.
-debug: true
+# MUST be false for any public network to avoid information leakage.
+debug: false

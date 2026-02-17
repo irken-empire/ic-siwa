@@ -52,6 +52,11 @@ impl PartialOrd for SigExpiration {
 /// This is used to create certified data that the IC can verify. When a delegation is
 /// created during login, its hash is stored in this map. When `siwa_get_delegation` is
 /// called, the map provides a witness (merkle proof) that the delegation exists.
+///
+/// **Important: Upgrade behavior.** This struct is stored on the heap and is **not**
+/// persisted to stable memory across canister upgrades. All active delegation signatures
+/// are lost on upgrade, which means users must re-authenticate after an upgrade. This
+/// is intentional — delegations are short-lived and re-authentication is cheap.
 #[derive(Default)]
 pub struct SignatureMap {
     certified_map: RbTree<Hash, RbTree<Hash, Unit>>,
@@ -100,6 +105,23 @@ impl SignatureMap {
         self.expiration_index.insert(key, signature_expires_at);
     }
 
+    /// Add a delegation hash to the map, pruning expired entries first.
+    ///
+    /// Convenience method that combines `prune_expired` + `put` to ensure
+    /// the map does not grow without bound. Prunes up to `max_prune` expired
+    /// entries before inserting the new one.
+    pub fn put_and_prune(
+        &mut self,
+        seed_hash: Hash,
+        delegation_hash: Hash,
+        delegation_expires_at: u64,
+        now: u64,
+        max_prune: usize,
+    ) {
+        self.prune_expired(now, max_prune);
+        self.put(seed_hash, delegation_hash, delegation_expires_at);
+    }
+
     /// Remove a delegation hash from the map
     pub fn delete(&mut self, seed_hash: Hash, delegation_hash: Hash) {
         let mut is_empty = false;
@@ -111,6 +133,11 @@ impl SignatureMap {
             self.certified_map.delete(&seed_hash[..]);
         }
         self.expiration_index.remove(&(seed_hash, delegation_hash));
+
+        // Lazy cleanup: drain stale queue entries when orphans exceed active entries
+        if self.expiration_queue.len() > self.expiration_index.len().saturating_mul(2).max(16) {
+            self.drain_stale();
+        }
     }
 
     /// Prune expired entries from the map
@@ -130,7 +157,9 @@ impl SignatureMap {
                 _ => break, // No more expired entries or queue empty
             }
 
-            let entry = self.expiration_queue.pop().unwrap();
+            let Some(entry) = self.expiration_queue.pop() else {
+                break; // Queue emptied between peek and pop (should not happen)
+            };
             let key = (entry.seed_hash, entry.delegation_hash);
 
             // Only delete if the stored expiration matches (entry wasn't renewed)
@@ -338,6 +367,37 @@ mod tests {
         assert_eq!(map.queue_len(), 1); // orphaned entry removed
         assert_eq!(map.len(), 1); // active entry still present
         assert!(map.witness(seed2, del2).is_some());
+    }
+
+    #[test]
+    fn test_delete_auto_drains_orphaned_queue_entries() {
+        let mut map = SignatureMap::new();
+        let expires_at = 1_000_000_000u64 + 30 * 60 * 1_000_000_000;
+
+        // Insert 20 entries
+        for i in 0..20u8 {
+            let seed = make_hash(&[i, 0]);
+            let del = make_hash(&[i, 1]);
+            map.put(seed, del, expires_at);
+        }
+        assert_eq!(map.len(), 20);
+        assert_eq!(map.queue_len(), 20);
+
+        // Delete all but one — auto drain_stale fires when queue > max(index*2, 16).
+        // With 20 entries, the drain triggers at delete #11 (index=9, 20 > 18) reducing
+        // the queue to 9. Subsequent deletes do not re-trigger because 9 < 16.
+        for i in 0..19u8 {
+            let seed = make_hash(&[i, 0]);
+            let del = make_hash(&[i, 1]);
+            map.delete(seed, del);
+        }
+        assert_eq!(map.len(), 1);
+        // Queue was partially drained (not still 20)
+        assert!(
+            map.queue_len() < 20,
+            "Auto-drain should have cleaned some orphaned entries, queue={}",
+            map.queue_len()
+        );
     }
 
     #[test]

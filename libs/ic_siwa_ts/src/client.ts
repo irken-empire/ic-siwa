@@ -59,6 +59,7 @@ export class SiwaClient {
   private agent: HttpAgent | null = null;
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private sessionKey: Ed25519KeyIdentity | null = null;
+  private pendingLogin: Promise<LoginResult> | null = null;
 
   constructor(options: SiwaClientOptions) {
     this.canisterId = Principal.fromText(options.canisterId);
@@ -250,6 +251,35 @@ export class SiwaClient {
     options: PrepareLoginOptions
   ): Promise<PreparedLogin> {
     SiwaClient.validateAddress(options.address);
+
+    // Client-side domain validation
+    if (options.domain !== undefined) {
+      if (typeof options.domain !== "string" || options.domain.length === 0) {
+        throw new SiwaError(
+          SiwaErrorCode.InvalidInput,
+          "Domain must be a non-empty string"
+        );
+      }
+    }
+
+    // Client-side URI validation
+    if (options.uri !== undefined) {
+      if (typeof options.uri !== "string" || options.uri.length === 0) {
+        throw new SiwaError(
+          SiwaErrorCode.InvalidInput,
+          "URI must be a non-empty string"
+        );
+      }
+      try {
+        new URL(options.uri);
+      } catch {
+        throw new SiwaError(
+          SiwaErrorCode.InvalidInput,
+          `Invalid URI format: ${options.uri}`
+        );
+      }
+    }
+
     try {
       const actor = await this.createProviderActor();
 
@@ -534,9 +564,12 @@ export class SiwaClient {
     }
 
     // Convert hex back to Uint8Array
+    const hexPairs = serialized.canisterPubkey.match(/.{1,2}/g);
+    if (!hexPairs || hexPairs.length === 0) {
+      throw new Error("Invalid hex-encoded canister public key");
+    }
     const canisterPubkeyBytes = new Uint8Array(
-      serialized.canisterPubkey.match(/.{1,2}/g)?.map((b) => parseInt(b, 16)) ??
-        []
+      hexPairs.map((b) => parseInt(b, 16))
     );
 
     try {
@@ -661,11 +694,17 @@ export class SiwaClient {
     const timeUntilRefresh = expiration - Date.now() - this.refreshThreshold;
 
     if (timeUntilRefresh > 0) {
-      this.refreshTimer = setTimeout(() => {
-        this.refreshDelegation().catch(() => {
-          // Refresh failed, will be handled on next auth check
-        });
-      }, timeUntilRefresh);
+      // Clamp to 32-bit signed max: setTimeout uses a 32-bit int internally,
+      // so delays > ~24.8 days (2^31 - 1 ms) overflow and fire immediately.
+      const MAX_TIMEOUT = 2_147_483_647;
+      this.refreshTimer = setTimeout(
+        () => {
+          this.refreshDelegation().catch(() => {
+            // Refresh failed, will be handled on next auth check
+          });
+        },
+        Math.min(timeUntilRefresh, MAX_TIMEOUT)
+      );
     }
   }
 
@@ -696,22 +735,36 @@ export class SiwaClient {
     },
     options?: {domain?: string; uri?: string}
   ): Promise<LoginResult> {
-    const address = walletClient.account.address;
+    // If a login is already in progress, return the pending result
+    // to prevent duplicate delegation requests from concurrent callers
+    if (this.pendingLogin) {
+      return this.pendingLogin;
+    }
 
-    // Prepare login message with optional domain/uri
-    const prepared = await this.prepareLoginWithOptions({
-      address,
-      domain: options?.domain,
-      uri: options?.uri,
+    const doLogin = async (): Promise<LoginResult> => {
+      const address = walletClient.account.address;
+
+      // Prepare login message with optional domain/uri
+      const prepared = await this.prepareLoginWithOptions({
+        address,
+        domain: options?.domain,
+        uri: options?.uri,
+      });
+
+      // Sign message with wallet
+      const signature = await walletClient.signMessage({
+        message: prepared.message,
+      });
+
+      // Complete login
+      return this.login(signature, address);
+    };
+
+    this.pendingLogin = doLogin().finally(() => {
+      this.pendingLogin = null;
     });
 
-    // Sign message with wallet
-    const signature = await walletClient.signMessage({
-      message: prepared.message,
-    });
-
-    // Complete login
-    return this.login(signature, address);
+    return this.pendingLogin;
   }
 
   /**

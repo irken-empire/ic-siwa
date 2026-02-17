@@ -39,12 +39,17 @@ impl RateLimiter {
 
     /// Get window duration in nanoseconds
     fn window_ns(&self) -> u64 {
-        self.settings.window_seconds * 1_000_000_000
+        self.settings.window_seconds.saturating_mul(1_000_000_000)
     }
 
-    /// Check if a timestamp is within the current window
+    /// Check if a timestamp is within the current window.
+    /// If the clock jumped backward (now < window_start), treat as a new window.
     fn is_in_window(&self, window_start: u64, now: u64) -> bool {
-        now < window_start + self.window_ns()
+        if now < window_start {
+            // Clock jumped backward (e.g., IC subnet recovery) — reset window
+            return false;
+        }
+        now < window_start.saturating_add(self.window_ns())
     }
 
     /// Check rate limit and record an attempt for the given address
@@ -58,6 +63,12 @@ impl RateLimiter {
     /// * `Err(SiwaError::RateLimited)` if rate limit exceeded
     pub fn check_and_record(&mut self, address: &str, now_ns: u64) -> Result<(), SiwaError> {
         let address_lower = address.to_lowercase();
+
+        // Periodically cleanup expired per-address entries to bound memory growth.
+        // Runs every 100 unique addresses to amortize the cost.
+        if self.per_address.len() > 100 {
+            self.cleanup_expired(now_ns);
+        }
 
         // Check and update global rate limit
         self.check_global(now_ns)?;
@@ -139,13 +150,14 @@ impl RateLimiter {
         // Get window duration to avoid borrowing self in closure
         let window_ns = self.window_ns();
 
-        // Clean up per-address entries
-        self.per_address
-            .retain(|_, &mut (_, window_start)| now_ns < window_start + window_ns);
+        // Clean up per-address entries (also handles clock backward jumps)
+        self.per_address.retain(|_, &mut (_, window_start)| {
+            now_ns >= window_start && now_ns < window_start.saturating_add(window_ns)
+        });
 
-        // Reset global if window expired
+        // Reset global if window expired or clock jumped backward
         let (_, window_start) = self.global;
-        if now_ns >= window_start + window_ns {
+        if now_ns < window_start || now_ns >= window_start.saturating_add(window_ns) {
             self.global = (0, 0);
         }
     }
@@ -307,6 +319,32 @@ mod tests {
     }
 
     #[test]
+    fn test_rate_limiter_auto_cleanup_expired_entries() {
+        let settings = RateLimitSettings {
+            max_logins_per_address: 100,
+            max_logins_total: 10000,
+            window_seconds: 60,
+        };
+        let mut limiter = RateLimiter::new(settings);
+        let now = 1_000_000_000_000u64;
+        let window_ns = 60 * 1_000_000_000u64;
+
+        // Fill up 150 unique addresses in the same window
+        for i in 0..150u32 {
+            let addr = format!("0x{:08x}", i);
+            limiter.check_and_record(&addr, now).unwrap();
+        }
+        assert!(limiter.per_address.len() >= 100);
+
+        // Move past the window and add a new address — triggers auto cleanup
+        let after_window = now + window_ns + 1;
+        limiter.check_and_record("0xaa00bb", after_window).unwrap();
+
+        // Expired entries should have been cleaned up
+        assert_eq!(limiter.per_address.len(), 1);
+    }
+
+    #[test]
     fn test_rate_limiter_case_insensitive() {
         let mut limiter = RateLimiter::new(test_settings());
         let now = 1_000_000_000_000u64;
@@ -318,6 +356,24 @@ mod tests {
 
         // 4th attempt should be blocked
         assert!(limiter.check_and_record("0xABCD", now + 3000).is_err());
+    }
+
+    #[test]
+    fn test_rate_limiter_clock_jump_backward() {
+        let mut limiter = RateLimiter::new(test_settings());
+        let now = 1_000_000_000_000u64;
+
+        // Use up the limit
+        for i in 0..3 {
+            assert!(limiter.check_and_record("0x1234", now + i * 1000).is_ok());
+        }
+
+        // Should be blocked at current time
+        assert!(limiter.check_and_record("0x1234", now + 5000).is_err());
+
+        // Clock jumps backward — should reset window and allow attempts again
+        let jumped_back = now - 5_000_000_000; // 5 seconds before original start
+        assert!(limiter.check_and_record("0x1234", jumped_back).is_ok());
     }
 
     #[test]

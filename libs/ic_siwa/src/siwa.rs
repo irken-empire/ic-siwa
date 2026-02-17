@@ -67,8 +67,8 @@ impl SiwaMessage {
         let now_ns = ic_cdk::api::time();
         let now_secs = now_ns / 1_000_000_000;
 
-        // Calculate expiration
-        let exp_ns = now_ns + settings.login_expiration_time;
+        // Calculate expiration (saturating to avoid overflow)
+        let exp_ns = now_ns.saturating_add(settings.login_expiration_time);
         let exp_secs = exp_ns / 1_000_000_000;
 
         Self {
@@ -395,12 +395,9 @@ pub fn validate_address(address: &str) -> Result<(), SiwaError> {
         )));
     }
 
-    // Validate hex
-    hex::decode(&address[2..])
+    // Validate and decode hex
+    let address_bytes = hex::decode(&address[2..])
         .map_err(|e| SiwaError::InvalidAddress(format!("Invalid hex: {}", e)))?;
-
-    // Optionally verify EIP-55 checksum
-    let address_bytes = hex::decode(&address[2..]).unwrap();
     let checksummed = to_eip55_checksum(&address_bytes);
 
     // Only enforce checksum if address has mixed case
@@ -643,5 +640,41 @@ mod tests {
         assert!(is_leap_year(2000));
         assert!(is_leap_year(2024));
         assert!(!is_leap_year(2023));
+    }
+
+    // EIP-55 checksum validation tests
+    #[test]
+    fn test_validate_address_all_lowercase() {
+        // All lowercase is valid per EIP-55 (no checksum required)
+        let addr = "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed";
+        assert!(validate_address(addr).is_ok());
+    }
+
+    #[test]
+    fn test_validate_address_all_uppercase() {
+        // All uppercase is valid per EIP-55 (no checksum required)
+        let addr = "0x5AAEB6053F3E94C9B9A09F33669435E7EF1BEAED";
+        assert!(validate_address(addr).is_ok());
+    }
+
+    #[test]
+    fn test_validate_address_valid_mixed_case() {
+        // Valid EIP-55 checksummed mixed-case address
+        let addr = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        assert!(validate_address(addr).is_ok());
+    }
+
+    #[test]
+    fn test_validate_address_invalid_mixed_case() {
+        // Invalid mixed-case (deliberately wrong checksum)
+        let addr = "0x5aAEB6053F3E94C9b9A09f33669435E7Ef1BeAed";
+        assert!(validate_address(addr).is_err());
+    }
+
+    #[test]
+    fn test_validate_address_digits_only() {
+        // Address with only hex digits (no letters) — valid without checksum
+        let addr = "0x0000000000000000000000000000000000000001";
+        assert!(validate_address(addr).is_ok());
     }
 }

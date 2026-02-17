@@ -24,6 +24,8 @@ export enum SiwaErrorCode {
   NetworkError = "NETWORK_ERROR",
   /** Canister error */
   CanisterError = "CANISTER_ERROR",
+  /** Invalid input parameter */
+  InvalidInput = "INVALID_INPUT",
   /** Storage error */
   StorageError = "STORAGE_ERROR",
   /** Unknown error */

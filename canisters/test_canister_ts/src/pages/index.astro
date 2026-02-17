@@ -244,13 +244,13 @@ const title = "IC-SIWA Test";
       import { defineChain } from "@reown/appkit/networks";
 
       // Wagmi Core (headless, no React)
-      import { signMessage, getAccount, getChainId, switchChain, watchAccount, watchChainId, type Config } from "@wagmi/core";
+      import { signMessage, getAccount, switchChain, watchAccount, watchChainId, type Config } from "@wagmi/core";
 
       // IC-SIWA client
       import { SiwaClient } from "ic-siwa";
 
       // Local modules
-      import { createLogger, exportAllLogs } from "../lib/logger";
+      import { createLogger, exportAllLogs, clearAllLogs } from "../lib/logger";
 
       // Logger
       const log = createLogger("APP");
@@ -459,7 +459,7 @@ const title = "IC-SIWA Test";
           log.info("AppKit initialized with WagmiAdapter");
 
           // Use wagmi core's watchAccount to track connection state
-          watchAccount(state.wagmiConfig, {
+          const unwatchAccount = watchAccount(state.wagmiConfig, {
             onChange: (account) => {
               log.debug("Account state changed", {
                 address: account.address,
@@ -477,13 +477,19 @@ const title = "IC-SIWA Test";
           });
 
           // Also watch for chain changes
-          watchChainId(state.wagmiConfig, {
+          const unwatchChainId = watchChainId(state.wagmiConfig, {
             onChange: (chainId) => {
               log.debug("Chain changed", { chainId });
               state.chainId = chainId;
               updateDiagnostics();
               handleConnectionState();
             }
+          });
+
+          // Clean up watchers on page unload to prevent memory leaks
+          window.addEventListener("beforeunload", () => {
+            unwatchAccount();
+            unwatchChainId();
           });
 
           // Get initial state
@@ -703,6 +709,7 @@ const title = "IC-SIWA Test";
       });
 
       ui.clearLogsBtn?.addEventListener("click", () => {
+        clearAllLogs();
         log.info("Logs cleared");
       });
 

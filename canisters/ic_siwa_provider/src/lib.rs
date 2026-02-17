@@ -86,6 +86,8 @@ fn init(args: InitArgs) {
     // Defer CSPRNG seeding to the first execution round after init,
     // because inter-canister calls (raw_rand) are forbidden in init mode.
     ic_cdk_timers::set_timer(std::time::Duration::ZERO, random::seed_rng());
+    // Start periodic cleanup of expired sessions and delegations
+    state::start_cleanup_timer();
     ic_cdk::println!("ic_siwa_provider initialized");
 }
 
@@ -96,6 +98,8 @@ fn post_upgrade(args: Option<InitArgs>) {
     // Defer CSPRNG seeding to the first execution round after upgrade,
     // because inter-canister calls (raw_rand) are forbidden in post_upgrade mode.
     ic_cdk_timers::set_timer(std::time::Duration::ZERO, random::seed_rng());
+    // Restart periodic cleanup (timers are lost on upgrade)
+    state::start_cleanup_timer();
     ic_cdk::println!("ic_siwa_provider upgraded");
 }
 

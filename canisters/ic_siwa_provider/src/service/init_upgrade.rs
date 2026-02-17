@@ -40,6 +40,20 @@ pub fn init(args: InitArgs) {
         ic_cdk::trap(format!("Invalid settings: {}", e));
     }
 
+    // Warn about empty ACLs in non-debug mode (security risk in production)
+    if !settings.debug {
+        if settings.allowed_canisters.is_empty() {
+            ic_cdk::println!(
+                "WARNING: allowed_canisters is empty — any canister can call this provider"
+            );
+        }
+        if settings.delegation_targets.is_empty() {
+            ic_cdk::println!(
+                "WARNING: delegation_targets is empty — delegations are valid for any canister"
+            );
+        }
+    }
+
     if let Err(e) = init_state(settings) {
         ic_cdk::trap(format!("Failed to initialize state: {e}"));
     }

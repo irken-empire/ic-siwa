@@ -136,7 +136,7 @@ jobs:
         run: |
           cd libs/ic_siwa_ts
           bun install
-          bun test || echo "TypeScript tests completed"
+          bun test
 
   ##################################################
   # Build Canisters - Verify all canisters build
@@ -267,7 +267,7 @@ jobs:
 
       - id: download_artifact
         name: Download Provider WASM
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ic_siwa_provider-ci
           path: target/wasm32-unknown-unknown/release/
