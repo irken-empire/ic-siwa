@@ -156,7 +156,7 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
         run: |
           TAG="${{ steps.compute_version.outputs.tag }}"
-          CHANGELOG=$(convco changelog "${TAG}" --max-versions 1 2>/dev/null || echo "Release ${TAG}")
+          CHANGELOG=$(convco changelog --unreleased 2>/dev/null || echo "Release ${TAG}")
 
           {
             echo "${CHANGELOG}"

@@ -98,6 +98,13 @@ Context: The project uses devenv (built on Nix) to ensure a reproducible, hermet
 Directives:
 
 - **Strictly usage of `devenv`**: Always assume tools (like dfx, node, bun, rust, juno) are managed via `devenv.nix`.
+- **ALL commands MUST run inside `devenv shell`**:
+  - This includes `git` (pre-commit hooks need devenv binaries),
+  - `cargo`,
+  - `bun`,
+  - `gh`,
+  - and any helper scripts.
+- Running commands outside devenv will cause failures (missing binaries, broken pre-commit hooks, etc.)
 - **Package Manager**: Use `bun` and `bunx` exclusively. Do not use `npm` or `npx` unless absolutely necessary (and verify why `bun` failed).
 - **No Global Installs**: Do not suggest installing global dependencies
   (brew install, apt-get, bun install -g). Instead, suggest adding packages to the
