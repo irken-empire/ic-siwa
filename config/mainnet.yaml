@@ -128,7 +128,8 @@ security:
   # to call the SIWA provider (e.g., your app's frontend canister).
   #
   # Values are ICP Principal IDs (e.g., "rrkah-fqaaa-aaaaa-aaaaq-cai").
-  # TODO: Add canister IDs after deployment
+  # Populated per-deployment with the app canister IDs that should be allowed.
+  # SECURITY: Empty list allows ALL callers — restrict before production use.
   allowed_canisters: []
 
   # ---------------------------------------------------------------------------
@@ -148,7 +149,8 @@ security:
   # canister, backend canisters, etc.).
   #
   # Values are ICP Principal IDs.
-  # TODO: Add your Juno Satellite and other app canister IDs after deployment
+  # Populated per-deployment with your Juno Satellite and other app canister IDs.
+  # SECURITY: Empty list allows delegations for ANY canister — restrict before production use.
   delegation_targets: []
 
   # ---------------------------------------------------------------------------

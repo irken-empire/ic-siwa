@@ -69,6 +69,12 @@ runs:
         echo "Environment: ${{ inputs.environment }}"
         echo "Config file: ${CONFIG_FILE}"
 
+        # Validate config file exists
+        if [[ ! -f "${CONFIG_FILE}" ]]; then
+          echo "::error::Config file not found: ${CONFIG_FILE}"
+          exit 1
+        fi
+
         # Read values from config file
         CHAIN_ID=$(yq -r '.avalanche.chain_id' "${CONFIG_FILE}")
         # Note: domain and uri are output as raw values - workflow must quote them in Candid
@@ -96,6 +102,24 @@ runs:
 
         # Read debug flag (defaults to false)
         DEBUG=$(yq -r '.debug // false' "${CONFIG_FILE}")
+
+        # Validate required fields
+        if [[ -z "${CHAIN_ID}" || "${CHAIN_ID}" == "null" ]]; then
+          echo "::error::Required field 'avalanche.chain_id' is missing in ${CONFIG_FILE}"
+          exit 1
+        fi
+        if [[ -z "${DOMAIN}" || "${DOMAIN}" == "null" ]]; then
+          echo "::error::Required field 'siwa.domain' is missing in ${CONFIG_FILE}"
+          exit 1
+        fi
+        if [[ -z "${URI}" || "${URI}" == "null" ]]; then
+          echo "::error::Required field 'siwa.uri' is missing in ${CONFIG_FILE}"
+          exit 1
+        fi
+        if [[ -z "${SESSION_EXP}" || "${SESSION_EXP}" == "null" ]]; then
+          echo "::error::Required field 'security.session_expiration_seconds' is missing in ${CONFIG_FILE}"
+          exit 1
+        fi
 
         # Output values
         {
