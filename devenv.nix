@@ -174,9 +174,11 @@ in
       echo "#### Helper scripts #####"
       echo "#########################"
       echo "🦾"
-      ${pkgs.gnused}/bin/sed -e 's| |••|g' -e 's|=| |' <<'SCRIPTS' | ${pkgs.util-linuxMinimal}/bin/column -t | ${pkgs.gnused}/bin/sed -e 's|^|🦾 |' -e 's|••| |g'
-      ${lib.generators.toKeyValue { } (lib.mapAttrs (_name: value: value.description) config.scripts)}
-      SCRIPTS
+      ${lib.concatStrings (
+        lib.mapAttrsToList (
+          name: value: "printf '🦾 %-20s  %s\\n' '${name}' '${value.description}'\n"
+        ) config.scripts
+      )}
       echo "🦾"
       echo "#########################"
     fi
@@ -301,7 +303,14 @@ in
       commitizen.enable = true;
       deadnix.enable = true;
       editorconfig-checker.enable = true;
-      eslint.enable = true;
+      eslint.enable = false;
+      eslint-hack = {
+        enable = true;
+        name = "eslint-hack";
+        entry = "eslint-check";
+        files = "^(canisters|libs)/.*$";
+        pass_filenames = false;
+      };
       # Astro type checking for frontend canister
       astro-check = {
         enable = true;
@@ -463,6 +472,14 @@ in
   };
 
   scripts = {
+    eslint-check = {
+      package = pkgs.bash;
+      description = "A workaround to use a more modern version of ESLint.";
+      exec = ''
+        bun install
+        eslint canisters/ libs/
+      '';
+    };
     ic-siwa = {
       package = pkgs.bash;
       description = "Developer entrypoint script for ic-siwa.";
