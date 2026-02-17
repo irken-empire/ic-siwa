@@ -687,6 +687,31 @@ pub fn purge_identity_mappings() -> u64 {
     count
 }
 
+// --- Periodic cleanup timer ---
+
+/// Interval between automatic cleanup sweeps (5 minutes)
+const CLEANUP_TIMER_INTERVAL: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// Start the periodic cleanup timer.
+///
+/// Runs every 5 minutes and removes expired login sessions, auth sessions,
+/// prepared delegations, signature map entries, and rate limiter entries.
+/// This bounds heap memory growth even when no user traffic triggers
+/// opportunistic cleanup.
+pub fn start_cleanup_timer() {
+    ic_cdk_timers::set_timer_interval(CLEANUP_TIMER_INTERVAL, || async {
+        let now = ic_cdk::api::time();
+        with_state_mut(|state| {
+            state.cleanup_expired_logins();
+            state.cleanup_expired_auth();
+            state.signature_map.prune_expired(now, 100);
+            state.rate_limiter.cleanup_expired(now);
+            prune_prepared_delegations(state, now, 100);
+        });
+        update_certified_data();
+    });
+}
+
 // --- Rate limiting ---
 
 /// Counter for periodic cleanup
