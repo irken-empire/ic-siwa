@@ -416,12 +416,10 @@ pub fn create_certified_delegation_signature(
         hex::encode(delegation_hash)
     );
 
-    let certificate = ic_cdk::api::data_certificate();
-    if certificate.is_none() {
+    let Some(certificate) = ic_cdk::api::data_certificate() else {
         debug_log!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
         return None;
-    }
-    let certificate = certificate.unwrap();
+    };
     debug_log!(
         "[CERTIFIED_SIG] Got data certificate, len: {}",
         certificate.len()
@@ -451,16 +449,14 @@ pub fn create_certified_delegation_signature(
 
         debug_log!("[CERTIFIED_SIG] Delegation is valid, getting witness");
 
-        let witness = state.signature_map.witness(seed_hash, delegation_hash);
-        if witness.is_none() {
+        let Some(witness) = state.signature_map.witness(seed_hash, delegation_hash) else {
             debug_log!(
                 "[CERTIFIED_SIG] Failed to get witness. seed_hash: {}, delegation_hash: {}",
                 hex::encode(seed_hash),
                 hex::encode(delegation_hash)
             );
             return None;
-        }
-        let witness = witness.unwrap();
+        };
 
         debug_log!("[CERTIFIED_SIG] Got witness, creating labeled tree");
 
