@@ -273,9 +273,18 @@ pub fn with_settings<R>(f: impl FnOnce(&Settings) -> R) -> R {
     })
 }
 
-/// Check if settings have been initialized
+/// Check if settings have been initialized.
+///
+/// Checks both the in-memory cache and stable memory, since after a canister
+/// upgrade the heap is reset but settings persist in stable memory.
 pub fn has_settings() -> bool {
-    with_state(|state| state.settings_cache.is_some())
+    // First check the in-memory cache
+    let cached = with_state(|state| state.settings_cache.is_some());
+    if cached {
+        return true;
+    }
+    // Fall back to checking stable memory directly
+    SETTINGS_CELL.with(|cell| !cell.borrow().get().is_empty())
 }
 
 /// Load settings from stable memory into the in-memory cache.
@@ -416,12 +425,10 @@ pub fn create_certified_delegation_signature(
         hex::encode(delegation_hash)
     );
 
-    let certificate = ic_cdk::api::data_certificate();
-    if certificate.is_none() {
+    let Some(certificate) = ic_cdk::api::data_certificate() else {
         debug_log!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
         return None;
-    }
-    let certificate = certificate.unwrap();
+    };
     debug_log!(
         "[CERTIFIED_SIG] Got data certificate, len: {}",
         certificate.len()
@@ -451,16 +458,14 @@ pub fn create_certified_delegation_signature(
 
         debug_log!("[CERTIFIED_SIG] Delegation is valid, getting witness");
 
-        let witness = state.signature_map.witness(seed_hash, delegation_hash);
-        if witness.is_none() {
+        let Some(witness) = state.signature_map.witness(seed_hash, delegation_hash) else {
             debug_log!(
                 "[CERTIFIED_SIG] Failed to get witness. seed_hash: {}, delegation_hash: {}",
                 hex::encode(seed_hash),
                 hex::encode(delegation_hash)
             );
             return None;
-        }
-        let witness = witness.unwrap();
+        };
 
         debug_log!("[CERTIFIED_SIG] Got witness, creating labeled tree");
 

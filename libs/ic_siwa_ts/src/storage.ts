@@ -41,17 +41,30 @@ export class LocalStorageProvider implements StorageProvider {
 
   async get(key: string): Promise<string | null> {
     if (this.warnIfUnavailable()) return null;
-    return localStorage.getItem(this.prefix + key);
+    try {
+      return localStorage.getItem(this.prefix + key);
+    } catch (e) {
+      console.warn("[ic-siwa] localStorage.getItem failed:", e);
+      return null;
+    }
   }
 
   async set(key: string, value: string): Promise<void> {
     if (this.warnIfUnavailable()) return;
-    localStorage.setItem(this.prefix + key, value);
+    try {
+      localStorage.setItem(this.prefix + key, value);
+    } catch (e) {
+      console.warn("[ic-siwa] localStorage.setItem failed:", e);
+    }
   }
 
   async remove(key: string): Promise<void> {
     if (this.warnIfUnavailable()) return;
-    localStorage.removeItem(this.prefix + key);
+    try {
+      localStorage.removeItem(this.prefix + key);
+    } catch (e) {
+      console.warn("[ic-siwa] localStorage.removeItem failed:", e);
+    }
   }
 }
 
@@ -86,17 +99,30 @@ export class SessionStorageProvider implements StorageProvider {
 
   async get(key: string): Promise<string | null> {
     if (this.warnIfUnavailable()) return null;
-    return sessionStorage.getItem(this.prefix + key);
+    try {
+      return sessionStorage.getItem(this.prefix + key);
+    } catch (e) {
+      console.warn("[ic-siwa] sessionStorage.getItem failed:", e);
+      return null;
+    }
   }
 
   async set(key: string, value: string): Promise<void> {
     if (this.warnIfUnavailable()) return;
-    sessionStorage.setItem(this.prefix + key, value);
+    try {
+      sessionStorage.setItem(this.prefix + key, value);
+    } catch (e) {
+      console.warn("[ic-siwa] sessionStorage.setItem failed:", e);
+    }
   }
 
   async remove(key: string): Promise<void> {
     if (this.warnIfUnavailable()) return;
-    sessionStorage.removeItem(this.prefix + key);
+    try {
+      sessionStorage.removeItem(this.prefix + key);
+    } catch (e) {
+      console.warn("[ic-siwa] sessionStorage.removeItem failed:", e);
+    }
   }
 }
 
