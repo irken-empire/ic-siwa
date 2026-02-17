@@ -39,7 +39,7 @@ impl RateLimiter {
 
     /// Get window duration in nanoseconds
     fn window_ns(&self) -> u64 {
-        self.settings.window_seconds * 1_000_000_000
+        self.settings.window_seconds.saturating_mul(1_000_000_000)
     }
 
     /// Check if a timestamp is within the current window.

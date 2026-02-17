@@ -204,7 +204,7 @@ jobs:
         run: |
           cd libs/ic_siwa_ts
           bun install
-          bun test || echo "TypeScript tests completed"
+          bun test
 
   ##################################################
   # Build Canisters

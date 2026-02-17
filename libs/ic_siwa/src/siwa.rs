@@ -67,8 +67,8 @@ impl SiwaMessage {
         let now_ns = ic_cdk::api::time();
         let now_secs = now_ns / 1_000_000_000;
 
-        // Calculate expiration
-        let exp_ns = now_ns + settings.login_expiration_time;
+        // Calculate expiration (saturating to avoid overflow)
+        let exp_ns = now_ns.saturating_add(settings.login_expiration_time);
         let exp_secs = exp_ns / 1_000_000_000;
 
         Self {
@@ -395,12 +395,9 @@ pub fn validate_address(address: &str) -> Result<(), SiwaError> {
         )));
     }
 
-    // Validate hex
-    hex::decode(&address[2..])
+    // Validate and decode hex
+    let address_bytes = hex::decode(&address[2..])
         .map_err(|e| SiwaError::InvalidAddress(format!("Invalid hex: {}", e)))?;
-
-    // Optionally verify EIP-55 checksum
-    let address_bytes = hex::decode(&address[2..]).unwrap();
     let checksummed = to_eip55_checksum(&address_bytes);
 
     // Only enforce checksum if address has mixed case
