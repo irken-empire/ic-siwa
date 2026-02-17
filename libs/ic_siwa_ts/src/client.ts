@@ -59,6 +59,7 @@ export class SiwaClient {
   private agent: HttpAgent | null = null;
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private sessionKey: Ed25519KeyIdentity | null = null;
+  private pendingLogin: Promise<LoginResult> | null = null;
 
   constructor(options: SiwaClientOptions) {
     this.canisterId = Principal.fromText(options.canisterId);
@@ -705,22 +706,36 @@ export class SiwaClient {
     },
     options?: {domain?: string; uri?: string}
   ): Promise<LoginResult> {
-    const address = walletClient.account.address;
+    // If a login is already in progress, return the pending result
+    // to prevent duplicate delegation requests from concurrent callers
+    if (this.pendingLogin) {
+      return this.pendingLogin;
+    }
 
-    // Prepare login message with optional domain/uri
-    const prepared = await this.prepareLoginWithOptions({
-      address,
-      domain: options?.domain,
-      uri: options?.uri,
+    const doLogin = async (): Promise<LoginResult> => {
+      const address = walletClient.account.address;
+
+      // Prepare login message with optional domain/uri
+      const prepared = await this.prepareLoginWithOptions({
+        address,
+        domain: options?.domain,
+        uri: options?.uri,
+      });
+
+      // Sign message with wallet
+      const signature = await walletClient.signMessage({
+        message: prepared.message,
+      });
+
+      // Complete login
+      return this.login(signature, address);
+    };
+
+    this.pendingLogin = doLogin().finally(() => {
+      this.pendingLogin = null;
     });
 
-    // Sign message with wallet
-    const signature = await walletClient.signMessage({
-      message: prepared.message,
-    });
-
-    // Complete login
-    return this.login(signature, address);
+    return this.pendingLogin;
   }
 
   /**
