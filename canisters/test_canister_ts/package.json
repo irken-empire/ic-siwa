@@ -15,7 +15,7 @@
     "@wagmi/core": "3.3.4",
     "astro": "5.17.2",
     "ic-siwa": "file:../../libs/ic_siwa_ts",
-    "viem": "2.46.1"
+    "viem": "2.46.2"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.6",
