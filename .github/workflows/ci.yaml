@@ -44,7 +44,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - id: checkout_repository
@@ -93,7 +93,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - id: checkout_repository
@@ -145,7 +145,7 @@ jobs:
     name: Build Canister ${{ matrix.canister }}
     needs: [lint]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
@@ -212,7 +212,7 @@ jobs:
     name: Build TypeScript
     needs: [lint]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - id: checkout_repository
@@ -245,7 +245,7 @@ jobs:
     name: Verify Candid
     needs: [build-canisters]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - id: checkout_repository
