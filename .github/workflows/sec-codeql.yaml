@@ -4,7 +4,6 @@
 # Description: CodeQL static analysis for security vulnerabilities
 #
 # Triggers:
-#   - Push to trunk
 #   - Pull request to trunk
 #   - Weekly schedule (Sunday 00:00 UTC)
 #
@@ -19,15 +18,7 @@
 name: CodeQL
 
 on:
-  push:
-    branches:
-      - trunk
-
   pull_request:
-    branches:
-      - trunk
-
-  merge_group:
     branches:
       - trunk
 
