@@ -291,11 +291,7 @@ export class SiwaClient {
       });
 
       if ("Err" in response) {
-        throw new SiwaError(
-          SiwaErrorCode.CanisterError,
-          response.Err,
-          response
-        );
+        throw SiwaError.fromCanisterError(response.Err);
       }
 
       // Response.Ok is a PrepareLoginResponse record with message, nonce, expiration
@@ -345,11 +341,7 @@ export class SiwaClient {
       );
 
       if ("Err" in loginResponse) {
-        throw new SiwaError(
-          SiwaErrorCode.CanisterError,
-          loginResponse.Err,
-          loginResponse
-        );
+        throw SiwaError.fromCanisterError(loginResponse.Err);
       }
 
       // LoginResponse contains user_principal, expiration, and user_canister_pubkey
@@ -478,8 +470,7 @@ export class SiwaClient {
         setTimeout(resolve, baseDelayMs * (attempt + 1))
       );
     }
-    throw new SiwaError(
-      SiwaErrorCode.CanisterError,
+    throw SiwaError.fromCanisterError(
       lastError ?? "Failed to get delegation after retries"
     );
   }
