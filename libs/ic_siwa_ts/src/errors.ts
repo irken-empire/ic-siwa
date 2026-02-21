@@ -52,12 +52,77 @@ export class SiwaError extends Error {
   }
 
   /**
-   * Create error from canister response
+   * Prefix-to-error-code mapping for canister error classification.
+   *
+   * Order matters: more specific prefixes must come before generic ones
+   * (e.g. "Session has expired" before "Session not found").
+   */
+  private static readonly CANISTER_ERROR_PREFIXES: ReadonlyArray<
+    readonly [string, SiwaErrorCode]
+  > = [
+    // InvalidAddress
+    ["Invalid address: ", SiwaErrorCode.InvalidAddress],
+    // InvalidSignature
+    ["Invalid signature: ", SiwaErrorCode.InvalidSignature],
+    ["Signature verification failed: ", SiwaErrorCode.InvalidSignature],
+    ["Recovered address ", SiwaErrorCode.InvalidSignature],
+    // MessageExpired
+    ["Message expired", SiwaErrorCode.MessageExpired],
+    ["SIWA message has expired", SiwaErrorCode.MessageExpired],
+    ["Login session has expired", SiwaErrorCode.MessageExpired],
+    // SessionExpired (must precede "Session not found" check)
+    ["Session has expired", SiwaErrorCode.SessionExpired],
+    // DomainNotAllowed
+    ["Domain not allowed: ", SiwaErrorCode.DomainNotAllowed],
+    ["Domain '", SiwaErrorCode.DomainNotAllowed],
+    // NotAuthenticated
+    ["Session not found", SiwaErrorCode.NotAuthenticated],
+    ["No authenticated session", SiwaErrorCode.NotAuthenticated],
+    ["Anonymous callers", SiwaErrorCode.NotAuthenticated],
+  ];
+
+  /**
+   * Classify a canister error message string into the appropriate SiwaErrorCode.
+   *
+   * Matches the message against known prefix patterns from the canister's error
+   * reference. Unrecognised messages fall back to `SiwaErrorCode.CanisterError`.
+   */
+  private static classifyCanisterError(message: string): SiwaErrorCode {
+    for (const [prefix, code] of SiwaError.CANISTER_ERROR_PREFIXES) {
+      if (message.startsWith(prefix)) {
+        return code;
+      }
+    }
+    return SiwaErrorCode.CanisterError;
+  }
+
+  /**
+   * Create error from canister response.
+   *
+   * Accepts an Error instance, a plain string, or an `{Err: string}` response
+   * object. The error message is matched against known canister error prefixes
+   * to assign a specific `SiwaErrorCode` for programmatic handling.
    */
   static fromCanisterError(error: unknown): SiwaError {
-    const message =
-      error instanceof Error ? error.message : "Unknown canister error";
-    return new SiwaError(SiwaErrorCode.CanisterError, message, error);
+    let message: string;
+
+    if (typeof error === "string") {
+      message = error;
+    } else if (error instanceof Error) {
+      message = error.message;
+    } else if (
+      error !== null &&
+      typeof error === "object" &&
+      "Err" in error &&
+      typeof (error as {Err: unknown}).Err === "string"
+    ) {
+      message = (error as {Err: string}).Err;
+    } else {
+      message = "Unknown canister error";
+    }
+
+    const code = SiwaError.classifyCanisterError(message);
+    return new SiwaError(code, message, error);
   }
 
   /**

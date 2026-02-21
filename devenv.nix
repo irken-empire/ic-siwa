@@ -154,7 +154,7 @@ in
 
   dotenv = {
     enable = true;
-    disableHint = false;
+    disableHint = true;
   };
 
   packages =

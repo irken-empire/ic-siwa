@@ -21,6 +21,7 @@ ignorePaths:
   - secrets
   - vendor
   - docs/todo/
+  - "*.svg"
 ignoreRegExpList:
   - /-----BEGIN PGP PUBLIC KEY BLOCK-----[\s\S]*?-----END PGP PUBLIC KEY BLOCK-----/
   - /initialHashedPassword\s*=\s*.*/
