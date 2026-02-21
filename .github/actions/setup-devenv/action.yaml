@@ -49,7 +49,7 @@ runs:
       name: Install Devenv
       shell: bash
       run: |
-        nix profile install --accept-flake-config nixpkgs#devenv
+        nix profile add --accept-flake-config nixpkgs#devenv
 
     - id: secretspec_check
       name: Secretspec Check
