@@ -7,6 +7,10 @@ use crate::error::SiwaError;
 use crate::settings::RateLimitSettings;
 use std::collections::HashMap;
 
+/// Hard cap on the number of unique addresses tracked in a single window.
+/// Prevents unbounded memory growth regardless of rate-limit configuration.
+const MAX_PER_ADDRESS_ENTRIES: usize = 10_000;
+
 /// Rate limiter for tracking and enforcing login attempt limits
 #[derive(Clone, Debug)]
 pub struct RateLimiter {
@@ -68,6 +72,16 @@ impl RateLimiter {
         // Runs every 100 unique addresses to amortize the cost.
         if self.per_address.len() > 100 {
             self.cleanup_expired(now_ns);
+        }
+
+        // Hard cap: prevent unbounded memory growth regardless of rate-limit config.
+        // Already-tracked addresses can still make attempts (subject to per-address limit).
+        if self.per_address.len() >= MAX_PER_ADDRESS_ENTRIES
+            && !self.per_address.contains_key(&address_lower)
+        {
+            return Err(SiwaError::RateLimited(
+                "Too many unique addresses in current window".to_string(),
+            ));
         }
 
         // Check and update global rate limit
@@ -390,5 +404,42 @@ mod tests {
         assert_eq!(limiter.get_address_count("0x1234", now), 1);
         assert_eq!(limiter.remaining_for_address("0x1234", now), 2);
         assert_eq!(limiter.remaining_global(now), 9);
+    }
+
+    #[test]
+    fn test_rate_limiter_hard_cap_enforced() {
+        let settings = RateLimitSettings {
+            max_logins_per_address: u32::MAX,
+            max_logins_total: u32::MAX,
+            window_seconds: 3600,
+        };
+        let mut limiter = RateLimiter::new(settings);
+        let now = 1_000_000_000_000u64;
+
+        // Fill the map to the hard cap
+        for i in 0..MAX_PER_ADDRESS_ENTRIES {
+            let addr = format!("0x{:08x}", i);
+            assert!(
+                limiter.check_and_record(&addr, now + i as u64).is_ok(),
+                "address {} should be allowed",
+                i
+            );
+        }
+
+        // A new address beyond the cap should be rejected
+        let result =
+            limiter.check_and_record("0xnew_address", now + MAX_PER_ADDRESS_ENTRIES as u64);
+        assert!(
+            matches!(result, Err(SiwaError::RateLimited(_))),
+            "expected RateLimited for new address beyond hard cap"
+        );
+
+        // An already-tracked address should still succeed
+        let result =
+            limiter.check_and_record("0x00000000", now + MAX_PER_ADDRESS_ENTRIES as u64 + 1);
+        assert!(
+            result.is_ok(),
+            "already-tracked address should still be allowed"
+        );
     }
 }
