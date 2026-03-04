@@ -18,7 +18,6 @@ ignorePaths:
   - docs/agents/**
   - docs/issues/**
   - node_modules
-  - public/config-client.json
   - public/workers
   - "*.svg"
   - secrets
