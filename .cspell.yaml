@@ -16,13 +16,14 @@ ignorePaths:
   - .git
   - devenv.nix
   - docs/agents/**
+  - docs/issues/**
   - node_modules
+  - public/config-client.json
   - public/workers
+  - "*.svg"
   - secrets
   - vendor
-  - docs/todo/
-  - "*.svg"
 ignoreRegExpList:
   - /-----BEGIN PGP PUBLIC KEY BLOCK-----[\s\S]*?-----END PGP PUBLIC KEY BLOCK-----/
   - /initialHashedPassword\s*=\s*.*/
-  - /([a-z0-9]{5}-)+[a-z0-9]{1,5}/
+  - /\b([a-z0-9]{5}-)+[a-z0-9]{1,5}\b/
