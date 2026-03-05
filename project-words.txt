@@ -51,6 +51,7 @@ decentralizing
 Lambos
 merkle
 normie
+publickey
 secp
 SIWA
 SIWE

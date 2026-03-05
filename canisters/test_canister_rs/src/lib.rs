@@ -4,7 +4,7 @@
 //! It provides endpoints to test the login flow and verify authentication.
 
 use candid::{CandidType, Deserialize, Principal};
-use ic_cdk_macros::{init, query, update};
+use ic_cdk_macros::query;
 
 /// Response types matching ic_siwa_provider.did interface
 
@@ -32,130 +32,6 @@ pub struct LoginOk {
 pub enum LoginResponse {
     Ok(LoginOk),
     Err(String),
-}
-
-#[derive(CandidType, Deserialize)]
-pub struct Delegation {
-    pub pubkey: Vec<u8>,
-    pub targets: Option<Vec<Principal>>,
-    pub expiration: u64,
-}
-
-#[derive(CandidType, Deserialize)]
-pub struct SignedDelegation {
-    pub delegation: Delegation,
-    pub signature: Vec<u8>,
-}
-
-#[derive(CandidType, Deserialize)]
-pub enum GetDelegationResponse {
-    Ok(SignedDelegation),
-    Err(String),
-}
-
-/// Initialize the test canister
-#[init]
-fn init() {
-    ic_cdk::println!("test_canister_rs initialized");
-}
-
-/// Health check endpoint
-#[query]
-fn health() -> String {
-    "ok".to_string()
-}
-
-/// Get caller principal - useful for testing authentication
-#[query]
-fn whoami() -> Principal {
-    ic_cdk::api::msg_caller()
-}
-
-/// Test protected endpoint - only accessible by authenticated users
-#[query]
-fn protected_data() -> Result<String, String> {
-    let caller = ic_cdk::api::msg_caller();
-    if caller == Principal::anonymous() {
-        Err("Unauthorized: anonymous caller".to_string())
-    } else {
-        Ok(format!("Protected data for principal: {}", caller))
-    }
-}
-
-/// Test SIWA integration - prepare login
-/// Calls ic_siwa_provider.siwa_prepare_login
-#[update]
-async fn test_prepare_login(provider_id: Principal, address: String) -> Result<String, String> {
-    let result = ic_cdk::call::Call::unbounded_wait(provider_id, "siwa_prepare_login")
-        .with_arg(address)
-        .await;
-
-    match result {
-        Ok(response) => {
-            let (resp,): (PrepareLoginResponse,) = response
-                .candid()
-                .map_err(|e| format!("Decode error: {:?}", e))?;
-            match resp {
-                PrepareLoginResponse::Ok(data) => Ok(data.message),
-                PrepareLoginResponse::Err(e) => Err(format!("Provider error: {}", e)),
-            }
-        }
-        Err(e) => Err(format!("Call failed: {:?}", e)),
-    }
-}
-
-/// Test SIWA integration - complete login
-/// Calls ic_siwa_provider.siwa_login
-#[update]
-async fn test_login(
-    provider_id: Principal,
-    signature: String,
-    address: String,
-    session_key: Vec<u8>,
-) -> Result<Principal, String> {
-    let result = ic_cdk::call::Call::unbounded_wait(provider_id, "siwa_login")
-        .with_arg((signature, address, session_key))
-        .await;
-
-    match result {
-        Ok(response) => {
-            let (resp,): (LoginResponse,) = response
-                .candid()
-                .map_err(|e| format!("Decode error: {:?}", e))?;
-            match resp {
-                LoginResponse::Ok(data) => Ok(data.user_principal),
-                LoginResponse::Err(e) => Err(format!("Provider error: {}", e)),
-            }
-        }
-        Err(e) => Err(format!("Call failed: {:?}", e)),
-    }
-}
-
-/// Test SIWA integration - get delegation
-/// Calls ic_siwa_provider.siwa_get_delegation
-#[update]
-async fn test_get_delegation(
-    provider_id: Principal,
-    address: String,
-    session_key: Vec<u8>,
-    expiration: u64,
-) -> Result<SignedDelegation, String> {
-    let result = ic_cdk::call::Call::unbounded_wait(provider_id, "siwa_get_delegation")
-        .with_arg((address, session_key, expiration))
-        .await;
-
-    match result {
-        Ok(response) => {
-            let (resp,): (GetDelegationResponse,) = response
-                .candid()
-                .map_err(|e| format!("Decode error: {:?}", e))?;
-            match resp {
-                GetDelegationResponse::Ok(delegation) => Ok(delegation),
-                GetDelegationResponse::Err(e) => Err(format!("Provider error: {}", e)),
-            }
-        }
-        Err(e) => Err(format!("Call failed: {:?}", e)),
-    }
 }
 
 /// Serve simple HTML test page
