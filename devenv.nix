@@ -2,7 +2,6 @@
   pkgs,
   config,
   lib,
-  inputs,
   ...
 }:
 let
@@ -41,25 +40,11 @@ let
     #canisters
   ];
 
-  pkgsUnstable = import inputs.nixpkgs-unstable {
-    config.allowUnfree = true;
-  };
-
   #packages = with pkgs; [ ];
-
-  packagesUnstable = with pkgsUnstable; [
-    claude-code-bin
-    gemini-cli-bin
-    tailwindcss_4
-  ];
 
   devPackages =
     with pkgs;
     [
-      # AI Agents
-      #gemini-cli-bin
-      #claude-code
-
       # General
       bash
       coreutils
@@ -77,7 +62,13 @@ let
 
       # Devenv
       direnv
+      devenv
       secretspec
+
+      # Nix
+      nixd
+      nil
+      nixfmt
 
       # Rust
       cargo-audit
@@ -90,7 +81,7 @@ let
       # Astro
       astro-language-server
       nodePackages.postcss
-      #tailwindcss_4
+      tailwindcss_4
       npm-check-updates
 
       # Security
@@ -157,9 +148,7 @@ in
     disableHint = true;
   };
 
-  packages =
-    packagesUnstable
-    ++ lib.optionals (!config.container.isBuilding || config.name == "devenv") devPackages;
+  packages = lib.optionals (!config.container.isBuilding || config.name == "devenv") devPackages;
 
   enterShell = ''
     if [[ "''${CI:-false}" == "true" ]];
