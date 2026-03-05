@@ -6,7 +6,7 @@
   ...
 }:
 let
-  ic-nix-release = "20260203";
+  ic-nix-release = "20260217";
 
   ic-nix =
     import

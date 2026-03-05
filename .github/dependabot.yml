@@ -1,66 +1,139 @@
+---
+##################################################
+#
+# Name: dependabot.yml
+# Description: Dependabot configuration for GitHub native version
+# Reference: https://git.io/JJhjE
+#
+##################################################
+
 version: 2
+
 updates:
+  #########################
   # GitHub Actions
+  #########################
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "sunday"
+      time: "00:00"
+      timezone: "Australia/Sydney"
+    assignees:
+      - "MAHDTech"
+    labels:
+      - "chore"
+    target-branch: "trunk"
     commit-message:
-      prefix: "ci(deps)"
+      prefix: "chore(deps)"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
 
-  # Rust/Cargo - workspace root
+  #########################
+  # Git Submodules
+  #########################
+
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "00:00"
+      timezone: "Australia/Sydney"
+    assignees:
+      - "MAHDTech"
+    labels:
+      - "chore"
+    target-branch: "trunk"
+    commit-message:
+      prefix: "chore(deps)"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+
+  #########################
+  # Bun
+  #########################
+
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "00:00"
+      timezone: "Australia/Sydney"
+    assignees:
+      - "MAHDTech"
+    labels:
+      - "chore"
+    target-branch: "trunk"
+    commit-message:
+      prefix: "chore(deps)"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+
+  # IC-SIWA TypeScript Library
+  - package-ecosystem: "bun"
+    directory: "/libs/ic_siwa_ts"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "00:00"
+      timezone: "Australia/Sydney"
+    assignees:
+      - "MAHDTech"
+    labels:
+      - "chore"
+    commit-message:
+      prefix: "chore(deps)"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+    groups:
+      ic-siwa-ts:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # IC-SIWA Test Canister TypeScript
+  - package-ecosystem: "bun"
+    directory: "/canisters/test_canister_ts"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "00:00"
+      timezone: "Australia/Sydney"
+    assignees:
+      - "MAHDTech"
+    labels:
+      - "chore"
+    commit-message:
+      prefix: "chore(deps)"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+    groups:
+      test-canister-ts:
+        update-types:
+          - "minor"
+          - "patch"
+
+  #########################
+  # Cargo
+  #########################
+
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+      day: "sunday"
+      time: "00:00"
+      timezone: "Australia/Sydney"
+    assignees:
+      - "MAHDTech"
+    labels:
+      - "chore"
+    target-branch: "trunk"
     commit-message:
       prefix: "chore(deps)"
-    groups:
-      rust-minor:
-        update-types:
-          - "minor"
-          - "patch"
-
-  # npm - Root (eslint deps)
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+    rebase-strategy: "auto"
     open-pull-requests-limit: 5
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      npm-minor:
-        update-types:
-          - "minor"
-          - "patch"
-
-  # npm - TypeScript library
-  - package-ecosystem: "npm"
-    directory: "/libs/ic_siwa_ts"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      npm-minor:
-        update-types:
-          - "minor"
-          - "patch"
-
-  # npm - Test canister frontend
-  - package-ecosystem: "npm"
-    directory: "/canisters/test_canister_ts"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    commit-message:
-      prefix: "chore(deps)"
-    groups:
-      npm-minor:
-        update-types:
-          - "minor"
-          - "patch"
