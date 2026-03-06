@@ -24,6 +24,7 @@ permissions:
   packages: write
   pull-requests: write
   statuses: write
+  actions: write
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
