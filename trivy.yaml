@@ -23,6 +23,9 @@ scan:
     - .direnv
     - .dist
     - .git
+    - .github
+    - .vscode
+    - .codeql-db
     - node_modules
     - target
     - .dfx
