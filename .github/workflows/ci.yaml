@@ -305,6 +305,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+
       - id: write_summary
         name: Write Results Summary
         run: |
