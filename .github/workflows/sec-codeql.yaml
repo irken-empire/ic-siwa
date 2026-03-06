@@ -5,6 +5,7 @@
 #
 # Triggers:
 #   - Pull request to trunk
+#   - Push to trunk
 #   - Weekly schedule (Sunday 00:00 UTC)
 #
 # Scans:
@@ -22,6 +23,10 @@ on:
     branches:
       - trunk
 
+  push:
+    branches:
+      - trunk
+
   schedule:
     - cron: "0 0 * * 0"
 
@@ -32,7 +37,7 @@ concurrency:
 permissions:
   contents: read
   packages: read
-  actions: read
+  actions: write
   statuses: write
   security-events: write
 
@@ -50,7 +55,7 @@ jobs:
   ##################################################
 
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: CodeQL Analyze (${{ matrix.language }})
 
     runs-on: ubuntu-latest
 

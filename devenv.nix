@@ -6,21 +6,14 @@
   ...
 }:
 let
-  ic-nix-release = "20260203";
-
-  ic-nix =
-    import
-      (fetchTarball {
-        url = "https://github.com/ninegua/ic-nix/archive/refs/tags/${ic-nix-release}.tar.gz";
-        sha256 = "0vydcs3m46rwm3z6d4mqvxsa8s26rl5qw3apy5lpvg8146h2y54g";
+  ic-nix = import inputs.ic-nix {
+    pkgs = pkgs.appendOverlays [
+      (_self: _prev: {
+        pkgsHostHost = _prev;
+        rust-stable = config.languages.rust.toolchainPackage;
       })
-      {
-        pkgs = pkgs.appendOverlays [
-          (_self: _super: {
-            rust-stable = config.languages.rust.toolchainPackage;
-          })
-        ];
-      };
+    ];
+  };
 
   ic-nix-packages = with ic-nix; [
     # SDK
@@ -41,25 +34,11 @@ let
     #canisters
   ];
 
-  pkgsUnstable = import inputs.nixpkgs-unstable {
-    config.allowUnfree = true;
-  };
-
   #packages = with pkgs; [ ];
-
-  packagesUnstable = with pkgsUnstable; [
-    claude-code-bin
-    gemini-cli-bin
-    tailwindcss_4
-  ];
 
   devPackages =
     with pkgs;
     [
-      # AI Agents
-      #gemini-cli-bin
-      #claude-code
-
       # General
       bash
       coreutils
@@ -75,9 +54,10 @@ let
       ripgrep
       yq-go
 
-      # Devenv
-      direnv
-      secretspec
+      # Nix
+      nixd
+      nil
+      nixfmt
 
       # Rust
       cargo-audit
@@ -90,7 +70,7 @@ let
       # Astro
       astro-language-server
       nodePackages.postcss
-      #tailwindcss_4
+      tailwindcss_4
       npm-check-updates
 
       # Security
@@ -157,9 +137,7 @@ in
     disableHint = true;
   };
 
-  packages =
-    packagesUnstable
-    ++ lib.optionals (!config.container.isBuilding || config.name == "devenv") devPackages;
+  packages = lib.optionals (!config.container.isBuilding || config.name == "devenv") devPackages;
 
   enterShell = ''
     if [[ "''${CI:-false}" == "true" ]];

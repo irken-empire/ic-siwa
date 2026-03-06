@@ -1,3 +1,4 @@
+---
 inputs:
   fenix:
     url: github:nix-community/fenix
@@ -9,12 +10,19 @@ inputs:
     inputs:
       nixpkgs:
         follows: nixpkgs
+  git-hooks:
+    url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  ic-nix:
+    url: github:ninegua/ic-nix/20260217
+    flake: false
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
-  nixpkgs-unstable:
-    url: github:nixos/nixpkgs/nixpkgs-unstable
   rust-overlay:
-    url: github:oxalica/rust-overlay
+    #url: github:oxalica/rust-overlay
+    url: github:oxalica/rust-overlay/29a57fd94e9f384597222fb3301466a112a8c200
     inputs:
       nixpkgs:
         follows: nixpkgs
@@ -25,6 +33,5 @@ clean:
     - EDITOR
     - USER
     - GITHUB_TOKEN
-impure: true
 secretspec:
   enable: true

@@ -75,3 +75,5 @@ TODO/
 # Nix
 result/
 
+# Trivy
+trivy-results.sarif

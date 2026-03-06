@@ -24,6 +24,7 @@ permissions:
   packages: write
   pull-requests: write
   statuses: write
+  actions: write
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -35,7 +36,7 @@ defaults:
 
 jobs:
   test:
-    name: Test
+    name: Devenv Test
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
