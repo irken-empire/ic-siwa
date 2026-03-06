@@ -55,7 +55,7 @@ jobs:
   ##################################################
 
   scan:
-    name: Security Scan
+    name: Trivy Security Scan
 
     runs-on: ubuntu-latest
 

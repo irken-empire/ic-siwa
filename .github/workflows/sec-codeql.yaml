@@ -50,7 +50,7 @@ jobs:
   ##################################################
 
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: CodeQL Analyze (${{ matrix.language }})
 
     runs-on: ubuntu-latest
 

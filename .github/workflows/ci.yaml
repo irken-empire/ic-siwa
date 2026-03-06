@@ -42,7 +42,7 @@ jobs:
   # Lint - Check code quality
   ##################################################
   lint:
-    name: Lint
+    name: CI Lint
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -91,7 +91,7 @@ jobs:
   # Test - Run unit tests
   ##################################################
   test:
-    name: Test
+    name: CI Test
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -142,7 +142,7 @@ jobs:
   # Build Canisters - Verify all canisters build
   ##################################################
   build-canisters:
-    name: Build Canister ${{ matrix.canister }}
+    name: CI Build Canister ${{ matrix.canister }}
     needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -209,7 +209,7 @@ jobs:
   # Build TypeScript - Verify npm package builds
   ##################################################
   build-typescript:
-    name: Build TypeScript
+    name: CI Build TypeScript
     needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -242,7 +242,7 @@ jobs:
   # Verify Candid - Ensure interface is up-to-date
   ##################################################
   verify-candid:
-    name: Verify Candid
+    name: CI Verify Candid
     needs: [build-canisters]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -294,8 +294,13 @@ jobs:
   # Status - Report overall status
   ##################################################
   status:
-    name: Status
-    needs: [lint, test, build-canisters, build-typescript, verify-candid]
+    name: CI Status
+    needs:
+      - lint
+      - test
+      - build-canisters
+      - build-typescript
+      - verify-candid
     if: always()
     runs-on: ubuntu-latest
 
@@ -326,3 +331,17 @@ jobs:
           fi
 
           echo "All CI checks passed!"
+
+      - id: report_status
+        name: Report Status
+        if: always()
+        uses: ./.github/actions/report-status
+        with:
+          result: ${{ steps.check_failures.outcome }}
+          success-message: "All CI checks passed!"
+          failure-message: "One or more CI checks failed!"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          workflow-name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

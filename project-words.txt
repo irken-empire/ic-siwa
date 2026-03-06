@@ -1,4 +1,5 @@
 Assasian
+Clippy
 FOMO
 Fiverr
 Gensler
