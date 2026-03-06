@@ -19,7 +19,7 @@ categories = ["authentication", "cryptography", "wasm"]
 # Internet Computer
 candid = "0.10"
 ic-cdk = "0.19"
-ic-cdk-macros = "0.19"
+ic-cdk-macros = "0.20"
 ic-cdk-timers = "1.0"
 ic-stable-structures = "0.7"
 ic-certified-map = "0.4"
