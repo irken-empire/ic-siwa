@@ -13,6 +13,7 @@ Orbitron
 Pickel
 Pixelorama
 Powerups
+difftastic
 Rabby
 Remminator
 Reown
