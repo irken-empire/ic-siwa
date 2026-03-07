@@ -50,17 +50,25 @@ runs:
       shell: bash
       run: |
         nix profile add --accept-flake-config nixpkgs#devenv
-        devenv --version
 
     - id: install_secretspec
       name: Install Secretspec
       shell: bash
       run: |
         nix profile add --accept-flake-config nixpkgs#secretspec
-        secretspec --version
+
+    - id: version_check
+      name: Version Check
+      shell: bash
+      run: |
+        echo "Devenv version: $(devenv --version)"
+        echo "Secretspec version: $(secretspec --version)"
+        echo "Cachix version: $(cachix --version)"
 
     - id: secretspec_check
       name: Secretspec Check
       shell: devenv shell --quiet bash -- -e {0}
+      env:
+        SECRETSPEC_PROVIDER: env
       run: |
         secretspec check
