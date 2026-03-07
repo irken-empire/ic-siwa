@@ -21,12 +21,12 @@ inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
   rust-overlay:
-    #url: github:oxalica/rust-overlay
-    url: github:oxalica/rust-overlay/29a57fd94e9f384597222fb3301466a112a8c200
+    url: github:oxalica/rust-overlay/stable
     inputs:
       nixpkgs:
         follows: nixpkgs
 allowUnfree: true
+impure: true
 clean:
   enabled: false
   keep:
