@@ -14,6 +14,14 @@ inputs:
     description: "Auth token for Cachix push"
     required: false
     default: ""
+  skip-push:
+    description: "Set to true to skip pushing to Cachix (pull/substitute only). Use for jobs that don't produce cacheable build artifacts."
+    required: false
+    default: "false"
+  push-filter:
+    description: "Regex to exclude paths from Cachix push, e.g. source tarballs and nixpkgs archives"
+    required: false
+    default: '(-source$|nixpkgs\.tar\.gz$|\.tar\.gz$|\.zip$)'
 
 runs:
   using: composite
@@ -35,6 +43,13 @@ runs:
         purge-created: P7D
         token: ${{ inputs.github-token }}
 
+    - id: enable_cachix_devenv
+      name: Enable devenv Cachix (read-only)
+      uses: cachix/cachix-action@v16
+      with:
+        name: devenv
+        skipPush: true
+
     - id: enable_cachix
       name: Enable Cachix
       if: inputs.cachix-cache-name != ''
@@ -43,7 +58,8 @@ runs:
         name: ${{ inputs.cachix-cache-name }}
         authToken: ${{ inputs.cachix-auth-token }}
         useDaemon: true
-        skipPush: false
+        skipPush: ${{ inputs.skip-push }}
+        pushFilter: ${{ inputs.push-filter }}
 
     - id: install_devenv
       name: Install Devenv
