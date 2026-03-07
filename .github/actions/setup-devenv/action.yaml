@@ -49,6 +49,8 @@ runs:
 
     - id: enable_cachix_devenv
       name: Enable devenv Cachix (read-only)
+      # TODO: Re-enable when fixed
+      if: "false"
       uses: cachix/cachix-action@v16
       with:
         name: devenv
@@ -56,7 +58,9 @@ runs:
 
     - id: enable_cachix
       name: Enable Cachix
-      if: inputs.cachix-cache-name != ''
+      # TODO: Re-enable when fixed
+      #if: inputs.cachix-cache-name != ''
+      if: "false"
       uses: cachix/cachix-action@v16
       with:
         name: ${{ inputs.cachix-cache-name }}
