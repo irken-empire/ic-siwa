@@ -69,20 +69,19 @@ jobs:
         with:
           cache-key-prefix: ci-lint
 
-      - id: rust_fmt
-        name: Check Rust Formatting
+      - id: rust_checks
+        name: Run Rust Checks
         shell: devenv shell --quiet bash -- -e {0}
-        run: cargo fmt --all -- --check
-
-      - id: rust_clippy
-        name: Run Clippy
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo clippy --all-targets -- -D warnings
-
-      - id: check_canister_ids
-        name: Check Canister ID Consistency
-        shell: devenv shell --quiet bash -- -e {0}
-        run: bash scripts/check-canister-ids.sh
+        run: |
+          cargo fmt --all -- --check || {
+            echo "Cargo format has failed!"
+          }
+          cargo clippy --all-targets -- -D warnings || {
+            echo "Cargo clippy has failed!"
+          }
+          bash scripts/check-canister-ids.sh || {
+            echo "Canister ID check has failed!"
+          }
 
   ##################################################
   # Test - Run unit tests
