@@ -1,5 +1,12 @@
 ---
 inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  devenv:
+    url: github:cachix/devenv/main
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   fenix:
     url: github:nix-community/fenix
     inputs:
@@ -18,15 +25,12 @@ inputs:
   ic-nix:
     url: github:ninegua/ic-nix/20260217
     flake: false
-  nixpkgs:
-    url: github:cachix/devenv-nixpkgs/rolling
   rust-overlay:
     url: github:oxalica/rust-overlay/stable
     inputs:
       nixpkgs:
         follows: nixpkgs
 allowUnfree: true
-impure: true
 clean:
   enabled: false
   keep:
