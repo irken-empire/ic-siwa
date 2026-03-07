@@ -50,12 +50,14 @@ runs:
       shell: bash
       run: |
         nix profile add --accept-flake-config nixpkgs#devenv
+        devenv --version
 
     - id: install_secretspec
       name: Install Secretspec
       shell: bash
       run: |
         nix profile add --accept-flake-config nixpkgs#secretspec
+        secretspec --version
 
     - id: secretspec_check
       name: Secretspec Check
