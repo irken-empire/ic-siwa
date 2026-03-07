@@ -8,16 +8,16 @@ inputs:
     required: true
   cachix-cache-name:
     description: "Name of the Cachix binary cache"
-    required: false
+    required: true
     default: ""
   cachix-auth-token:
     description: "Auth token for Cachix push"
-    required: false
+    required: true
     default: ""
   skip-push:
     description: "Set to true to skip pushing to Cachix (pull/substitute only). Use for jobs that don't produce cacheable build artifacts."
     required: false
-    default: "false"
+    default: "true"
   push-filter:
     description: "Regex to exclude paths from Cachix push, e.g. source tarballs and nixpkgs archives"
     required: false
@@ -26,6 +26,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - id: free_disk_space
+      name: Free Disk Space
+      uses: ./.github/actions/free-disk-space
+
     - id: install_nix
       name: Install Nix
       uses: cachix/install-nix-action@v31

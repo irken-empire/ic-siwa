@@ -55,10 +55,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -103,10 +99,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
@@ -167,10 +159,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -223,10 +211,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
@@ -256,15 +240,13 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
       - id: setup_devenv
         name: Setup Devenv
         uses: ./.github/actions/setup-devenv
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - id: download_artifact
         name: Download Provider WASM
