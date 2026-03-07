@@ -35,17 +35,10 @@ runs:
       uses: cachix/install-nix-action@v31
       with:
         github_access_token: ${{ inputs.github-token }}
-
-    - id: nix_cache
-      name: Cache Nix Store
-      uses: nix-community/cache-nix-action@v7
-      with:
-        primary-key: nix-${{ runner.os }}-${{ hashFiles('devenv.lock') }}
-        restore-prefixes-first-match: nix-${{ runner.os }}-
-        gc-max-store-size-linux: 5G
-        purge: true
-        purge-created: P7D
-        token: ${{ inputs.github-token }}
+        enable_kvm: true
+        extra_nix_config: |
+          keep-outputs = true
+          keep-derivations = true
 
     - id: enable_cachix_devenv
       name: Enable devenv Cachix (read-only)
@@ -65,6 +58,17 @@ runs:
         useDaemon: true
         skipPush: ${{ inputs.skip-push }}
         pushFilter: ${{ inputs.push-filter }}
+
+    - id: nix_cache
+      name: Cache Nix Store
+      uses: nix-community/cache-nix-action@v7
+      with:
+        primary-key: nix-${{ runner.os }}-${{ hashFiles('devenv.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-
+        gc-max-store-size-linux: 5G
+        purge: true
+        purge-created: P7D
+        token: ${{ inputs.github-token }}
 
     - id: install_devenv
       name: Install Devenv
