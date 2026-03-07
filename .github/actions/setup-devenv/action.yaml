@@ -88,8 +88,8 @@ runs:
 
     - id: secretspec_check
       name: Secretspec Check
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: bash
       env:
         SECRETSPEC_PROVIDER: env
       run: |
-        secretspec check
+        secretspec check --no-prompt
