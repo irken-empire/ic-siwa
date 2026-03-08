@@ -40,9 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
+    defaults:
+      run:
+        shell: devenv shell --quiet bash -- -e {0}
+
     steps:
       - id: config_summary
         name: Configuration Summary
+        shell: bash
         run: |
           {
             echo "## Devenv Configuration"
@@ -71,7 +76,6 @@ jobs:
 
       - id: install_deps
         name: Install Dependencies
-        shell: devenv shell --quiet bash -- -e {0}
         run: bun run install-deps
 
       - id: devenv_test
@@ -81,6 +85,7 @@ jobs:
       - id: write_summary
         name: Write Results Summary
         if: always()
+        shell: bash
         run: |
           {
             echo "## Devenv Results"

@@ -17,7 +17,7 @@ inputs:
   skip-push:
     description: "Set to true to skip pushing to Cachix (pull/substitute only). Use for jobs that don't produce cacheable build artifacts."
     required: false
-    default: "true"
+    default: "false"
   push-filter:
     description: "Regex to exclude paths from Cachix push, e.g. source tarballs and nixpkgs archives"
     required: false
