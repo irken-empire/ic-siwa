@@ -96,4 +96,4 @@ runs:
       env:
         SECRETSPEC_PROVIDER: env
       run: |
-        devenv shell -- figlet -f slant "warm up complete!"
+        devenv shell figlet -f -w 120 slant "devenv cache..."
