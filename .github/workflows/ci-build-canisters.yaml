@@ -67,25 +67,3 @@ jobs:
           name: ${{ matrix.canister }}-ci
           path: target/wasm32-unknown-unknown/release/${{ matrix.canister }}.wasm
           retention-days: 1
-
-      - id: write_summary
-        name: Write Results Summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "## Build Canisters Results"
-            echo ""
-            echo "### Check Status"
-            echo "| Step | Status |"
-            echo "|------|--------|"
-            echo "| Build Canister (${{ matrix.canister }}) | ${{ steps.build_canister.outcome }} |"
-            if [[ "${{ matrix.canister }}" == "ic_siwa_provider" ]]; then
-              echo "| Upload Artifact | ${{ steps.upload_artifact.outcome }} |"
-              echo ""
-              echo "### Artifacts"
-              echo "| Name | Retention |"
-              echo "|------|-----------|"
-              echo "| \`${{ matrix.canister }}-ci\` (WASM) | 1 day |"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"

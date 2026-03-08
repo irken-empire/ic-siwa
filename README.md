@@ -1,5 +1,9 @@
 # IC-SIWA
 
+[![CI](https://github.com/irken-empire/ic-siwa/actions/workflows/ci.yaml/badge.svg)](https://github.com/irken-empire/ic-siwa/actions/workflows/ci.yaml)
+[![CodeQL](https://github.com/irken-empire/ic-siwa/actions/workflows/sec-codeql.yaml/badge.svg)](https://github.com/irken-empire/ic-siwa/actions/workflows/sec-codeql.yaml)
+[![Trivy](https://github.com/irken-empire/ic-siwa/actions/workflows/ci-trivy.yaml/badge.svg)](https://github.com/irken-empire/ic-siwa/actions/workflows/ci-trivy.yaml)
+
 Sign in with Avalanche for the Internet Computer.
 
 Build cross-chain Avalanche apps on ICP!

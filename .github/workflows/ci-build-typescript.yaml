@@ -35,17 +35,3 @@ jobs:
       - id: build_npm
         name: Build npm Package
         uses: ./.github/actions/build-npm
-
-      - id: write_summary
-        name: Write Results Summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "## Build TypeScript Results"
-            echo ""
-            echo "### Check Status"
-            echo "| Step | Status |"
-            echo "|------|--------|"
-            echo "| Build npm Package | ${{ steps.build_npm.outcome }} |"
-          } >> "$GITHUB_STEP_SUMMARY"

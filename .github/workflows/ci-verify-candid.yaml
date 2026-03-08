@@ -56,18 +56,3 @@ jobs:
           fi
 
           echo "Candid interface verified"
-
-      - id: write_summary
-        name: Write Results Summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "## Verify Candid Results"
-            echo ""
-            echo "### Check Status"
-            echo "| Step | Status |"
-            echo "|------|--------|"
-            echo "| Download Provider WASM | ${{ steps.download_artifact.outcome }} |"
-            echo "| Verify Candid Interface | ${{ steps.verify_candid.outcome }} |"
-          } >> "$GITHUB_STEP_SUMMARY"

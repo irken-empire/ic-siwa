@@ -60,6 +60,7 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
+          lfs: false
 
       - id: setup_devenv
         name: Setup Devenv
@@ -69,9 +70,15 @@ jobs:
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - id: cache_trivy_db
+        name: Cache Trivy DB
+        uses: ./.github/actions/cache-trivy
+
       - id: trivy_scan
         name: Trivy Filesystem Scan
         shell: devenv shell --quiet bash -- -e {0}
+        env:
+          TRIVY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           trivy filesystem \
             --config trivy.yaml \
@@ -86,3 +93,17 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
+
+      - id: report_status
+        name: Report Status
+        if: always()
+        uses: ./.github/actions/report-status
+        with:
+          result: ${{ steps.trivy_scan.outcome }}
+          success-message: "Trivy security scan passed"
+          failure-message: "Trivy security scan failed"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          workflow-name: ${{ github.workflow }}
+          repository: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

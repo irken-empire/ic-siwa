@@ -49,17 +49,3 @@ jobs:
           bash scripts/check-canister-ids.sh || {
             echo "Canister ID check has failed!"
           }
-
-      - id: write_summary
-        name: Write Results Summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "## Lint Results"
-            echo ""
-            echo "### Check Status"
-            echo "| Step | Status |"
-            echo "|------|--------|"
-            echo "| Rust Checks (fmt / clippy / canister IDs) | ${{ steps.rust_checks.outcome }} |"
-          } >> "$GITHUB_STEP_SUMMARY"
