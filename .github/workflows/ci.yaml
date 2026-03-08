@@ -83,12 +83,12 @@ jobs:
     secrets: inherit
 
   ##################################################
-  # Parallel Check - Build Canisters
+  # Parallel Check - Build Rust Canisters + Candid
   ##################################################
-  ci-build-canisters:
-    name: Check Build Canisters
+  ci-build-rust:
+    name: Check Build Rust
     needs: setup-environment
-    uses: ./.github/workflows/ci-build-canisters.yaml
+    uses: ./.github/workflows/ci-build-rust.yaml
     secrets: inherit
 
   ##################################################
@@ -98,16 +98,6 @@ jobs:
     name: Check Build TypeScript
     needs: setup-environment
     uses: ./.github/workflows/ci-build-typescript.yaml
-    secrets: inherit
-
-  ##################################################
-  # Sequence Check - Verify Candid
-  # Must wait for ci-build-canisters to upload WASM
-  ##################################################
-  ci-verify-candid:
-    name: Check Candid
-    needs: ci-build-canisters
-    uses: ./.github/workflows/ci-verify-candid.yaml
     secrets: inherit
 
   ##################################################
@@ -129,15 +119,6 @@ jobs:
     secrets: inherit
 
   ##################################################
-  # Parallel Check - CodeQL Security Scan
-  ##################################################
-  ci-codeql:
-    name: Check CodeQL
-    needs: setup-environment
-    uses: ./.github/workflows/sec-codeql.yaml
-    secrets: inherit
-
-  ##################################################
   # Status Report Aggregator
   ##################################################
   status:
@@ -145,13 +126,11 @@ jobs:
     needs:
       - ci-pr-title
       - ci-trivy
-      - ci-codeql
       - ci-devenv
       - ci-lint
       - ci-test
-      - ci-build-canisters
+      - ci-build-rust
       - ci-build-typescript
-      - ci-verify-candid
     if: always()
     runs-on: ubuntu-latest
 
@@ -192,19 +171,17 @@ jobs:
               echo "| PR Title | $(status_emoji '${{ needs.ci-pr-title.result }}') ${{ needs.ci-pr-title.result }} |"
             fi
             echo "| Trivy | $(status_emoji '${{ needs.ci-trivy.result }}') ${{ needs.ci-trivy.result }} |"
-            echo "| CodeQL | $(status_emoji '${{ needs.ci-codeql.result }}') ${{ needs.ci-codeql.result }} |"
             echo "| Devenv | $(status_emoji '${{ needs.ci-devenv.result }}') ${{ needs.ci-devenv.result }} |"
             echo "| Lint | $(status_emoji '${{ needs.ci-lint.result }}') ${{ needs.ci-lint.result }} |"
             echo "| Test | $(status_emoji '${{ needs.ci-test.result }}') ${{ needs.ci-test.result }} |"
-            echo "| Build Canisters | $(status_emoji '${{ needs.ci-build-canisters.result }}') ${{ needs.ci-build-canisters.result }} |"
+            echo "| Build Rust | $(status_emoji '${{ needs.ci-build-rust.result }}') ${{ needs.ci-build-rust.result }} |"
             echo "| Build TypeScript | $(status_emoji '${{ needs.ci-build-typescript.result }}') ${{ needs.ci-build-typescript.result }} |"
-            echo "| Verify Candid | $(status_emoji '${{ needs.ci-verify-candid.result }}') ${{ needs.ci-verify-candid.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - id: check_failures
         name: Check for Failures
         run: |
-          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.ci-codeql.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-canisters.result }},${{ needs.ci-build-typescript.result }},${{ needs.ci-verify-candid.result }}"
+          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-rust.result }},${{ needs.ci-build-typescript.result }}"
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::One or more CI jobs failed"
             exit 1

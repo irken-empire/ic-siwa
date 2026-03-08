@@ -221,15 +221,6 @@ jobs:
           echo "Updated release ${TAG} with changelog"
 
   ##################################################
-  # Run trunk CodeQL security analysis
-  ##################################################
-  cd-codeql:
-    name: Trunk CodeQL Scan
-    needs: setup-environment
-    uses: ./.github/workflows/sec-codeql.yaml
-    secrets: inherit
-
-  ##################################################
   # Deploy to Testnet
   ##################################################
   deploy-testnet:

@@ -19,7 +19,9 @@
 name: CodeQL
 
 on:
-  workflow_call:
+  pull_request:
+    branches:
+      - trunk
 
   push:
     branches:
