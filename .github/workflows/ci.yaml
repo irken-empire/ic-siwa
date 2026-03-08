@@ -131,7 +131,7 @@ jobs:
   ##################################################
   # Parallel Check - CodeQL Security Scan
   ##################################################
-  sec-codeql:
+  ci-codeql:
     name: Check CodeQL
     needs: setup-environment
     uses: ./.github/workflows/sec-codeql.yaml
@@ -145,7 +145,7 @@ jobs:
     needs:
       - ci-pr-title
       - ci-trivy
-      - sec-codeql
+      - ci-codeql
       - ci-devenv
       - ci-lint
       - ci-test
@@ -172,7 +172,7 @@ jobs:
               echo "| PR Title | ${{ needs.ci-pr-title.result }} |"
             fi
             echo "| Trivy | ${{ needs.ci-trivy.result }} |"
-            echo "| CodeQL | ${{ needs.sec-codeql.result }} |"
+            echo "| CodeQL | ${{ needs.ci-codeql.result }} |"
             echo "| Devenv | ${{ needs.ci-devenv.result }} |"
             echo "| Lint | ${{ needs.ci-lint.result }} |"
             echo "| Test | ${{ needs.ci-test.result }} |"
@@ -184,7 +184,7 @@ jobs:
       - id: check_failures
         name: Check for Failures
         run: |
-          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.sec-codeql.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-canisters.result }},${{ needs.ci-build-typescript.result }},${{ needs.ci-verify-candid.result }}"
+          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.ci-codeql.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-canisters.result }},${{ needs.ci-build-typescript.result }},${{ needs.ci-verify-candid.result }}"
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::One or more CI jobs failed"
             exit 1
