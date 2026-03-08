@@ -29,8 +29,11 @@ scan:
 
   # Skip files
   skip-files:
-    - "bun.lock"
+    - "*.nix"
     - "Cargo.lock"
+    - "bun.lock"
+    - "devenv.lock"
+    - "flake.lock"
 
 vulnerability:
   # Ignore unfixed vulnerabilities
