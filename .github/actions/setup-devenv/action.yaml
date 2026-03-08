@@ -51,16 +51,17 @@ runs:
         skipPush: ${{ inputs.skip-push }}
         pushFilter: ${{ inputs.push-filter }}
 
-    - id: nix_cache
-      name: Cache Nix Store
-      uses: nix-community/cache-nix-action@v7
-      with:
-        primary-key: ${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}
-        restore-prefixes-first-match: ${{ runner.os }}-nix-
-        gc-max-store-size-linux: 5G
-        purge: true
-        purge-created: P30D
-        token: ${{ inputs.github-token }}
+    # TODO: Benchmarks are showing this actually makes it slower :/
+    #- id: nix_cache
+    #  name: Cache Nix Store
+    #  uses: nix-community/cache-nix-action@v7
+    #  with:
+    #    primary-key: ${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}
+    #    restore-prefixes-first-match: ${{ runner.os }}-nix-
+    #    gc-max-store-size-linux: 5G
+    #    purge: true
+    #    purge-created: P7D
+    #    token: ${{ inputs.github-token }}
 
     - id: install_devenv
       name: Install Devenv
