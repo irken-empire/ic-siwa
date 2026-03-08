@@ -35,8 +35,6 @@ jobs:
       - id: cache_cargo
         name: Cache Cargo
         uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: ci-lint
 
       - id: rust_checks
         name: Run Rust Checks

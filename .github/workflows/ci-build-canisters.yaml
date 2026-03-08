@@ -46,8 +46,6 @@ jobs:
       - id: cache_cargo
         name: Cache Cargo
         uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: ci-build
 
       - id: cache_bun
         name: Cache Bun

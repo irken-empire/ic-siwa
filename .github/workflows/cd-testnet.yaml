@@ -134,8 +134,6 @@ jobs:
       - id: cache_cargo
         name: Cache Cargo
         uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: cd-testnet-lint
 
       - id: rust_fmt
         name: Check Rust Formatting
@@ -176,8 +174,6 @@ jobs:
       - id: cache_cargo
         name: Cache Cargo
         uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: cd-testnet-test
 
       - id: cache_bun
         name: Cache Bun
@@ -237,8 +233,6 @@ jobs:
       - id: cache_cargo
         name: Cache Cargo
         uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: cd-testnet-build
 
       - id: cache_bun
         name: Cache Bun

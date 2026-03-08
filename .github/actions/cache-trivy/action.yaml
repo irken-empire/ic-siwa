@@ -15,6 +15,6 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/trivy
-        key: trivy-db-${{ runner.os }}-${{ env.TRIVY_CACHE }}
+        key: ${{ runner.os }}-trivy-db-${{ env.TRIVY_CACHE }}
         restore-keys: |
-          trivy-db-${{ runner.os }}-
+          ${{ runner.os }}-trivy-db-
