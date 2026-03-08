@@ -126,6 +126,9 @@ in
       "pre-commit-hooks"
       "irken-empire"
     ];
+    push = [
+      "irken-empire"
+    ];
   };
 
   devenv = {
