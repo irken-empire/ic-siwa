@@ -19,12 +19,7 @@
 name: Trivy
 
 on:
-  pull_request:
-    branches:
-      - trunk
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
+  workflow_call:
 
   schedule:
     - cron: "0 0 * * 0"
@@ -59,7 +54,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    timeout-minutes: 60
+    timeout-minutes: 120
     continue-on-error: false
 
     steps:

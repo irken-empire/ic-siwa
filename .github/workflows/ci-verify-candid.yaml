@@ -1,0 +1,58 @@
+---
+##################################################
+# Name: ci-verify-candid.yaml
+# Description: Verifies Candid interfaces are synced
+##################################################
+name: CI Verify Candid
+on: workflow_call
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+jobs:
+  verify-candid:
+    name: CI Verify Candid
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - id: download_artifact
+        name: Download Provider WASM
+        uses: actions/download-artifact@v4
+        with:
+          name: ic_siwa_provider-ci
+          path: target/wasm32-unknown-unknown/release/
+
+      - id: verify_candid
+        name: Verify Candid Interface
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
+
+          # Normalize whitespace for comparison
+          sed 's/[[:space:]]*$//' canisters/ic_siwa_provider/ic_siwa_provider.did > /tmp/committed.did
+          sed 's/[[:space:]]*$//' /tmp/extracted.did > /tmp/extracted_normalized.did
+
+          if ! diff -q /tmp/committed.did /tmp/extracted_normalized.did > /dev/null 2>&1; then
+            echo "::error::Candid interface is out of sync! Run 'ic-siwa candid' to regenerate."
+            diff /tmp/committed.did /tmp/extracted_normalized.did || true
+            exit 1
+          fi
+
+          echo "Candid interface verified"

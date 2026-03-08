@@ -17,12 +17,7 @@
 name: PR Title
 
 on:
-  pull_request:
-    types: [opened, edited, synchronize]
-
-  merge_group:
-    branches:
-      - trunk
+  workflow_call:
 
 permissions:
   pull-requests: read
@@ -35,7 +30,7 @@ jobs:
   check:
     name: Conventional Commit
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - id: check_pr_title

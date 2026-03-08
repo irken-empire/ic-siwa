@@ -116,7 +116,7 @@ jobs:
     name: Lint
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
 
     steps:
@@ -158,7 +158,7 @@ jobs:
     name: Test
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
 
     steps:
@@ -208,7 +208,7 @@ jobs:
     needs: [lint]
     if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
 
     strategy:
@@ -275,7 +275,7 @@ jobs:
     needs: [lint]
     if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
     outputs:
       version: ${{ steps.build_npm.outputs.version }}
@@ -323,7 +323,7 @@ jobs:
     needs: [setup, build-canisters, test]
     if: always() && needs.build-canisters.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
     outputs:
       canister_id: ${{ steps.deploy_canister.outputs.canister_id }}
@@ -389,7 +389,7 @@ jobs:
     name: Verify Deployment
     needs: [deploy-provider]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
 
     steps:
@@ -429,7 +429,7 @@ jobs:
     needs: [setup, build-canisters, deploy-provider, verify-deployment]
     if: needs.setup.outputs.debug == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
     outputs:
       test_canister_rs_id: ${{ steps.deploy_test_rs.outputs.canister_id }}
@@ -495,7 +495,7 @@ jobs:
     needs: [setup, deploy-test-canisters]
     if: needs.setup.outputs.debug == 'true' && needs.setup.outputs.domain != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
 
     steps:
@@ -528,7 +528,7 @@ jobs:
     name: Publish npm
     needs: [setup, build-npm, verify-deployment]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     environment: Mainnet
     outputs:
       version: ${{ steps.publish_npm.outputs.version }}

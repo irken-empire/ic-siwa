@@ -67,12 +67,34 @@ defaults:
 
 jobs:
   ##################################################
+  # Setup Environment
+  ##################################################
+  setup-environment:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  ##################################################
   # Create a pre-release
   # Triggers: push to trunk (auto) OR manual with Testnet
   ##################################################
 
   pre-release:
     name: Pre-Release
+    needs: [setup-environment]
 
     if: >-
       github.event_name == 'push' ||
@@ -81,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Testnet
 
-    timeout-minutes: 60
+    timeout-minutes: 120
     continue-on-error: false
 
     outputs:
@@ -199,10 +221,17 @@ jobs:
           echo "Updated release ${TAG} with changelog"
 
   ##################################################
-  # Deploy to Testnet
-  # Calls cd-testnet.yaml via workflow_call
+  # Run trunk CodeQL security analysis
   ##################################################
+  cd-codeql:
+    name: Trunk CodeQL Scan
+    needs: setup-environment
+    uses: ./.github/workflows/sec-codeql.yaml
+    secrets: inherit
 
+  ##################################################
+  # Deploy to Testnet
+  ##################################################
   deploy-testnet:
     name: Deploy (Testnet)
     needs: pre-release
@@ -221,6 +250,7 @@ jobs:
 
   promote:
     name: Promote to Release (Mainnet)
+    needs: [setup-environment]
 
     if: >-
       github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Mainnet'
@@ -228,7 +258,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: Mainnet
 
-    timeout-minutes: 60
+    timeout-minutes: 120
     continue-on-error: false
 
     outputs:
