@@ -42,11 +42,11 @@ let
       # General
       act
       bash
+      bc
       coreutils
       dig
       figlet
       gcc
-      git
       git
       hello
       jq
@@ -54,6 +54,12 @@ let
       openssl
       ripgrep
       yq-go
+
+      # Astro
+      astro-language-server
+      nodePackages.postcss
+      tailwindcss_4
+      npm-check-updates
 
       # Nix
       nixd
@@ -67,12 +73,6 @@ let
       cargo-update
       cargo-watch
       toml-cli
-
-      # Astro
-      astro-language-server
-      nodePackages.postcss
-      tailwindcss_4
-      npm-check-updates
 
       # Security
       codeql
@@ -170,6 +170,10 @@ in
     enable = true;
     mcpServers = {
       devenv = {
+        type = "http";
+        url = "https://mcp.devenv.sh";
+      };
+      devenv-cli = {
         type = "stdio";
         command = "devenv";
         args = [ "mcp" ];
@@ -231,12 +235,6 @@ in
       #rustflags = "--cfg getrandom_backend=\"wasm_js\"";
       targets = [ "wasm32-unknown-unknown" ];
     };
-    solidity = {
-      enable = true;
-      foundry = {
-        enable = true;
-      };
-    };
   };
 
   difftastic = {
@@ -262,7 +260,7 @@ in
       };
       cargo-check.enable = true;
       clippy = {
-        enable = false; # ic-nix is using older toolchain.
+        enable = true;
         settings = {
           denyWarnings = true;
           offline = true;
@@ -282,7 +280,6 @@ in
       check-yaml.enable = true;
       commitizen.enable = true;
       deadnix.enable = true;
-      editorconfig-checker.enable = true;
       eslint.enable = false;
       eslint-check = {
         enable = true;
@@ -291,7 +288,6 @@ in
         files = "^(canisters|libs)/.*$";
         pass_filenames = false;
       };
-      # Astro type checking for frontend canister
       astro-check = {
         enable = true;
         name = "astro-check";
@@ -299,7 +295,6 @@ in
         files = "^canisters/test_canister_ts/.*\\.(astro|ts|tsx)$";
         pass_filenames = false;
       };
-      # TypeScript type checking for ic-siwa library
       tsc-lib = {
         enable = true;
         name = "tsc-lib";
@@ -307,6 +302,7 @@ in
         files = "^libs/ic_siwa_ts/.*\\.ts$";
         pass_filenames = false;
       };
+      editorconfig-checker.enable = true;
       markdownlint = {
         excludes = [
           "^docs/issues/todo/.*\\.md$" # Ignore todo notes.
@@ -367,22 +363,9 @@ in
       trufflehog.enable = true;
       cspell = {
         enable = true;
-        excludes = [
-          "\\.webp$"
-          "\\.png$"
-          "\\.jpg$"
-          "\\.jpeg$"
-          "\\.gif$"
-          "\\.ico$"
-          "\\.svg$"
-          "\\.woff2?$"
-          "\\.ttf$"
-          "\\.eot$"
-          "\\.mp3$"
-          "\\.mp4$"
-          "\\.ogg$"
-          "\\.wav$"
-          "\\.wasm$"
+        args = [
+          "lint"
+          "--no-must-find-files"
         ];
       };
       yamllint = {
@@ -404,7 +387,6 @@ in
         files = "(^Cargo\\.toml$|^package\\.json$|libs/ic_siwa_ts/package\\.json$|canisters/test_canister_ts/package\\.json$)";
         pass_filenames = false;
       };
-      # Regenerate Candid when Rust canister code changes
       candid-gen = {
         enable = true;
         name = "candid-gen";
@@ -426,6 +408,13 @@ in
   devcontainer = {
     enable = true;
     settings = {
+      containerEnv = {
+        NIX_REMOTE = "daemon";
+      };
+      mounts = [
+        # Mount Nix store the host to the container.
+        "source=/nix,target=/nix,readonly,type=bind"
+      ];
       customizations = {
         vscode = {
           extensions = [
