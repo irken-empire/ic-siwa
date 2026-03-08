@@ -93,5 +93,7 @@ runs:
     - id: warmup_devenv
       name: Warm up Devenv shell
       shell: bash
+      env:
+        SECRETSPEC_PROVIDER: env
       run: |
-        devenv shell --quiet bash -c "true"
+        devenv shell -- figlet -f slant "warm up complete!"
