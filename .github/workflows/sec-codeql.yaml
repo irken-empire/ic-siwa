@@ -21,6 +21,10 @@ name: CodeQL
 on:
   workflow_call:
 
+  push:
+    branches:
+      - trunk
+
   schedule:
     - cron: "0 0 * * 0"
 

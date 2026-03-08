@@ -97,4 +97,4 @@ runs:
       env:
         SECRETSPEC_PROVIDER: env
       run: |
-        devenv shell --quiet figlet -f slant -w 120 "devenv cache..."
+        devenv shell --quiet hello -t

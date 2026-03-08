@@ -162,23 +162,43 @@ jobs:
 
       - id: write_summary
         name: Write Results Summary
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.head_ref }}
+          PR_BASE: ${{ github.base_ref }}
         run: |
+          status_emoji() {
+            case "$1" in
+              success)   echo "✅" ;;
+              failure)   echo "❌" ;;
+              cancelled) echo "⛔" ;;
+              skipped)   echo "⏭️" ;;
+              *)         echo "⏳" ;;
+            esac
+          }
+
           {
             echo "## CI Results"
             echo ""
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "> **PR #${PR_NUMBER}** — ${PR_TITLE}"
+              echo "> _${PR_HEAD} → ${PR_BASE}_"
+              echo ""
+            fi
             echo "| Job | Status |"
             echo "|-----|--------|"
             if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "| PR Title | ${{ needs.ci-pr-title.result }} |"
+              echo "| PR Title | $(status_emoji '${{ needs.ci-pr-title.result }}') ${{ needs.ci-pr-title.result }} |"
             fi
-            echo "| Trivy | ${{ needs.ci-trivy.result }} |"
-            echo "| CodeQL | ${{ needs.ci-codeql.result }} |"
-            echo "| Devenv | ${{ needs.ci-devenv.result }} |"
-            echo "| Lint | ${{ needs.ci-lint.result }} |"
-            echo "| Test | ${{ needs.ci-test.result }} |"
-            echo "| Build Canisters | ${{ needs.ci-build-canisters.result }} |"
-            echo "| Build TypeScript | ${{ needs.ci-build-typescript.result }} |"
-            echo "| Verify Candid | ${{ needs.ci-verify-candid.result }} |"
+            echo "| Trivy | $(status_emoji '${{ needs.ci-trivy.result }}') ${{ needs.ci-trivy.result }} |"
+            echo "| CodeQL | $(status_emoji '${{ needs.ci-codeql.result }}') ${{ needs.ci-codeql.result }} |"
+            echo "| Devenv | $(status_emoji '${{ needs.ci-devenv.result }}') ${{ needs.ci-devenv.result }} |"
+            echo "| Lint | $(status_emoji '${{ needs.ci-lint.result }}') ${{ needs.ci-lint.result }} |"
+            echo "| Test | $(status_emoji '${{ needs.ci-test.result }}') ${{ needs.ci-test.result }} |"
+            echo "| Build Canisters | $(status_emoji '${{ needs.ci-build-canisters.result }}') ${{ needs.ci-build-canisters.result }} |"
+            echo "| Build TypeScript | $(status_emoji '${{ needs.ci-build-typescript.result }}') ${{ needs.ci-build-typescript.result }} |"
+            echo "| Verify Candid | $(status_emoji '${{ needs.ci-verify-candid.result }}') ${{ needs.ci-verify-candid.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - id: check_failures

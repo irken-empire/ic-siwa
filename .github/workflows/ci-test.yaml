@@ -52,3 +52,18 @@ jobs:
           cd libs/ic_siwa_ts
           bun install
           bun test
+
+      - id: write_summary
+        name: Write Results Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Test Results"
+            echo ""
+            echo "### Check Status"
+            echo "| Step | Status |"
+            echo "|------|--------|"
+            echo "| Rust Tests | ${{ steps.rust_tests.outcome }} |"
+            echo "| TypeScript Tests | ${{ steps.typescript_tests.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
