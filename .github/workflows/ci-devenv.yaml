@@ -10,9 +10,7 @@ on:
   workflow_call:
 
 permissions:
-  contents: write
-  packages: write
-  pull-requests: write
+  contents: read
   actions: write
 
 env:
