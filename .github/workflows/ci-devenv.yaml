@@ -7,23 +7,12 @@
 name: Devenv CI
 
 on:
-  pull_request:
-    branches:
-      - trunk
-
-  merge_group:
-    branches:
-      - trunk
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
 
 permissions:
   contents: write
   packages: write
   pull-requests: write
-  statuses: write
   actions: write
 
 env:
@@ -45,20 +34,6 @@ jobs:
         shell: devenv shell --quiet bash -- -e {0}
 
     steps:
-      - id: config_summary
-        name: Configuration Summary
-        shell: bash
-        run: |
-          {
-            echo "## Devenv Configuration"
-            echo "| Setting | Value |"
-            echo "|---------|-------|"
-            echo "| Trigger | \`${{ github.event_name }}\` |"
-            echo "| Ref | \`${{ github.ref_name }}\` |"
-            echo "| SHA | \`${{ github.sha }}\` |"
-            echo "| PR | ${{ github.event.pull_request.number || 'N/A' }} |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - id: checkout_repository
         name: Checkout Repository
         uses: actions/checkout@v6
@@ -95,17 +70,3 @@ jobs:
             echo "|------|--------|"
             echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - id: report_status
-        name: Report Status
-        if: always()
-        uses: ./.github/actions/report-status
-        with:
-          result: ${{ steps.devenv_test.outcome }}
-          success-message: "Devenv test passed!"
-          failure-message: "Devenv test failed!"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          workflow-name: ${{ github.workflow }}
-          repository: ${{ github.repository }}
-          sha: ${{ github.sha }}
-          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

@@ -54,6 +54,15 @@ jobs:
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
   ##################################################
+  # Parallel Check - Devenv Test
+  ##################################################
+  ci-devenv:
+    name: Check Devenv
+    needs: setup-environment
+    uses: ./.github/workflows/ci-devenv.yaml
+    secrets: inherit
+
+  ##################################################
   # Parallel Check - Lint
   ##################################################
   ci-lint:
@@ -135,6 +144,7 @@ jobs:
       - ci-pr-title
       - ci-trivy
       - sec-codeql
+      - ci-devenv
       - ci-lint
       - ci-test
       - ci-build-canisters
@@ -161,6 +171,7 @@ jobs:
             fi
             echo "| Trivy | ${{ needs.ci-trivy.result }} |"
             echo "| CodeQL | ${{ needs.sec-codeql.result }} |"
+            echo "| Devenv | ${{ needs.ci-devenv.result }} |"
             echo "| Lint | ${{ needs.ci-lint.result }} |"
             echo "| Test | ${{ needs.ci-test.result }} |"
             echo "| Build Canisters | ${{ needs.ci-build-canisters.result }} |"
@@ -171,8 +182,7 @@ jobs:
       - id: check_failures
         name: Check for Failures
         run: |
-          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.sec-codeql.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-canisters.result }},${{ needs.ci-build-typescript.result }},${{ needs.ci-verify-candid.result }}"
-
+          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.sec-codeql.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-canisters.result }},${{ needs.ci-build-typescript.result }},${{ needs.ci-verify-candid.result }}"
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::One or more CI jobs failed"
             exit 1

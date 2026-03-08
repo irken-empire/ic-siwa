@@ -34,7 +34,6 @@ permissions:
   packages: read
   pull-requests: read
   security-events: write
-  statuses: write
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -90,17 +89,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
-
-      - id: report_status
-        name: Report Status
-        if: always()
-        uses: ./.github/actions/report-status
-        with:
-          result: ${{ steps.trivy_scan.outcome }}
-          success-message: "Trivy security scan passed"
-          failure-message: "Trivy security scan failed"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          workflow-name: ${{ github.workflow }}
-          repository: ${{ github.repository }}
-          sha: ${{ github.sha }}
-          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
