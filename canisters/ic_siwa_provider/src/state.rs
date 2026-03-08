@@ -398,6 +398,8 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash, delegation_expir
         state
             .signature_map
             .put(seed_hash, delegation_hash, delegation_expires_at);
+        // codeql[rust/clear-text-logging] logs hashes only (hex-encoded), not raw key material;
+        // debug_log! is a no-op when debug=false (production default)
         debug_log!(
             "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, delegation_expires_at: {}, now: {}, map_len: {}",
             hex::encode(seed_hash),
@@ -471,6 +473,8 @@ pub fn create_certified_delegation_signature(
 
         let tree = ic_certified_map::labeled(LABEL_SIG, witness);
 
+        // codeql[rust/clear-text-logging] logs signature length only, not the signature bytes;
+        // debug_log! is a no-op when debug=false (production default)
         match ic_siwa::create_certified_signature(certificate.clone(), tree) {
             Ok(sig) => {
                 debug_log!(

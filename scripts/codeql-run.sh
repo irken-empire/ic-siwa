@@ -42,6 +42,61 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # ==========================================
+# Global lock — serializes codeql-run across repos
+# ==========================================
+# ~/.codeql/packages is a shared global directory; concurrent runs from
+# multiple repos race to install the same query packs and leave partial writes
+# that cause "pack cannot be found" errors. A single flock on
+# ~/.codeql/codeql.lock serializes all invocations with a 10-minute timeout.
+
+CODEQL_LOCK_DIR="${HOME}/.codeql"
+CODEQL_LOCK_FILE="${CODEQL_LOCK_DIR}/codeql.lock"
+
+acquire_lock() {
+	mkdir -p "${CODEQL_LOCK_DIR}"
+
+	local timeout=600 # 10 minutes
+	local waited=0
+	local poll=5
+
+	# Open with >> (append) so the current holder's identity is not truncated
+	# before we've had a chance to read it. flock works on any open mode.
+	exec 9>>"${CODEQL_LOCK_FILE}"
+
+	if ! flock --nonblock 9 2>/dev/null; then
+		local holder
+		holder=$(cat "${CODEQL_LOCK_FILE}" 2>/dev/null || echo "unknown")
+		log_warn "Another codeql-run is active (held by: ${holder})"
+		log_warn "Waiting up to ${timeout}s for the lock to be released..."
+
+		while ! flock --nonblock 9 2>/dev/null; do
+			sleep ${poll}
+			waited=$((waited + poll))
+			if [[ ${waited} -ge ${timeout} ]]; then
+				log_error "Timed out waiting ${timeout}s for CodeQL lock."
+				log_error "If no other scan is running, remove manually: ${CODEQL_LOCK_FILE}"
+				exec 9>&-
+				exit 1
+			fi
+			log_info "Still waiting... (${waited}s elapsed)"
+		done
+	fi
+
+	# Truncate then write our identity so the file stays a single clean line.
+	truncate -s 0 "${CODEQL_LOCK_FILE}"
+	echo "pid=$$, repo=${PROJECT_ROOT}, started=$(date -Iseconds)" >&9
+
+	# Release lock on exit, Ctrl-C, or failure — clear identity and close fd.
+	release_lock() {
+		truncate -s 0 "${CODEQL_LOCK_FILE}" 2>/dev/null || true
+		exec 9>&-
+	}
+	trap release_lock EXIT INT TERM
+
+	log_info "Lock acquired (${CODEQL_LOCK_FILE})"
+}
+
+# ==========================================
 # Preflight
 # ==========================================
 
@@ -119,7 +174,7 @@ cmd_analyze() {
 		codeql database analyze "${db_path}" \
 			--format=sarifv2.1.0 \
 			--output="${sarif_file}" \
-			--sarif-add-query-help \
+			--sarif-include-query-help=always \
 			2>&1 | tail -10
 
 		log_success "SARIF results: ${sarif_file}"
@@ -262,6 +317,13 @@ main() {
 
 	local command="${1:-help}"
 	shift || true
+
+	# Acquire the global lock before any command that writes to the shared
+	# ~/.codeql/packages directory. Read-only commands (help, results, clean)
+	# do not need it.
+	case "${command}" in
+	scan | db | analyze) acquire_lock ;;
+	esac
 
 	# Parse --lang flag
 	local selected_langs=()

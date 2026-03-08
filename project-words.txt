@@ -5,6 +5,7 @@ Fiverr
 Gensler
 Graphviz
 HMAC
+Iseconds
 Lambos
 Lizardcube
 MAHD
@@ -13,7 +14,6 @@ Orbitron
 Pickel
 Pixelorama
 Powerups
-difftastic
 Rabby
 Remminator
 Reown
@@ -92,6 +92,7 @@ desync
 devenv
 dfinity
 didc
+difftastic
 direnv
 direnvrc
 dotenv
@@ -168,6 +169,7 @@ nity
 nixos
 nixpkgs
 nment
+nonblock
 normie
 normies
 notific
