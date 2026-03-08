@@ -40,14 +40,6 @@ runs:
           keep-outputs = true
           keep-derivations = true
 
-    - id: enable_cachix_devenv
-      name: Enable devenv Cachix (read-only)
-      if: always()
-      uses: cachix/cachix-action@v16
-      with:
-        name: devenv
-        skipPush: true
-
     - id: enable_cachix
       name: Enable Cachix
       if: inputs.cachix-cache-name != ''
