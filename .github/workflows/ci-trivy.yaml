@@ -4,7 +4,8 @@
 # Description: Security scanning with Trivy
 #
 # Triggers:
-#   - Pull request to trunk (on code changes)
+#   - Pull request to trunk
+#   - Push to trunk (required for Security tab results)
 #   - Weekly schedule (Sunday midnight UTC)
 #
 # Scans:
@@ -19,7 +20,13 @@
 name: Trivy
 
 on:
-  workflow_call:
+  pull_request:
+    branches:
+      - trunk
+
+  push:
+    branches:
+      - trunk
 
   schedule:
     - cron: "0 0 * * 0"

@@ -8,6 +8,7 @@
 #   - assets  (test_canister_ts — Astro/Vite frontend canister)
 #   - package (ic_siwa_ts — npm library distribution)
 ##################################################
+
 name: CI Build TypeScript
 
 on: workflow_call

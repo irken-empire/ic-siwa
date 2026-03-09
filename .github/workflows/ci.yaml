@@ -110,22 +110,12 @@ jobs:
     secrets: inherit
 
   ##################################################
-  # Parallel Check - Trivy Security Scan
-  ##################################################
-  ci-trivy:
-    name: Check Trivy
-    needs: setup-environment
-    uses: ./.github/workflows/ci-trivy.yaml
-    secrets: inherit
-
-  ##################################################
   # Status Report Aggregator
   ##################################################
   status:
     name: CI Status
     needs:
       - ci-pr-title
-      - ci-trivy
       - ci-devenv
       - ci-lint
       - ci-test
@@ -170,7 +160,6 @@ jobs:
             if [ "${{ github.event_name }}" == "pull_request" ]; then
               echo "| PR Title | $(status_emoji '${{ needs.ci-pr-title.result }}') ${{ needs.ci-pr-title.result }} |"
             fi
-            echo "| Trivy | $(status_emoji '${{ needs.ci-trivy.result }}') ${{ needs.ci-trivy.result }} |"
             echo "| Devenv | $(status_emoji '${{ needs.ci-devenv.result }}') ${{ needs.ci-devenv.result }} |"
             echo "| Lint | $(status_emoji '${{ needs.ci-lint.result }}') ${{ needs.ci-lint.result }} |"
             echo "| Test | $(status_emoji '${{ needs.ci-test.result }}') ${{ needs.ci-test.result }} |"
@@ -181,7 +170,7 @@ jobs:
       - id: check_failures
         name: Check for Failures
         run: |
-          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-trivy.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-rust.result }},${{ needs.ci-build-typescript.result }}"
+          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-rust.result }},${{ needs.ci-build-typescript.result }}"
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::One or more CI jobs failed"
             exit 1
