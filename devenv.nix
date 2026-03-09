@@ -123,10 +123,13 @@ in
 
   cachix = {
     pull = [
-      "pre-commit-hooks"
       "irken-empire"
+      "pre-commit-hooks"
+      "devenv.cachix.org"
+      "cache.nixos.org"
+      "nix-community.cachix.org"
     ];
-    #push = "irken-empire"; # TODO: Why does this hang?
+    push = "irken-empire";
   };
 
   devenv = {
@@ -212,7 +215,7 @@ in
       enable = true;
     };
     shell = {
-      enable = false; # TODO: Re-enable when bats is fixed.
+      enable = true;
     };
     javascript = {
       enable = true;
