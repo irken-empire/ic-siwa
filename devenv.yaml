@@ -40,3 +40,6 @@ clean:
     - GITHUB_TOKEN
 secretspec:
   enable: true
+
+# TODO: Remove for v2.0
+impure: true
