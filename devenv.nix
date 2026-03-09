@@ -122,7 +122,7 @@ in
   });
 
   cachix = {
-    enable = false; # TODO: Re-enable when fixed.
+    enable = true;
     pull = [
       "irken-empire"
       "pre-commit-hooks"

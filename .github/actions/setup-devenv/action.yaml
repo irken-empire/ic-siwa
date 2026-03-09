@@ -67,9 +67,7 @@ runs:
       name: Install Devenv
       shell: bash
       run: |
-        # TODO: Revert when v2 fixed.
-        #nix profile add --accept-flake-config nixpkgs#devenv
-        nix profile add --accept-flake-config github:cachix/devenv/v1.11.2 --priority 4
+        nix profile add --accept-flake-config nixpkgs#devenv
 
     - id: install_secretspec
       name: Install Secretspec
