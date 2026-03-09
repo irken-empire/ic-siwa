@@ -97,4 +97,4 @@ runs:
       env:
         SECRETSPEC_PROVIDER: env
       run: |
-        devenv shell --quiet hello -t
+        devenv shell --quiet hello --traditional
