@@ -98,4 +98,4 @@ runs:
       env:
         SECRETSPEC_PROVIDER: env
       run: |
-        devenv shell --quiet --no-tui hello --traditional
+        devenv shell --quiet hello --traditional
