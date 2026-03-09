@@ -212,7 +212,7 @@ in
       enable = true;
     };
     shell = {
-      enable = true;
+      enable = false; # TODO: Re-enable when bats is fixed.
     };
     javascript = {
       enable = true;
