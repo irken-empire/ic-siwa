@@ -27,7 +27,7 @@ inputs:
     url: github:ninegua/ic-nix/20260217
     flake: false
   rust-overlay:
-    url: github:oxalica/rust-overlay/87b6cffc276795b46ef544d7ed8d7fed6ad9c8e4
+    url: github:oxalica/rust-overlay/stable
     inputs:
       nixpkgs:
         follows: nixpkgs
