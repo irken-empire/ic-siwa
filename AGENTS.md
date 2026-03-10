@@ -2,6 +2,27 @@
 
 This document provides guidelines for AI agents interacting with the IC-SIWA project.
 
+## 🚀 Quick Start Commands
+
+All commands must run inside `devenv shell`. Use the helper script `ic-siwa` for common tasks:
+
+```bash
+ic-siwa build         # Build all canisters and libraries
+ic-siwa deploy        # Deploy to local dfx replica
+ic-siwa deploy --network juno  # Deploy to Juno emulator
+ic-siwa test          # Run tests
+ic-siwa logs          # Tail canister logs in real-time
+ic-siwa loop          # Full dev loop: fmt, lint, build, test, deploy
+ic-siwa agent-docs    # Download LLM documentation to docs/agents/
+ic-siwa help          # Show all available commands
+```
+
+**Note:** All commands require devenv shell. Due to 1Password/secretspec unavailability in AI sandboxes, use:
+
+```bash
+SECRETSPEC_PROVIDER=env devenv shell --quiet -- <command>
+```
+
 ## Project Overview
 
 IC-SIWA (Sign-In with Avalanche for Internet Computer) is a fork of ic-siwe, adapted for Avalanche authentication on the Internet Computer blockchain. The project provides:
@@ -117,6 +138,7 @@ Directives:
   to run devenv shell commands, use this method:
   - `SECRETSPEC_PROVIDER=env devenv shell --quiet -- <command>`
   - As a fallback, ask the user to execute and paste the result.
+  - **See Quick Start section above for command examples.**
 
 Devenv has it's own MCP server available at: <https://mcp.devenv.sh/> which can be started locally with `devenv mcp`. This can be used for additional knowledge about `devenv.nix` syntax.
 

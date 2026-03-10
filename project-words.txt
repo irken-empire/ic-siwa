@@ -5,6 +5,7 @@ Fiverr
 Gensler
 Graphviz
 HMAC
+Irken
 Iseconds
 Lambos
 Lizardcube
@@ -20,6 +21,7 @@ Reown
 Resol
 SECRETSPEC
 SIWA
+SIWE
 Scanline
 Secp
 Suno
@@ -27,8 +29,6 @@ TRESR
 UUPS
 VITE
 WALLETCONNECT
-SIWE
-myapp
 WASD
 WCAG
 Waaaaaaa
@@ -109,6 +109,7 @@ exte
 extname
 fanfic
 ffset
+figlet
 filecom
 filecomplete
 frontmatter
@@ -160,6 +161,7 @@ mktemp
 mult
 multicall
 multitail
+myapp
 mysecrettoken
 nanostore
 nanostores
@@ -264,4 +266,3 @@ xhash
 xtampered
 yoyo
 yzhang
-figlet

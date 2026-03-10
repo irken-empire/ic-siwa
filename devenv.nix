@@ -41,7 +41,7 @@ let
     [
       # General
       act
-      bash
+      bashInteractive
       bc
       coreutils
       dig
