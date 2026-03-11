@@ -24,8 +24,11 @@ defaults:
 jobs:
   test:
     name: Devenv Test
+
     runs-on: ubuntu-latest
+
     timeout-minutes: 120
+    continue-on-error: false
 
     defaults:
       run:

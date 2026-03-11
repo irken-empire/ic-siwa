@@ -573,6 +573,7 @@ jobs:
       ]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: Testnet
 
     steps:

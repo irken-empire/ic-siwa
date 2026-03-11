@@ -60,6 +60,7 @@ let
       nodePackages.postcss
       tailwindcss_4
       npm-check-updates
+      nodejs
 
       # Nix
       nixd
