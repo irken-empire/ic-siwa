@@ -68,6 +68,7 @@ pub fn get_delegation(
     // Get the session key hash for looking up the prepared delegation
     let session_key_hash = hash_session_key(&session_key);
 
+    // codeql[rust/cleartext-logging] session_key_hash is a non-reversible hash; debug_log! is a no-op when debug=false (production default)
     crate::state::debug_log!(
         "[GET_DELEGATION] address: {}, seed_hash: {}, session_key_hash: {}, session_key_len: {}",
         address,

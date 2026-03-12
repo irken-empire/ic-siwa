@@ -1,12 +1,14 @@
 ---
 ##################################################
 # Name: ci.yaml
-# Description: CI checks for pull requests
+# Description: Gatekeeper entrypoint for CI checks
 #
-# Triggers:
-#   - Pull requests to trunk
-#
-# Validates lint, test, build, and Candid interface without deploying.
+# Flow:
+#   1. check-cache does a lookup-only probe of the Nix store cache key.
+#   2. If cache exists (hit), setup-environment is skipped entirely.
+#   3. If cache is missing, setup-environment runs first to warm it.
+#   4. All parallel CI jobs start as soon as check-cache finishes,
+#      waiting for setup-environment only when it actually ran.
 ##################################################
 
 name: CI
@@ -26,38 +28,71 @@ concurrency:
 
 permissions:
   contents: read
+  packages: read
   pull-requests: write
+  security-events: write
   statuses: write
   actions: write
-
-env:
-  NIXPKGS_ALLOW_UNFREE: 1
-  SECRETSPEC_PROVIDER: env
 
 defaults:
   run:
     shell: bash
 
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
 jobs:
   ##################################################
-  # Lint - Check code quality
+  # Gatekeeper - Check whether the Nix cache already exists
+  # Uses lookup-only so no download occurs, just a cache API probe.
   ##################################################
-  lint:
-    name: CI Lint
+  check-cache:
+    name: Check Cache
+
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+
+    timeout-minutes: 5
+    continue-on-error: false
+
+    outputs:
+      cache-hit: ${{ steps.nix_cache_lookup.outputs.cache-hit }}
 
     steps:
       - id: checkout_repository
         name: Checkout Repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
-          submodules: recursive
+          fetch-depth: 1
 
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
+      - id: nix_cache_lookup
+        name: Lookup Nix Cache
+        uses: actions/cache@v5
+        with:
+          path: /nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}
+          lookup-only: true
+
+  ##################################################
+  # Warm Cache - Only runs on a cache miss
+  ##################################################
+  setup-environment:
+    name: Setup Environment
+
+    needs: check-cache
+    if: needs.check-cache.outputs.cache-hit != 'true'
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 120
+    continue-on-error: false
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - id: setup_devenv
         name: Setup Devenv
@@ -67,243 +102,81 @@ jobs:
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - id: cache_cargo
-        name: Cache Cargo
-        uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: ci-lint
-
-      - id: rust_fmt
-        name: Check Rust Formatting
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo fmt --all -- --check
-
-      - id: rust_clippy
-        name: Run Clippy
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo clippy --all-targets -- -D warnings
-
-      - id: check_canister_ids
-        name: Check Canister ID Consistency
-        shell: devenv shell --quiet bash -- -e {0}
-        run: bash scripts/check-canister-ids.sh
+  ##################################################
+  # Parallel Check - Devenv Test
+  ##################################################
+  ci-devenv:
+    name: Check Devenv
+    needs: [check-cache, setup-environment]
+    if: always() && needs.check-cache.result == 'success'
+    uses: ./.github/workflows/ci-devenv.yaml
+    secrets: inherit
 
   ##################################################
-  # Test - Run unit tests
+  # Parallel Check - Lint
   ##################################################
-  test:
-    name: CI Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    steps:
-      - id: checkout_repository
-        name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - id: cache_cargo
-        name: Cache Cargo
-        uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: ci-test
-
-      - id: cache_bun
-        name: Cache Bun
-        uses: ./.github/actions/cache-bun
-
-      - id: rust_tests
-        name: Run Rust Tests
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo test -p ic_siwa
-
-      - id: typescript_tests
-        name: Run TypeScript Tests
-        shell: devenv shell --quiet bash -- -e {0}
-        run: |
-          cd libs/ic_siwa_ts
-          bun install
-          bun test
+  ci-lint:
+    name: Check Lint
+    needs: [check-cache, setup-environment]
+    if: always() && needs.check-cache.result == 'success'
+    uses: ./.github/workflows/ci-lint.yaml
+    secrets: inherit
 
   ##################################################
-  # Build Canisters - Verify all canisters build
+  # Parallel Check - Test
   ##################################################
-  build-canisters:
-    name: CI Build Canister ${{ matrix.canister }}
-    needs: [lint]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - canister: ic_siwa_provider
-            type: rust
-          - canister: test_canister_rs
-            type: rust
-          - canister: test_canister_ts
-            type: assets
-
-    steps:
-      - id: checkout_repository
-        name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - id: cache_cargo
-        name: Cache Cargo
-        uses: ./.github/actions/cache-cargo
-        with:
-          cache-key-prefix: ci-build
-
-      - id: cache_bun
-        name: Cache Bun
-        uses: ./.github/actions/cache-bun
-
-      - id: build_canister
-        name: Build Canister
-        uses: ./.github/actions/build-canister
-        with:
-          canister: ${{ matrix.canister }}
-          type: ${{ matrix.type }}
-          environment: development
-
-      - id: upload_artifact
-        name: Upload Build Artifact
-        if: matrix.canister == 'ic_siwa_provider'
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.canister }}-ci
-          path: target/wasm32-unknown-unknown/release/${{ matrix.canister }}.wasm
-          retention-days: 1
+  ci-test:
+    name: Check Test
+    needs: [check-cache, setup-environment]
+    if: always() && needs.check-cache.result == 'success'
+    uses: ./.github/workflows/ci-test.yaml
+    secrets: inherit
 
   ##################################################
-  # Build TypeScript - Verify npm package builds
+  # Parallel Check - Build Rust Canisters + Candid
   ##################################################
-  build-typescript:
-    name: CI Build TypeScript
-    needs: [lint]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    steps:
-      - id: checkout_repository
-        name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - id: build_npm
-        name: Build npm Package
-        uses: ./.github/actions/build-npm
+  ci-build-rust:
+    name: Check Build Rust
+    needs: [check-cache, setup-environment]
+    if: always() && needs.check-cache.result == 'success'
+    uses: ./.github/workflows/ci-build-rust.yaml
+    secrets: inherit
 
   ##################################################
-  # Verify Candid - Ensure interface is up-to-date
+  # Parallel Check - Build TypeScript
   ##################################################
-  verify-candid:
-    name: CI Verify Candid
-    needs: [build-canisters]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    steps:
-      - id: checkout_repository
-        name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: download_artifact
-        name: Download Provider WASM
-        uses: actions/download-artifact@v7
-        with:
-          name: ic_siwa_provider-ci
-          path: target/wasm32-unknown-unknown/release/
-
-      - id: verify_candid
-        name: Verify Candid Interface
-        shell: devenv shell --quiet bash -- -e {0}
-        run: |
-          candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
-
-          # Normalize whitespace for comparison
-          sed 's/[[:space:]]*$//' canisters/ic_siwa_provider/ic_siwa_provider.did > /tmp/committed.did
-          sed 's/[[:space:]]*$//' /tmp/extracted.did > /tmp/extracted_normalized.did
-
-          if ! diff -q /tmp/committed.did /tmp/extracted_normalized.did > /dev/null 2>&1; then
-            echo "::error::Candid interface is out of sync! Run 'ic-siwa candid' to regenerate."
-            diff /tmp/committed.did /tmp/extracted_normalized.did || true
-            exit 1
-          fi
-
-          echo "Candid interface verified"
+  ci-build-typescript:
+    name: Check Build TypeScript
+    needs: [check-cache, setup-environment]
+    if: always() && needs.check-cache.result == 'success'
+    uses: ./.github/workflows/ci-build-typescript.yaml
+    secrets: inherit
 
   ##################################################
-  # Status - Report overall status
+  # Parallel Check - PR Title
+  ##################################################
+  ci-pr-title:
+    name: Check PR Title
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/ci-pr-title.yaml
+    secrets: inherit
+
+  ##################################################
+  # Status Report Aggregator
   ##################################################
   status:
     name: CI Status
     needs:
-      - lint
-      - test
-      - build-canisters
-      - build-typescript
-      - verify-candid
+      - check-cache
+      - ci-pr-title
+      - ci-devenv
+      - ci-lint
+      - ci-test
+      - ci-build-rust
+      - ci-build-typescript
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - id: checkout_repository
@@ -312,24 +185,52 @@ jobs:
 
       - id: write_summary
         name: Write Results Summary
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.head_ref }}
+          PR_BASE: ${{ github.base_ref }}
         run: |
+          status_emoji() {
+            case "$1" in
+              success)   echo "✅" ;;
+              failure)   echo "❌" ;;
+              cancelled) echo "⛔" ;;
+              skipped)   echo "⏭️" ;;
+              *)         echo "⏳" ;;
+            esac
+          }
+
           {
             echo "## CI Results"
             echo ""
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "> **PR #${PR_NUMBER}** — ${PR_TITLE}"
+              echo "> _${PR_HEAD} → ${PR_BASE}_"
+              echo ""
+            fi
+            if [ "${{ needs.check-cache.outputs.cache-hit }}" == "true" ]; then
+              echo "💚 **Nix Cache: HIT** — setup-environment was skipped"
+            else
+              echo "🔴 **Nix Cache: MISS** — setup-environment ran (~60 min warm-up)"
+            fi
+            echo ""
             echo "| Job | Status |"
             echo "|-----|--------|"
-            echo "| Lint | ${{ needs.lint.result }} |"
-            echo "| Test | ${{ needs.test.result }} |"
-            echo "| Build Canisters | ${{ needs.build-canisters.result }} |"
-            echo "| Build TypeScript | ${{ needs.build-typescript.result }} |"
-            echo "| Verify Candid | ${{ needs.verify-candid.result }} |"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "| PR Title | $(status_emoji '${{ needs.ci-pr-title.result }}') ${{ needs.ci-pr-title.result }} |"
+            fi
+            echo "| Devenv | $(status_emoji '${{ needs.ci-devenv.result }}') ${{ needs.ci-devenv.result }} |"
+            echo "| Lint | $(status_emoji '${{ needs.ci-lint.result }}') ${{ needs.ci-lint.result }} |"
+            echo "| Test | $(status_emoji '${{ needs.ci-test.result }}') ${{ needs.ci-test.result }} |"
+            echo "| Build Rust | $(status_emoji '${{ needs.ci-build-rust.result }}') ${{ needs.ci-build-rust.result }} |"
+            echo "| Build TypeScript | $(status_emoji '${{ needs.ci-build-typescript.result }}') ${{ needs.ci-build-typescript.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - id: check_failures
         name: Check for Failures
         run: |
-          ALL_JOBS="${{ needs.lint.result }},${{ needs.test.result }},${{ needs.build-canisters.result }},${{ needs.build-typescript.result }},${{ needs.verify-candid.result }}"
-
+          ALL_JOBS="${{ needs.ci-pr-title.result }},${{ needs.ci-devenv.result }},${{ needs.ci-lint.result }},${{ needs.ci-test.result }},${{ needs.ci-build-rust.result }},${{ needs.ci-build-typescript.result }}"
           if echo "${ALL_JOBS}" | grep -qE "(failure|cancelled)"; then
             echo "::error::One or more CI jobs failed"
             exit 1

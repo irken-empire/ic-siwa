@@ -40,12 +40,13 @@ let
     with pkgs;
     [
       # General
-      bash
+      act
+      bashInteractive
+      bc
       coreutils
       dig
       figlet
       gcc
-      git
       git
       hello
       jq
@@ -53,6 +54,13 @@ let
       openssl
       ripgrep
       yq-go
+
+      # Astro
+      astro-language-server
+      nodePackages.postcss
+      tailwindcss_4
+      npm-check-updates
+      nodejs
 
       # Nix
       nixd
@@ -66,12 +74,6 @@ let
       cargo-update
       cargo-watch
       toml-cli
-
-      # Astro
-      astro-language-server
-      nodePackages.postcss
-      tailwindcss_4
-      npm-check-updates
 
       # Security
       codeql
@@ -121,9 +123,13 @@ in
   });
 
   cachix = {
+    enable = true;
     pull = [
-      "pre-commit-hooks"
       "irken-empire"
+      "pre-commit-hooks"
+      "devenv.cachix.org"
+      "cache.nixos.org"
+      "nix-community.cachix.org"
     ];
     push = "irken-empire";
   };
@@ -144,7 +150,8 @@ in
     then
       echo "devenv running in CI"
     else
-      figlet -f starwars -w 180 $PROJECT
+      # showfigfonts 2>/dev/null | less
+      figlet -f slant -w 180 "$(echo "$PROJECT" | tr '[:lower:]-' '[:upper:] ')"
 
       hello --greeting="Hello ''${USER:-user}, welcome to the $PROJECT project!"
 
@@ -169,6 +176,10 @@ in
     enable = true;
     mcpServers = {
       devenv = {
+        type = "http";
+        url = "https://mcp.devenv.sh";
+      };
+      devenv-cli = {
         type = "stdio";
         command = "devenv";
         args = [ "mcp" ];
@@ -230,16 +241,10 @@ in
       #rustflags = "--cfg getrandom_backend=\"wasm_js\"";
       targets = [ "wasm32-unknown-unknown" ];
     };
-    solidity = {
-      enable = true;
-      foundry = {
-        enable = true;
-      };
-    };
   };
 
   difftastic = {
-    enable = true;
+    enable = false;
   };
 
   git-hooks = {
@@ -259,9 +264,13 @@ in
           configPath = ".versionrc";
         };
       };
-      cargo-check.enable = true;
+      cargo-check = {
+        enable = true;
+        package = config.languages.rust.toolchainPackage;
+      };
       clippy = {
-        enable = false; # ic-nix is using older toolchain.
+        enable = true;
+        package = config.languages.rust.toolchainPackage;
         settings = {
           denyWarnings = true;
           offline = true;
@@ -281,16 +290,14 @@ in
       check-yaml.enable = true;
       commitizen.enable = true;
       deadnix.enable = true;
-      editorconfig-checker.enable = true;
       eslint.enable = false;
-      eslint-hack = {
+      eslint-check = {
         enable = true;
-        name = "eslint-hack";
+        name = "eslint-check";
         entry = "eslint-check";
         files = "^(canisters|libs)/.*$";
         pass_filenames = false;
       };
-      # Astro type checking for frontend canister
       astro-check = {
         enable = true;
         name = "astro-check";
@@ -298,7 +305,6 @@ in
         files = "^canisters/test_canister_ts/.*\\.(astro|ts|tsx)$";
         pass_filenames = false;
       };
-      # TypeScript type checking for ic-siwa library
       tsc-lib = {
         enable = true;
         name = "tsc-lib";
@@ -306,6 +312,7 @@ in
         files = "^libs/ic_siwa_ts/.*\\.ts$";
         pass_filenames = false;
       };
+      editorconfig-checker.enable = true;
       markdownlint = {
         excludes = [
           "^docs/issues/todo/.*\\.md$" # Ignore todo notes.
@@ -348,7 +355,10 @@ in
       ripsecrets = {
         enable = true;
       };
-      rustfmt.enable = true;
+      rustfmt = {
+        enable = true;
+        package = config.languages.rust.toolchainPackage;
+      };
       shellcheck = {
         enable = true;
       };
@@ -366,22 +376,9 @@ in
       trufflehog.enable = true;
       cspell = {
         enable = true;
-        excludes = [
-          "\\.webp$"
-          "\\.png$"
-          "\\.jpg$"
-          "\\.jpeg$"
-          "\\.gif$"
-          "\\.ico$"
-          "\\.svg$"
-          "\\.woff2?$"
-          "\\.ttf$"
-          "\\.eot$"
-          "\\.mp3$"
-          "\\.mp4$"
-          "\\.ogg$"
-          "\\.wav$"
-          "\\.wasm$"
+        args = [
+          "lint"
+          "--no-must-find-files"
         ];
       };
       yamllint = {
@@ -403,7 +400,6 @@ in
         files = "(^Cargo\\.toml$|^package\\.json$|libs/ic_siwa_ts/package\\.json$|canisters/test_canister_ts/package\\.json$)";
         pass_filenames = false;
       };
-      # Regenerate Candid when Rust canister code changes
       candid-gen = {
         enable = true;
         name = "candid-gen";
@@ -425,6 +421,13 @@ in
   devcontainer = {
     enable = true;
     settings = {
+      containerEnv = {
+        NIX_REMOTE = "daemon";
+      };
+      mounts = [
+        # Mount Nix store the host to the container.
+        "source=/nix,target=/nix,readonly,type=bind"
+      ];
       customizations = {
         vscode = {
           extensions = [
@@ -456,7 +459,7 @@ in
       description = "A workaround to use a more modern version of ESLint.";
       exec = ''
         bun install
-        eslint canisters/ libs/
+        bunx eslint canisters/ libs/
       '';
     };
     ic-siwa = {

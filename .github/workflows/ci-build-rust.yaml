@@ -1,0 +1,92 @@
+---
+##################################################
+# Name: ci-build-rust.yaml
+# Description: Builds Rust canisters and verifies the Candid interface
+#
+# Matrix:
+#   - ic_siwa_provider (build + candid verify + artifact upload)
+#   - test_canister_rs  (build only)
+##################################################
+
+name: CI Build Rust
+
+on: workflow_call
+
+permissions:
+  contents: read
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+jobs:
+  build-rust:
+    name: CI Build Rust (${{ matrix.canister }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - canister: ic_siwa_provider
+          - canister: test_canister_rs
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+
+      - id: build_canister
+        name: Build Canister
+        uses: ./.github/actions/build-canister
+        with:
+          canister: ${{ matrix.canister }}
+          type: rust
+          environment: development
+
+      ##################################################
+      # Candid verification — runs inline for ic_siwa_provider
+      # (WASM is already on disk, no artifact download needed)
+      ##################################################
+      - id: verify_candid
+        name: Verify Candid Interface
+        if: matrix.canister == 'ic_siwa_provider'
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
+
+          # Normalize whitespace for comparison
+          sed 's/[[:space:]]*$//' canisters/ic_siwa_provider/ic_siwa_provider.did > /tmp/committed.did
+          sed 's/[[:space:]]*$//' /tmp/extracted.did > /tmp/extracted_normalized.did
+
+          if ! diff -q /tmp/committed.did /tmp/extracted_normalized.did > /dev/null 2>&1; then
+            echo "::error::Candid interface is out of sync! Run 'ic-siwa candid' to regenerate."
+            diff /tmp/committed.did /tmp/extracted_normalized.did || true
+            exit 1
+          fi
+
+          echo "Candid interface verified"
+
+      - id: upload_artifact
+        name: Upload Build Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.canister }}-ci
+          path: target/wasm32-unknown-unknown/release/${{ matrix.canister }}.wasm
+          retention-days: 1

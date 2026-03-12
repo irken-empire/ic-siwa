@@ -1,4 +1,4 @@
-# Claude Code Instructions
+# Gemini Code Instructions
 
 All AI agent instructions, technology stack guidance, and project conventions are documented in a single source of truth:
 

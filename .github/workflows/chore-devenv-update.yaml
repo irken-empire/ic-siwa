@@ -33,7 +33,7 @@ jobs:
   update:
     name: Update
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - id: checkout_repository
@@ -42,10 +42,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv

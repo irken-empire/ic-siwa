@@ -2,12 +2,6 @@
 name: Cache Cargo
 description: Cache Rust cargo registry, git sources, and build target directory.
 
-inputs:
-  cache-key-prefix:
-    description: "Cache key prefix to namespace caches (e.g. ci, cd-testnet)"
-    required: false
-    default: "cargo"
-
 runs:
   using: composite
   steps:
@@ -19,6 +13,6 @@ runs:
           ~/.cargo/registry
           ~/.cargo/git
           target/
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
-          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-
+          ${{ runner.os }}-cargo-

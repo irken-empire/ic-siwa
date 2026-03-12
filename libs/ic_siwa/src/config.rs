@@ -275,6 +275,7 @@ library:
     fn test_config_to_settings() {
         let config = Config::from_yaml(TEST_CONFIG).unwrap();
         let settings = config
+            // codeql[rust/hard-coded-cryptographic-value] test fixture only, never used in production
             .to_settings("localhost", "http://localhost:5173", "test-salt")
             .expect("should create settings");
 

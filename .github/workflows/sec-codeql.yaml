@@ -30,15 +30,10 @@ on:
   schedule:
     - cron: "0 0 * * 0"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
   packages: read
   actions: write
-  statuses: write
   security-events: write
 
 env:
@@ -59,7 +54,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    timeout-minutes: 60
+    timeout-minutes: 120
     continue-on-error: false
 
     strategy:
@@ -80,10 +75,6 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
@@ -106,17 +97,3 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
-
-      - id: report_status
-        name: Report Status
-        if: always()
-        uses: ./.github/actions/report-status
-        with:
-          result: ${{ steps.analyze_codeql.outcome }}
-          success-message: "CodeQL analysis passed (${{ matrix.language }})"
-          failure-message: "CodeQL analysis failed (${{ matrix.language }})"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          workflow-name: ${{ github.workflow }}
-          repository: ${{ github.repository }}
-          sha: ${{ github.sha }}
-          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

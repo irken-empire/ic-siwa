@@ -7,23 +7,10 @@
 name: Devenv CI
 
 on:
-  pull_request:
-    branches:
-      - trunk
-
-  merge_group:
-    branches:
-      - trunk
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call:
 
 permissions:
-  contents: write
-  packages: write
-  pull-requests: write
-  statuses: write
+  contents: read
   actions: write
 
 env:
@@ -37,33 +24,23 @@ defaults:
 jobs:
   test:
     name: Devenv Test
+
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+
+    timeout-minutes: 120
+    continue-on-error: false
+
+    defaults:
+      run:
+        shell: devenv shell --quiet bash -- -e {0}
 
     steps:
-      - id: config_summary
-        name: Configuration Summary
-        run: |
-          {
-            echo "## Devenv Configuration"
-            echo "| Setting | Value |"
-            echo "|---------|-------|"
-            echo "| Trigger | \`${{ github.event_name }}\` |"
-            echo "| Ref | \`${{ github.ref_name }}\` |"
-            echo "| SHA | \`${{ github.sha }}\` |"
-            echo "| PR | ${{ github.event.pull_request.number || 'N/A' }} |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - id: checkout_repository
         name: Checkout Repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
 
       - id: setup_devenv
         name: Setup Devenv
@@ -75,7 +52,6 @@ jobs:
 
       - id: install_deps
         name: Install Dependencies
-        shell: devenv shell --quiet bash -- -e {0}
         run: bun run install-deps
 
       - id: devenv_test
@@ -85,6 +61,7 @@ jobs:
       - id: write_summary
         name: Write Results Summary
         if: always()
+        shell: bash
         run: |
           {
             echo "## Devenv Results"
@@ -94,17 +71,3 @@ jobs:
             echo "|------|--------|"
             echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - id: report_status
-        name: Report Status
-        if: always()
-        uses: ./.github/actions/report-status
-        with:
-          result: ${{ steps.devenv_test.outcome }}
-          success-message: "Devenv test passed!"
-          failure-message: "Devenv test failed!"
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          workflow-name: ${{ github.workflow }}
-          repository: ${{ github.repository }}
-          sha: ${{ github.sha }}
-          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

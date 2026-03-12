@@ -4,7 +4,7 @@
 
 ```mermaid
 graph TD
-    A["Push to trunk"] --> B["cd-release.yaml"]
+    A["Push to trunk"] --> B["cd.yaml"]
     C["Manual dispatch"] --> B
 
     B --> D{"Environment?"}
@@ -34,7 +34,7 @@ graph LR
     F --> G["Pre-release created<br/>(automatic)"]
     G --> H["Testnet deployed"]
     H --> I["UAT / QA"]
-    I --> J["Run cd-release<br/>(Mainnet)"]
+    I --> J["Run cd.yaml<br/>(Mainnet)"]
     J --> K["Promoted + deployed"]
 ```
 
@@ -44,14 +44,14 @@ Only these workflows can be triggered manually via `workflow_dispatch`:
 
 | Workflow                   | Purpose                                           |
 | -------------------------- | ------------------------------------------------- |
-| `cd-release.yaml`          | Create pre-release (Testnet) or promote (Mainnet) |
+| `cd.yaml`                  | Create pre-release (Testnet) or promote (Mainnet) |
 | `chore-devenv-update.yaml` | Update devenv.lock, create PR                     |
 
 All other workflows are triggered automatically by events (PR, push, merge_group, schedule, workflow_call).
 
 ## Mainnet Promotion
 
-When running `cd-release.yaml` with `Environment: Mainnet`:
+When running `cd.yaml` with `Environment: Mainnet`:
 
 - **With `release_tag`**: Promotes that specific pre-release
 - **Without `release_tag`**: Auto-discovers the latest pre-release and promotes it
@@ -63,31 +63,58 @@ The GitHub `Mainnet` environment requires manual approval before the promote job
 
 ```mermaid
 graph LR
-    PR["Pull Request"] --> CI["ci.yaml"]
-    PR --> DEV["ci-devenv.yaml"]
+    PR["Pull Request"] --> CC["check-cache<br/>(lookup-only, ~5s)"]
 
-    CI --> L["Lint"]
-    CI --> T["Test"]
-    CI --> BC["Build Canisters"]
-    CI --> BT["Build TypeScript"]
-    CI --> VC["Verify Candid"]
+    CC --> |cache hit| CI["ci.yaml jobs<br/>(all parallel)"]
+    CC --> |cache miss| SE["setup-environment<br/>(warm cache, ~60m)"]
+    SE --> CI
 
-    DEV --> DT["devenv test"]
+    CI --> |workflow_call| CI_LINT["ci-lint.yaml"]
+    CI --> |workflow_call| CI_TEST["ci-test.yaml"]
+    CI --> |workflow_call| CI_BUILD_CAN["ci-build-canisters.yaml"]
+    CI --> |workflow_call| CI_BUILD_TS["ci-build-typescript.yaml"]
+    CI --> |workflow_call| CI_PR_TITLE["ci-pr-title.yaml"]
+    CI --> |workflow_call| CI_TRIVY["ci-trivy.yaml"]
+    CI --> |workflow_call| CI_CODEQL["sec-codeql.yaml"]
+    BC --> |workflow_call| CI_VERIFY_CAN["ci-verify-candid.yaml"]
 ```
+
+### The "Gatekeeper" Strategy
+
+We use a cache-aware orchestration pipeline that avoids redundant warm-up work.
+
+1. `check-cache` runs a **lookup-only** probe (`actions/cache` with `lookup-only: true`) against
+   the Nix store key `${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}`.
+   This takes ~5 seconds and does not download anything.
+2. If the cache **exists** (common case Mon–Fri): `setup-environment` is skipped and all CI
+   jobs fire immediately in parallel.
+3. If the cache **is missing** (new `devenv.lock` hash, or after the weekly chore): `setup-environment`
+   runs synchronously (~60 min) to warm the cache, then all CI jobs fan out.
+
+The weekly `chore-devenv-update.yaml` runs every Sunday night and warms the cache for the coming
+week, so developer PRs consistently hit the fast (~10 min) path.
+
+**Cache Key (`devenv.lock` + `devenv.nix` Hash)**
+The `setup-devenv` action uses `hashFiles('devenv.lock', 'devenv.nix')` for the primary cache key,
+achieving a **0-second upload penalty** on subsequent restores.
 
 ## Workflow Inventory
 
-| Workflow                   | Prefix | Trigger                         | Purpose                                          |
-| -------------------------- | ------ | ------------------------------- | ------------------------------------------------ |
-| `cd-release.yaml`          | cd     | push to trunk, dispatch         | Create pre-release or promote to release         |
-| `cd-testnet.yaml`          | cd     | workflow_call only              | Build, deploy, verify on IC Testnet              |
-| `cd-mainnet.yaml`          | cd     | workflow_call only              | Build, deploy, verify, publish npm on IC Mainnet |
-| `ci.yaml`                  | ci     | pull_request, merge_group       | Lint, test, build canisters, verify Candid       |
-| `ci-devenv.yaml`           | ci     | pull_request, merge_group       | Test devenv shell                                |
-| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch     | Update devenv.lock, create PR                    |
-| `chore-pr-title.yaml`      | chore  | pull_request                    | Validate conventional commit PR titles           |
-| `sec-codeql.yaml`          | sec    | PR, push, merge_group, schedule | CodeQL security analysis                         |
-| `sec-trivy.yaml`           | sec    | PR, merge_group, schedule       | Trivy vulnerability scanning                     |
+| Workflow                   | Prefix | Trigger                     | Purpose                                          |
+| -------------------------- | ------ | --------------------------- | ------------------------------------------------ |
+| `cd.yaml`                  | cd     | push to trunk, dispatch     | Create pre-release or promote to release         |
+| `cd-testnet.yaml`          | cd     | workflow_call only          | Build, deploy, verify on IC Testnet              |
+| `cd-mainnet.yaml`          | cd     | workflow_call only          | Build, deploy, verify, publish npm on IC Mainnet |
+| `ci.yaml`                  | ci     | pull_request, merge_group   | Gatekeeper entrypoint for CI                     |
+| `ci-lint.yaml`             | ci     | workflow_call only          | Lint the project                                 |
+| `ci-test.yaml`             | ci     | workflow_call only          | Test the project                                 |
+| `ci-build-canisters.yaml`  | ci     | workflow_call only          | Build all IC canisters                           |
+| `ci-build-typescript.yaml` | ci     | workflow_call only          | Build npm package                                |
+| `ci-verify-candid.yaml`    | ci     | workflow_call only          | Verify Candid interfaces                         |
+| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch | Update devenv.lock, create PR                    |
+| `ci-pr-title.yaml`         | ci     | workflow_call only          | Validate conventional commit PR titles           |
+| `sec-codeql.yaml`          | sec    | workflow_call only          | CodeQL security analysis                         |
+| `ci-trivy.yaml`            | ci     | workflow_call only          | Trivy vulnerability scanning                     |
 
 ## Composite Actions
 

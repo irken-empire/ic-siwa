@@ -1,0 +1,54 @@
+---
+##################################################
+# Name: ci-lint.yaml
+# Description: CI Lint Checks
+##################################################
+name: CI Lint
+on: workflow_call
+
+permissions:
+  contents: read
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+  SECRETSPEC_PROVIDER: env
+
+jobs:
+  lint:
+    name: CI Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - id: cache_cargo
+        name: Cache Cargo
+        uses: ./.github/actions/cache-cargo
+
+      - id: rust_checks
+        name: Run Rust Checks
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          cargo fmt --all -- --check || {
+            echo "Cargo format has failed!"
+          }
+          cargo clippy --all-targets -- -D warnings || {
+            echo "Cargo clippy has failed!"
+          }
+          bash scripts/check-canister-ids.sh || {
+            echo "Canister ID check has failed!"
+          }

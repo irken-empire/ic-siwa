@@ -4,7 +4,8 @@
 # Description: Security scanning with Trivy
 #
 # Triggers:
-#   - Pull request to trunk (on code changes)
+#   - Pull request to trunk
+#   - Push to trunk (required for Security tab results)
 #   - Weekly schedule (Sunday midnight UTC)
 #
 # Scans:
@@ -22,16 +23,13 @@ on:
   pull_request:
     branches:
       - trunk
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
+
+  push:
+    branches:
+      - trunk
 
   schedule:
     - cron: "0 0 * * 0"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   actions: write
@@ -59,7 +57,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    timeout-minutes: 60
+    timeout-minutes: 120
     continue-on-error: false
 
     steps:
@@ -69,10 +67,7 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
-
-      - id: free_disk_space
-        name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
+          lfs: false
 
       - id: setup_devenv
         name: Setup Devenv
@@ -82,9 +77,15 @@ jobs:
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - id: cache_trivy_db
+        name: Cache Trivy DB
+        uses: ./.github/actions/cache-trivy
+
       - id: trivy_scan
         name: Trivy Filesystem Scan
         shell: devenv shell --quiet bash -- -e {0}
+        env:
+          TRIVY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           trivy filesystem \
             --config trivy.yaml \

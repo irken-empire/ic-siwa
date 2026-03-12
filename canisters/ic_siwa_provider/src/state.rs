@@ -398,6 +398,8 @@ pub fn store_delegation(seed_hash: Hash, delegation_hash: Hash, delegation_expir
         state
             .signature_map
             .put(seed_hash, delegation_hash, delegation_expires_at);
+        // codeql[rust/clear-text-logging] logs hashes only (hex-encoded), not raw key material;
+        // debug_log! is a no-op when debug=false (production default)
         debug_log!(
             "[STORE_DELEGATION] Stored in signature map. seed_hash: {}, delegation_hash: {}, delegation_expires_at: {}, now: {}, map_len: {}",
             hex::encode(seed_hash),
@@ -429,6 +431,7 @@ pub fn create_certified_delegation_signature(
         debug_log!("[CERTIFIED_SIG] No data certificate available - not in a query call?");
         return None;
     };
+    // codeql[rust/cleartext-logging] logs certificate length only (not contents); debug_log! is a no-op when debug=false (production default)
     debug_log!(
         "[CERTIFIED_SIG] Got data certificate, len: {}",
         certificate.len()
@@ -471,8 +474,11 @@ pub fn create_certified_delegation_signature(
 
         let tree = ic_certified_map::labeled(LABEL_SIG, witness);
 
+        // codeql[rust/cleartext-logging] logs signature length only, not the signature bytes;
+        // debug_log! is a no-op when debug=false (production default)
         match ic_siwa::create_certified_signature(certificate.clone(), tree) {
             Ok(sig) => {
+                // codeql[rust/cleartext-logging] logs signature length only, not the signature bytes; debug_log! is a no-op when debug=false (production default)
                 debug_log!(
                     "[CERTIFIED_SIG] Successfully created certified signature, len: {}",
                     sig.len()
@@ -480,6 +486,7 @@ pub fn create_certified_delegation_signature(
                 Some(sig)
             }
             Err(e) => {
+                // codeql[rust/cleartext-logging] logs error message only; debug_log! is a no-op when debug=false (production default)
                 debug_log!(
                     "[CERTIFIED_SIG] Failed to create certified signature: {:?}",
                     e
