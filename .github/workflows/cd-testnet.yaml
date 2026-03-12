@@ -250,7 +250,7 @@ jobs:
 
       - id: upload_artifact
         name: Upload Artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.canister }}-testnet
           path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
@@ -296,7 +296,7 @@ jobs:
 
       - id: upload_artifact
         name: Upload Artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ic-siwa-npm-testnet
           path: |

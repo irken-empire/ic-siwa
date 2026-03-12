@@ -69,7 +69,7 @@ jobs:
       - id: upload_assets_artifact
         name: Upload Assets Artifact
         if: matrix.kind == 'assets'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.canister }}-ci
           path: canisters/${{ matrix.canister }}/dist/
@@ -86,7 +86,7 @@ jobs:
       - id: upload_npm_artifact
         name: Upload npm Artifact
         if: matrix.kind == 'package'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ic-siwa-npm-ci
           path: libs/ic_siwa_ts/
