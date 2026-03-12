@@ -8,9 +8,9 @@
 #   - Manual dispatch → Create pre-release (Testnet) or promote to release (Mainnet)
 #
 # Flow:
-#   1. Compute next version via convco (or use version_override if provided)
-#   2. Bump version in Cargo.toml, package.json files, TypeScript VERSION
-#   3. Testnet: Tag as v{version}, create pre-release
+#   1. check-cache probes the Nix store cache key (lookup-only, ~5s).
+#   2. setup-environment only runs on a cache miss (~60 min warm-up).
+#   3. pre-release or promote wait for both, then proceed immediately.
 #      → calls cd-testnet.yaml (workflow_call)
 #   4. Mainnet: Promote existing pre-release tag to release
 #      → calls cd-mainnet.yaml (workflow_call)
@@ -67,10 +67,44 @@ defaults:
 
 jobs:
   ##################################################
-  # Setup Environment
+  # Gatekeeper - Check whether the Nix cache already exists
+  # Uses lookup-only so no download occurs, just a cache API probe.
+  ##################################################
+  check-cache:
+    name: Check Cache
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+    continue-on-error: false
+
+    outputs:
+      cache-hit: ${{ steps.nix_cache_lookup.outputs.cache-hit }}
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - id: nix_cache_lookup
+        name: Lookup Nix Cache
+        uses: actions/cache@v5
+        with:
+          path: /nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}
+          lookup-only: true
+
+  ##################################################
+  # Warm Cache - Only runs on a cache miss
   ##################################################
   setup-environment:
     name: Setup Environment
+
+    needs: check-cache
+    if: needs.check-cache.outputs.cache-hit != 'true'
+
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -94,11 +128,15 @@ jobs:
 
   pre-release:
     name: Pre-Release
-    needs: [setup-environment]
+    needs: [check-cache, setup-environment]
 
     if: >-
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Testnet')
+      always() &&
+      needs.check-cache.result == 'success' &&
+      (
+        github.event_name == 'push' ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Testnet')
+      )
 
     runs-on: ubuntu-latest
     environment: Testnet
@@ -241,10 +279,13 @@ jobs:
 
   promote:
     name: Promote to Release (Mainnet)
-    needs: [setup-environment]
+    needs: [check-cache, setup-environment]
 
     if: >-
-      github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Mainnet'
+      always() &&
+      needs.check-cache.result == 'success' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'Mainnet'
 
     runs-on: ubuntu-latest
     environment: Mainnet

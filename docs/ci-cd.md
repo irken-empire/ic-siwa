@@ -63,8 +63,11 @@ The GitHub `Mainnet` environment requires manual approval before the promote job
 
 ```mermaid
 graph LR
-    PR["Pull Request"] --> SE["setup-environment<br/>(build dev shell cache)"]
-    SE --> CI["ci.yaml (Gatekeeper)"]
+    PR["Pull Request"] --> CC["check-cache<br/>(lookup-only, ~5s)"]
+
+    CC --> |cache hit| CI["ci.yaml jobs<br/>(all parallel)"]
+    CC --> |cache miss| SE["setup-environment<br/>(warm cache, ~60m)"]
+    SE --> CI
 
     CI --> |workflow_call| CI_LINT["ci-lint.yaml"]
     CI --> |workflow_call| CI_TEST["ci-test.yaml"]
@@ -78,16 +81,22 @@ graph LR
 
 ### The "Gatekeeper" Strategy
 
-We use a strictly-parallel orchestration pipeline pattern.
+We use a cache-aware orchestration pipeline that avoids redundant warm-up work.
 
-1. `ci.yaml` and `cd.yaml` act as absolute entry points (Gatekeepers).
-2. The gatekeeper triggers `setup-devenv` synchronously, populating the GitHub L2 cache.
-3. Once populated, the Gatekeeper fires off all subsequent workflows (`ci-lint.yaml`, `ci-test.yaml`, `cd-testnet.yaml` etc.) in strictly segregated runners using `workflow_call`.
+1. `check-cache` runs a **lookup-only** probe (`actions/cache` with `lookup-only: true`) against
+   the Nix store key `${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}`.
+   This takes ~5 seconds and does not download anything.
+2. If the cache **exists** (common case Mon–Fri): `setup-environment` is skipped and all CI
+   jobs fire immediately in parallel.
+3. If the cache **is missing** (new `devenv.lock` hash, or after the weekly chore): `setup-environment`
+   runs synchronously (~60 min) to warm the cache, then all CI jobs fan out.
 
-**30-Day Caching (`devenv.lock` Hash)**
-The `setup-devenv` action uses `hashFiles('devenv.lock', 'devenv.nix')` for the primary cache key.
-This explicitly maps the cache to that exact deterministic hash, achieving a **0-second upload penalty**
-at the end of every workflow, and the cache is kept alive for 30 days.
+The weekly `chore-devenv-update.yaml` runs every Sunday night and warms the cache for the coming
+week, so developer PRs consistently hit the fast (~10 min) path.
+
+**Cache Key (`devenv.lock` + `devenv.nix` Hash)**
+The `setup-devenv` action uses `hashFiles('devenv.lock', 'devenv.nix')` for the primary cache key,
+achieving a **0-second upload penalty** on subsequent restores.
 
 ## Workflow Inventory
 
