@@ -346,7 +346,7 @@ jobs:
 
       - id: download_artifact
         name: Download Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ic_siwa_provider-mainnet
           path: target/wasm32-unknown-unknown/release/
@@ -453,14 +453,14 @@ jobs:
 
       - id: download_test_rs
         name: Download test_canister_rs
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: test_canister_rs-mainnet
           path: target/wasm32-unknown-unknown/release/
 
       - id: download_test_ts
         name: Download test_canister_ts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: test_canister_ts-mainnet
           path: canisters/test_canister_ts/dist/
@@ -545,7 +545,7 @@ jobs:
 
       - id: download_artifact
         name: Download Artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ic-siwa-npm-mainnet
           path: libs/ic_siwa_ts/
