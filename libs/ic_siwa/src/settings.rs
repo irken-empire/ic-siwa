@@ -177,7 +177,7 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Self {
         // cspell:disable-next-line
-        // codeql[rust/hardcoded-credentials] dev-only default, never used in production
+        // codeql[rust/hard-coded-cryptographic-value] dev-only default, never used in production
         Self::new("localhost", "http://localhost", "development-salt")
     }
 }

@@ -60,8 +60,7 @@ pub fn prepare_delegation(
     let delegation_hash =
         compute_delegation_hash(&session_key, final_expiration, targets.as_deref());
 
-    // codeql[rust/clear-text-logging] session_key_hash is a non-reversible hash;
-    // debug_log! is a no-op when debug=false (production default)
+    // codeql[rust/cleartext-logging] session_key_hash is a non-reversible hash; debug_log! is a no-op when debug=false (production default)
     crate::state::debug_log!(
         "[PREPARE_DELEGATION] address: {}, seed_hash: {}, delegation_hash: {}, final_expiration: {}, session_key_len: {}",
         address,
