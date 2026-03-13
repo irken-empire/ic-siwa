@@ -8,7 +8,7 @@ _Sign in with Avalanche_ for the Internet Computer.
 
 Build _cross-chain_ Avalanche apps on ICP.
 
-_Try out the [demo](https://siwa-testnet.irkenempire.tech/) on Fuji today!_
+_Try the [demo](https://siwa-testnet.irkenempire.tech/) on Fuji today!_
 
 ## Overview
 
