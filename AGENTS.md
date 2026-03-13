@@ -34,29 +34,30 @@ IC-SIWA (Sign-In with Avalanche for Internet Computer) is a fork of ic-siwe, ada
 
 ## Repository Structure
 
-```text
-ic-siwa/
-├── canisters/                 # IC canisters
-│   ├── ic_siwa_provider/      # Main SIWA provider canister
-│   ├── test_canister_rs/      # Rust test canister
-│   └── test_canister_ts/      # Astro/TypeScript test canister
-├── libs/                      # Shared libraries
-│   ├── ic_siwa/               # Rust SIWA library
-│   └── ic_siwa_ts/            # TypeScript client library
-├── config/                    # Environment configurations
-│   ├── development.yaml       # Local development settings
-│   ├── testnet.yaml           # Avalanche Fuji Testnet settings
-│   └── mainnet.yaml           # Avalanche Mainnet settings
-├── scripts/                   # Development and deployment scripts
-├── docs/                      # Documentation
-│   ├── spec.md                # Functional specifications
-│   ├── agents/                # LLM documentation files
-│   └── todo/                  # Ticket/task tracking
-├── .github/workflows/         # CI/CD pipelines
-├── Cargo.toml                 # Rust workspace configuration
-├── dfx.json                   # DFX canister configuration
-├── devenv.nix                 # Development environment (Nix)
-└── secretspec.toml            # Secret management configuration
+```mermaid
+flowchart TD
+    ROOT["ic-siwa/"]
+    ROOT --> CAN["canisters/"]
+    CAN --> C1["ic_siwa_provider  — Main SIWA provider canister"]
+    CAN --> C2["test_canister_rs  — Rust test canister"]
+    CAN --> C3["test_canister_ts  — Astro/TypeScript test canister"]
+    ROOT --> LIBS["libs/"]
+    LIBS --> L1["ic_siwa           — Rust SIWA library"]
+    LIBS --> L2["ic_siwa_ts        — TypeScript client library"]
+    ROOT --> CFG["config/"]
+    CFG --> F1["development.yaml  — Local development settings"]
+    CFG --> F2["testnet.yaml      — Avalanche Fuji Testnet settings"]
+    CFG --> F3["mainnet.yaml      — Avalanche Mainnet settings"]
+    ROOT --> SCR["scripts/          — Development and deployment scripts"]
+    ROOT --> DOCS["docs/"]
+    DOCS --> D1["spec.md           — Functional specifications"]
+    DOCS --> D2["agents/           — LLM documentation files"]
+    DOCS --> D3["todo/             — Ticket/task tracking"]
+    ROOT --> GH[".github/workflows/ — CI/CD pipelines"]
+    ROOT --> CARGO["Cargo.toml        — Rust workspace configuration"]
+    ROOT --> DFX["dfx.json          — DFX canister configuration"]
+    ROOT --> NIX["devenv.nix        — Development environment (Nix)"]
+    ROOT --> SEC["secretspec.toml   — Secret management configuration"]
 ```
 
 ## Documentation
@@ -225,6 +226,12 @@ All non-secret configuration is stored in YAML files under `config/`:
 Secrets are managed via `secretspec.toml`. Never commit actual secret values.
 
 ## Code Standards
+
+### Diagrams
+
+- **Always use Mermaid** for any diagram in documentation (`flowchart`, `sequenceDiagram`, `block-beta`, etc.)
+- Never write ASCII/box-drawing art (`┌──┐`, `─`, `│`) in documentation — use Mermaid instead.
+- Pseudocode or literal string templates (e.g., SIWA message format) may remain as fenced code blocks with appropriate language tags.
 
 ### Rust Guidelines
 
