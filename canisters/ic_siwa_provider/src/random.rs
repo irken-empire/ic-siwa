@@ -128,7 +128,7 @@ register_custom_getrandom!(ic_getrandom);
 /// Safe to call multiple times — each call mixes additional entropy into
 /// the existing state without discarding prior entropy.
 pub async fn seed_rng() {
-    match ic_cdk::management_canister::raw_rand().await {
+    match ic_cdk_management_canister::raw_rand().await {
         Ok(entropy) => {
             RNG_STATE.with(|state| {
                 state.borrow_mut().reseed(&entropy);

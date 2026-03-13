@@ -19,7 +19,6 @@ Rabby
 Remminator
 Reown
 Resol
-roundtrips
 SECRETSPEC
 SIWA
 SIWE
@@ -116,6 +115,7 @@ filecomplete
 frontmatter
 fuser
 gatekeep
+getrandom
 gify
 giga
 giphy
@@ -194,6 +194,7 @@ prebuild
 precached
 precaching
 predeploy
+prehash
 prek
 prereleased
 priate
@@ -218,6 +219,7 @@ rint
 rlib
 rmz
 rmz_version
+roundtrips
 rray
 rustc
 rustup
@@ -236,6 +238,7 @@ startswith
 synthwave
 tekumura
 temurin
+thiserror
 thumbsdown
 thumbsup
 tilemaps

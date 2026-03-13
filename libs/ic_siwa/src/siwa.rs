@@ -528,7 +528,7 @@ pub fn parse_timestamp(s: &str) -> Option<u64> {
 /// Generate a random nonce using IC randomness
 pub async fn generate_nonce() -> Result<Nonce, SiwaError> {
     // Use IC management canister for randomness
-    let random_bytes: Vec<u8> = ic_cdk::management_canister::raw_rand()
+    let random_bytes: Vec<u8> = ic_cdk_management_canister::raw_rand()
         .await
         .map_err(|e| SiwaError::InternalError(format!("Failed to generate randomness: {:?}", e)))?;
 
