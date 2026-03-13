@@ -32,49 +32,22 @@ for Avalanche C-Chain wallets. Users can authenticate with their Avalanche walle
 
 ### Four-Step Login Process
 
-```text
-┌─────────┐          ┌──────────────────┐          ┌─────────────┐
-│  User   │          │  IC-SIWA         │          │  Avalanche  │
-│Frontend │          │  Provider        │          │  Wallet     │
-└────┬────┘          └────────┬─────────┘          └──────┬──────┘
-     │                        │                           │
-     │ 1. siwa_prepare_login  │                           │
-     │    (update)            │                           │
-     │ ─────────────────────> │                           │
-     │                        │                           │
-     │    SIWA message,       │                           │
-     │    nonce, expiration   │                           │
-     │ <───────────────────── │                           │
-     │                        │                           │
-     │ Sign message           │                           │
-     │ ───────────────────────────────────────────────────>
-     │                        │                           │
-     │             signature  │                           │
-     │ <───────────────────────────────────────────────────
-     │                        │                           │
-     │ 2. siwa_login          │                           │
-     │    (update)            │                           │
-     │ ─────────────────────> │                           │
-     │                        │                           │
-     │    principal,          │                           │
-     │    expiration,         │                           │
-     │    canister_pubkey     │                           │
-     │ <───────────────────── │                           │
-     │                        │                           │
-     │ 3. siwa_prepare_       │                           │
-     │    delegation (update) │                           │
-     │ ─────────────────────> │                           │
-     │                        │                           │
-     │    success             │                           │
-     │ <───────────────────── │                           │
-     │                        │                           │
-     │ 4. siwa_get_delegation │                           │
-     │    (query, certified)  │                           │
-     │ ─────────────────────> │                           │
-     │                        │                           │
-     │    signed delegation   │                           │
-     │ <───────────────────── │                           │
-     │                        │                           │
+```mermaid
+sequenceDiagram
+    participant F as Frontend
+    participant P as IC-SIWA Provider
+    participant W as Avalanche Wallet
+
+    F->>P: 1. siwa_prepare_login (update)
+    P-->>F: SIWA message, nonce, expiration
+    F->>W: Sign message
+    W-->>F: signature
+    F->>P: 2. siwa_login (update)
+    P-->>F: principal, expiration, canister_pubkey
+    F->>P: 3. siwa_prepare_delegation (update)
+    P-->>F: success
+    F->>P: 4. siwa_get_delegation (query, certified)
+    P-->>F: signed delegation
 ```
 
 ### Step 1: Prepare Login (`siwa_prepare_login`)
@@ -109,7 +82,7 @@ the canister's default domain and URI are used.
 
 **SIWA Message Format**:
 
-```text
+```eip-4361
 {domain} wants you to sign in with your Avalanche account:
 {address}
 
@@ -287,30 +260,16 @@ distinct wallet signing prompts.
 
 ### How It Works
 
-```text
-┌─────────────┐     ┌─────────────┐     ┌──────────────────┐
-│  App A      │     │  App B      │     │  IC-SIWA         │
-│  game.ex.co │     │  shop.ex.co │     │  Provider        │
-└──────┬──────┘     └──────┬──────┘     └────────┬─────────┘
-       │                   │                     │
-       │ prepare_login_    │                     │
-       │ with_options      │                     │
-       │ domain:"game..."  │                     │
-       │ ────────────────────────────────────────>
-       │                   │                     │
-       │    message with   │                     │
-       │    "game.ex.co"   │                     │
-       │ <────────────────────────────────────────
-       │                   │                     │
-       │                   │ prepare_login_      │
-       │                   │ with_options        │
-       │                   │ domain:"shop..."    │
-       │                   │ ────────────────────>
-       │                   │                     │
-       │                   │    message with     │
-       │                   │    "shop.ex.co"     │
-       │                   │ <────────────────────
-       │                   │                     │
+```mermaid
+sequenceDiagram
+    participant A as App A (game.ex.co)
+    participant B as App B (shop.ex.co)
+    participant P as IC-SIWA Provider
+
+    A->>P: prepare_login_with_options(domain: "game.ex.co")
+    P-->>A: message with "game.ex.co"
+    B->>P: prepare_login_with_options(domain: "shop.ex.co")
+    P-->>B: message with "shop.ex.co"
 ```
 
 Each application receives a SIWA message containing **its own domain**, so the
@@ -585,7 +544,7 @@ Avalanche C-Chain addresses are Ethereum-compatible:
 The user's ICP principal is derived deterministically from their Avalanche address
 and the canister's salt using Keccak256:
 
-```text
+```pseudocode
 normalized_address = lowercase(address)
 hash = Keccak256(normalized_address || salt)
 principal = Principal::from_bytes(hash[0..28])
@@ -601,7 +560,7 @@ canister deployment.
 The delegation chain root key uses a separate derivation with SHA-256 and
 length-prefixed inputs:
 
-```text
+```pseudocode
 normalized_address = lowercase(address)
 seed = SHA256(len_prefix(salt) || len_prefix(normalized_address))
 ```

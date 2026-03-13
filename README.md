@@ -4,9 +4,11 @@
 [![CodeQL](https://github.com/irken-empire/ic-siwa/actions/workflows/sec-codeql.yaml/badge.svg)](https://github.com/irken-empire/ic-siwa/actions/workflows/sec-codeql.yaml)
 [![Trivy](https://github.com/irken-empire/ic-siwa/actions/workflows/sec-trivy.yaml/badge.svg)](https://github.com/irken-empire/ic-siwa/actions/workflows/sec-trivy.yaml)
 
-Sign in with Avalanche for the Internet Computer.
+_Sign in with Avalanche_ for the Internet Computer.
 
-Build cross-chain Avalanche apps on ICP!
+Build _cross-chain_ Avalanche apps on ICP.
+
+_Try out the [demo](https://siwa-testnet.irkenempire.tech/) on Fuji today!_
 
 ## Overview
 
@@ -108,26 +110,30 @@ import LoginButton from 'ic-siwa/astro';
 
 ## Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (Astro)                        │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │  LoginButton    │  │   SiwaClient    │  │  Your App Code  │ │
-│  │  (Astro Comp)   │──│  (ic-siwa lib)  │──│                 │ │
-│  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘ │
-└───────────┼────────────────────┼────────────────────┼──────────┘
-            │                    │                    │
-            │ 1. Sign Message    │ 2. Login           │ 4. Call
-            ▼                    ▼                    ▼
-┌───────────────────┐  ┌─────────────────────────────────────────┐
-│  Avalanche Wallet │  │           Internet Computer             │
-│  (MetaMask, Core) │  │  ┌─────────────────┐  ┌──────────────┐ │
-│                   │  │  │ ic_siwa_provider│  │ Your Canister│ │
-│  C-Chain (43114)  │  │  │                 │──│              │ │
-│  Fuji    (43113)  │  │  │ 3. Verify &     │  │              │ │
-└───────────────────┘  │  │    Delegate     │  └──────────────┘ │
-                       │  └─────────────────┘                   │
-                       └─────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Frontend["Frontend (Astro)"]
+        LB["LoginButton\n(Astro Component)"]
+        SC["SiwaClient\n(ic-siwa lib)"]
+        AC["Your App Code"]
+    end
+
+    subgraph IC["Internet Computer"]
+        SP["ic_siwa_provider\n(canister)"]
+        YC["Your Canister"]
+    end
+
+    subgraph AVA["Avalanche"]
+        WAL["Wallet\n(MetaMask / Core)\nC-Chain 43114 / Fuji 43113"]
+    end
+
+    LB -- "1. Sign Message" --> WAL
+    WAL -- "signature" --> LB
+    LB --> SC
+    SC -- "2. Login" --> SP
+    SP -- "3. Verify & Delegate" --> SP
+    SP --> YC
+    AC -- "4. Canister Call" --> YC
 ```
 
 ## Authentication Flow
@@ -139,22 +145,29 @@ import LoginButton from 'ic-siwa/astro';
 
 ## Project Structure
 
-```text
-ic-siwa/
-├── canisters/
-│   ├── ic_siwa_provider/     # Main authentication canister (Rust)
-│   ├── test_canister_rs/     # Rust test canister
-│   └── test_canister_ts/     # TypeScript/Astro test frontend
-├── libs/
-│   ├── ic_siwa/              # Rust library for canister integration
-│   └── ic_siwa_ts/           # TypeScript library (npm: ic-siwa)
-├── scripts/
-│   └── ic-siwa.sh            # Development CLI tool
-├── config/
-│   ├── development.yaml      # Local development config
-│   ├── testnet.yaml          # Avalanche Fuji + IC config
-│   └── mainnet.yaml          # Production config
-└── docs/                     # Documentation and specs
+```mermaid
+block-beta
+  columns 1
+  block:root["ic-siwa/"]
+    block:canisters["canisters/"]
+      A["ic_siwa_provider/  — Main authentication canister (Rust)"]
+      B["test_canister_rs/  — Rust test canister"]
+      C["test_canister_ts/  — TypeScript/Astro test frontend"]
+    end
+    block:libs["libs/"]
+      D["ic_siwa/           — Rust library for canister integration"]
+      E["ic_siwa_ts/        — TypeScript library (npm: ic-siwa)"]
+    end
+    block:scripts["scripts/"]
+      F["ic-siwa.sh         — Development CLI tool"]
+    end
+    block:config["config/"]
+      G["development.yaml  — Local development config"]
+      H["testnet.yaml      — Avalanche Fuji + IC config"]
+      I["mainnet.yaml      — Production config"]
+    end
+    J["docs/               — Documentation and specs"]
+  end
 ```
 
 ## TypeScript Library
