@@ -4,8 +4,8 @@
 # Description: Enforce conventional commit format on PR titles
 #
 # Triggers:
-#   - Pull request opened, edited, or synchronized
-#   - Merge group (auto-pass to unblock merge queue)
+#   - Pull request opened, synchronized, reopened, or edited (title change)
+#   - workflow_call from ci.yaml
 #
 # PR titles must follow the conventional commit format:
 #   type(scope): description
@@ -17,6 +17,11 @@
 name: PR Title
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - trunk
+
   workflow_call:
 
 permissions:
