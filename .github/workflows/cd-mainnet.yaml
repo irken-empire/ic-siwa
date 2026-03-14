@@ -201,7 +201,8 @@ jobs:
   ##################################################
   build-canisters:
     name: Build Canister ${{ matrix.canister }}
-    needs: [lint]
+    needs:
+      - lint
     if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -266,7 +267,8 @@ jobs:
   ##################################################
   build-npm:
     name: Build npm
-    needs: [lint]
+    needs:
+      - lint
     if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -314,7 +316,10 @@ jobs:
   ##################################################
   deploy-provider:
     name: Deploy Provider
-    needs: [setup, build-canisters, test]
+    needs:
+      - setup
+      - build-canisters
+      - test
     if: always() && needs.build-canisters.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -381,7 +386,8 @@ jobs:
   ##################################################
   verify-deployment:
     name: Verify Deployment
-    needs: [deploy-provider]
+    needs:
+      - deploy-provider
     runs-on: ubuntu-latest
     timeout-minutes: 120
     environment: Mainnet
@@ -420,7 +426,11 @@ jobs:
   ##################################################
   deploy-test-canisters:
     name: Deploy Test Canisters
-    needs: [setup, build-canisters, deploy-provider, verify-deployment]
+    needs:
+      - setup
+      - build-canisters
+      - deploy-provider
+      - verify-deployment
     if: needs.setup.outputs.debug == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -486,7 +496,9 @@ jobs:
   ##################################################
   register-domain:
     name: Register Custom Domain
-    needs: [setup, deploy-test-canisters]
+    needs:
+      - setup
+      - deploy-test-canisters
     if: needs.setup.outputs.debug == 'true' && needs.setup.outputs.domain != ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -520,7 +532,10 @@ jobs:
   ##################################################
   publish-npm:
     name: Publish npm
-    needs: [setup, build-npm, verify-deployment]
+    needs:
+      - setup
+      - build-npm
+      - verify-deployment
     runs-on: ubuntu-latest
     timeout-minutes: 120
     environment: Mainnet

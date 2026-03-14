@@ -107,7 +107,9 @@ jobs:
   ##################################################
   ci-devenv:
     name: Check Devenv
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
     if: always() && needs.check-cache.result == 'success'
     uses: ./.github/workflows/ci-devenv.yaml
     secrets: inherit
@@ -117,7 +119,9 @@ jobs:
   ##################################################
   ci-lint:
     name: Check Lint
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
     if: always() && needs.check-cache.result == 'success'
     uses: ./.github/workflows/ci-lint.yaml
     secrets: inherit
@@ -127,7 +131,9 @@ jobs:
   ##################################################
   ci-test:
     name: Check Test
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
     if: always() && needs.check-cache.result == 'success'
     uses: ./.github/workflows/ci-test.yaml
     secrets: inherit
@@ -137,7 +143,9 @@ jobs:
   ##################################################
   ci-build-rust:
     name: Check Build Rust
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
     if: always() && needs.check-cache.result == 'success'
     uses: ./.github/workflows/ci-build-rust.yaml
     secrets: inherit
@@ -147,7 +155,9 @@ jobs:
   ##################################################
   ci-build-typescript:
     name: Check Build TypeScript
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
     if: always() && needs.check-cache.result == 'success'
     uses: ./.github/workflows/ci-build-typescript.yaml
     secrets: inherit

@@ -128,7 +128,9 @@ jobs:
 
   pre-release:
     name: Pre-Release
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
 
     if: >-
       always() &&
@@ -283,7 +285,9 @@ jobs:
 
   promote:
     name: Promote to Release (Mainnet)
-    needs: [check-cache, setup-environment]
+    needs:
+      - check-cache
+      - setup-environment
 
     if: >-
       always() &&

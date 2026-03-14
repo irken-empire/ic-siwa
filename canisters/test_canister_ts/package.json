@@ -16,7 +16,7 @@
     "astro": "6.0.4",
     "devalue": "5.6.4",
     "ic-siwa": "file:../../libs/ic_siwa_ts",
-    "viem": "2.47.2"
+    "viem": "2.47.4"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.7",
