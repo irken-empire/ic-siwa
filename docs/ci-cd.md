@@ -4,12 +4,11 @@
 
 ```mermaid
 graph TD
-    A["Push to trunk"] --> B["cd.yaml"]
-    C["Manual dispatch"] --> B
+    C["Manual dispatch"] --> B["cd.yaml"]
 
     B --> D{"Environment?"}
-    D -->|"Testnet (auto/manual)"| E["pre-release job"]
-    D -->|"Mainnet (manual only)"| F["promote job"]
+    D -->|"Testnet"| E["pre-release job"]
+    D -->|"Mainnet"| F["promote job"]
 
     E --> G["Create GitHub Pre-Release<br/>(with convco changelog)"]
     G --> H["cd-testnet.yaml<br/>(workflow_call)"]
@@ -31,11 +30,12 @@ graph LR
     C --> D["PR approved"]
     D --> E["Merge queue"]
     E --> F["Merged to trunk"]
-    F --> G["Pre-release created<br/>(automatic)"]
-    G --> H["Testnet deployed"]
-    H --> I["UAT / QA"]
-    I --> J["Run cd.yaml<br/>(Mainnet)"]
-    J --> K["Promoted + deployed"]
+    F --> G["Merge more PRs<br/>(accumulate changes)"]
+    G --> H["Run cd.yaml<br/>(Testnet — manual)"]
+    H --> I["Pre-release created<br/>+ Testnet deployed"]
+    I --> J["UAT / QA"]
+    J --> K["Run cd.yaml<br/>(Mainnet)"]
+    K --> L["Promoted + deployed"]
 ```
 
 ## Manually Runnable Workflows
@@ -102,7 +102,7 @@ achieving a **0-second upload penalty** on subsequent restores.
 
 | Workflow                   | Prefix | Trigger                     | Purpose                                          |
 | -------------------------- | ------ | --------------------------- | ------------------------------------------------ |
-| `cd.yaml`                  | cd     | push to trunk, dispatch     | Create pre-release or promote to release         |
+| `cd.yaml`                  | cd     | dispatch only               | Create pre-release or promote to release         |
 | `cd-testnet.yaml`          | cd     | workflow_call only          | Build, deploy, verify on IC Testnet              |
 | `cd-mainnet.yaml`          | cd     | workflow_call only          | Build, deploy, verify, publish npm on IC Mainnet |
 | `ci.yaml`                  | ci     | pull_request, merge_group   | Gatekeeper entrypoint for CI                     |

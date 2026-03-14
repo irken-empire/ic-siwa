@@ -4,7 +4,6 @@
 # Description: Single entrypoint for all releases
 #
 # Triggers:
-#   - Push to trunk → Create pre-release (automatic)
 #   - Manual dispatch → Create pre-release (Testnet) or promote to release (Mainnet)
 #
 # Flow:
@@ -19,10 +18,6 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - trunk
-
   workflow_dispatch:
     inputs:
       environment:
@@ -34,17 +29,12 @@ on:
           - Mainnet
         default: Testnet
       release_tag:
-        description: "Tag to promote (Mainnet only, e.g. v0.2.0)"
-        required: false
-        type: string
-        default: ""
-      version_override:
-        description: "Force a specific version (Testnet only, e.g. 0.3.0 or v0.3.0)"
+        description: "Tag to promote (Mainnet only) — leave blank to auto-promote the latest pre-release"
         required: false
         type: string
         default: ""
       accept_breaking_changes:
-        description: "Accept breaking candid interface changes (passed to deploy)"
+        description: "Accept breaking candid interface changes"
         type: boolean
         default: false
 
@@ -123,11 +113,11 @@ jobs:
 
   ##################################################
   # Create a pre-release
-  # Triggers: push to trunk (auto) OR manual with Testnet
+  # Triggers: manual dispatch with Testnet
   ##################################################
 
   pre-release:
-    name: Pre-Release
+    name: Pre-Release (Testnet)
     needs:
       - check-cache
       - setup-environment
@@ -135,10 +125,8 @@ jobs:
     if: >-
       always() &&
       needs.check-cache.result == 'success' &&
-      (
-        github.event_name == 'push' ||
-        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Testnet')
-      )
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'Testnet'
 
     runs-on: ubuntu-latest
     environment: Testnet
@@ -172,30 +160,15 @@ jobs:
         name: Compute Version
         shell: devenv shell --quiet bash -- -e {0}
         run: |
-          OVERRIDE="${{ github.event.inputs.version_override }}"
+          # Get next version from conventional commits
+          NEXT_VERSION=$(convco version --bump 2>/dev/null || echo "")
 
-          if [[ -n "${OVERRIDE}" ]]; then
-            # Strip leading 'v' if present and validate
-            NEXT_VERSION="${OVERRIDE#v}"
-
-            if ! [[ "${NEXT_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-              echo "::error::Invalid version format: '${OVERRIDE}'. Expected semver (e.g. 0.3.0 or v0.3.0)"
-              exit 1
-            fi
-
-            echo "Using manual version override: ${NEXT_VERSION}"
-            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          if [[ -z "${NEXT_VERSION}" ]]; then
+            echo "No bump-worthy commits found (e.g. chore). Skipping release."
+            NEXT_VERSION=$(convco version)
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
           else
-            # Get next version from conventional commits
-            NEXT_VERSION=$(convco version --bump 2>/dev/null || echo "")
-
-            if [[ -z "${NEXT_VERSION}" ]]; then
-              echo "No bump-worthy commits found (e.g. chore). Skipping release."
-              NEXT_VERSION=$(convco version)
-              echo "skip=true" >> "${GITHUB_OUTPUT}"
-            else
-              echo "skip=false" >> "${GITHUB_OUTPUT}"
-            fi
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
           fi
 
           TAG="v${NEXT_VERSION}"
@@ -284,7 +257,7 @@ jobs:
   ##################################################
 
   promote:
-    name: Promote to Release (Mainnet)
+    name: Release (Mainnet)
     needs:
       - check-cache
       - setup-environment
