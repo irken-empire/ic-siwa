@@ -765,6 +765,37 @@ jobs:
             fi
           fi
 
+      - id: update_release
+        name: Update Release Notes with Canister IDs
+        if: >-
+          needs.pre-release.result == 'success' &&
+          needs.deploy-provider.result == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.pre-release.outputs.tag }}"
+
+          # Re-fetch the current release notes (has changelog already)
+          EXISTING=$(gh release view "${TAG}" --json body -q '.body')
+
+          # Replace the placeholder table with real canister IDs
+          {
+            echo "${EXISTING}" | sed '/^| ic_siwa_provider | (see job output) |/d' | sed '/^| Resource | ID |/d' | sed '/^|----------|-----|/d' | sed '/^## :rocket: Testnet Deployment/d'
+            echo ""
+            echo "## :rocket: Testnet Deployment"
+            echo ""
+            echo "| Canister | ID |"
+            echo "|----------|-----|"
+            echo "| ic_siwa_provider | \`${{ needs.deploy-provider.outputs.canister_id }}\` |"
+            if [[ "${{ needs.deploy-test-canisters.result }}" == "success" ]]; then
+              echo "| test_canister_rs | \`${{ needs.deploy-test-canisters.outputs.test_canister_rs_id }}\` |"
+              echo "| test_canister_ts | \`${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}\` |"
+            fi
+          } > /tmp/updated_notes.md
+
+          gh release edit "${TAG}" --notes-file /tmp/updated_notes.md
+          echo "Updated release ${TAG} with real canister IDs"
+
       - id: check_failures
         name: Check for Failures
         run: |

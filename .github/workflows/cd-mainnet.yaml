@@ -749,6 +749,33 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - id: update_release
+        name: Update Release Notes with Canister IDs
+        if: >-
+          needs.release.result == 'success' &&
+          needs.deploy-provider.result == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.release.outputs.tag }}"
+
+          # Re-fetch the current release notes (has changelog + testnet table)
+          EXISTING=$(gh release view "${TAG}" --json body -q '.body')
+
+          # Replace the mainnet placeholder with real canister ID
+          {
+            echo "${EXISTING}" | sed '/^| ic_siwa_provider | (see job output) |/d' | sed '/^| Resource | ID |/d' | sed '/^|----------|-----|/d' | sed '/^## :globe_with_meridians: Mainnet Deployment/d'
+            echo ""
+            echo "## :globe_with_meridians: Mainnet Deployment"
+            echo ""
+            echo "| Canister | ID |"
+            echo "|----------|-----|"
+            echo "| ic_siwa_provider | \`${{ needs.deploy-provider.outputs.canister_id }}\` |"
+          } > /tmp/updated_notes.md
+
+          gh release edit "${TAG}" --notes-file /tmp/updated_notes.md
+          echo "Updated release ${TAG} with real canister ID"
+
       - id: check_failures
         name: Check for Failures
         run: |
