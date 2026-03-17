@@ -32,7 +32,8 @@ declare -A LOG_LEVELS=(
 )
 
 # Default values
-NETWORK="dfx"
+NETWORK=""
+NETWORK_SET="false"
 DFX_PORT="${DFX_PORT:-4943}"
 JUNO_PORT="${JUNO_PORT:-5987}"
 PRUNE="false"
@@ -1868,28 +1869,43 @@ cmd_stop() {
 	esac
 }
 
-# Tail canister logs in real-time
+# Tail canister logs in real-time (ic_siwa_provider + evm_rpc in parallel)
 cmd_logs() {
 	local network="${1:-dfx}"
 	cd "${PROJECT_ROOT}"
 
-	log_info "Tailing ic_siwa_provider canister logs on network '${network}' (Ctrl+C to stop)..."
-
+	# Map network name to dfx --network flag
+	local net_flag=""
 	case "${network}" in
-	dfx)
-		dfx canister logs ic_siwa_provider --follow
-		;;
-	juno)
-		dfx canister logs ic_siwa_provider --follow --network juno
-		;;
-	ic)
-		dfx canister logs ic_siwa_provider --follow --network ic
-		;;
+	dfx) net_flag="" ;;
+	juno) net_flag="--network juno" ;;
+	ic) net_flag="--network ic" ;;
 	*)
 		log_error "Unknown network: ${network}"
 		return 1
 		;;
 	esac
+
+	log_info "Tailing canister logs on network '${network}' (Ctrl+C to stop)..."
+
+	# Tail ic_siwa_provider and (on local networks) evm_rpc in parallel,
+	# prefixing each line so the streams are distinguishable.
+	# shellcheck disable=SC2086
+	dfx canister logs ic_siwa_provider --follow ${net_flag} |
+		sed 's/^/[ic_siwa] /' &
+	local pids=("$!")
+
+	if [[ ${network} != "ic" ]]; then
+		# evm_rpc is a remote canister on mainnet — only available locally
+		# shellcheck disable=SC2086
+		dfx canister logs evm_rpc --follow ${net_flag} |
+			sed 's/^/[evm_rpc] /' &
+		pids+=("$!")
+	fi
+
+	# Wait for Ctrl+C and clean up both background tails
+	trap 'kill "${pids[@]}" 2>/dev/null; exit 0' SIGINT SIGTERM
+	wait "${pids[@]}"
 }
 
 # Build init argument for canister
@@ -2037,6 +2053,20 @@ cmd_deploy() {
 	local provider_id
 	provider_id=$(dfx canister id ic_siwa_provider --network "${network}" 2>/dev/null)
 	log_success "ic_siwa_provider deployed: ${provider_id}"
+
+	# Deploy EVM RPC canister on local networks only.
+	# On IC mainnet it is declared as remote (remote.id.ic) so dfx skips it automatically.
+	if [[ ${network} != "ic" ]]; then
+		run_cmd "Deploying EVM RPC canister..." \
+			dfx deploy evm_rpc --network "${network}" --yes || {
+			log_error "Failed to deploy EVM RPC canister"
+			return 1
+		}
+		local evm_rpc_id
+		evm_rpc_id=$(dfx canister id evm_rpc --network "${network}" 2>/dev/null)
+		log_success "evm_rpc deployed: ${evm_rpc_id}"
+		log_info "  → Update tresr.yaml icp.evm_rpc_canister_id.anvil if this differs from br5f7-7uaaa-aaaaa-qaaca-cai"
+	fi
 
 	# Deploy Rust test canister
 	run_cmd "Deploying test_canister_rs..." dfx deploy test_canister_rs --network "${network}" --yes || {
@@ -2495,7 +2525,12 @@ parse_args() {
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
 		--network)
-			NETWORK="${2:-dfx}"
+			if [[ -z ${2:-} ]]; then
+				log_error "--network requires a value (dfx, juno, ic)"
+				exit 1
+			fi
+			NETWORK="${2}"
+			NETWORK_SET="true"
 			shift 2
 			;;
 		--prune)
@@ -2557,6 +2592,14 @@ parse_args() {
 
 	# Initialize log file
 	init_log "$@"
+
+	# Enforce mandatory --network for commands that interact with a replica
+	local NETWORK_REQUIRED_CMDS="deploy upgrade urls cleanup reset logs loop start stop test-integration"
+	if [[ " ${NETWORK_REQUIRED_CMDS} " == *" ${cmd} "* && ${NETWORK_SET} != "true" ]]; then
+		log_error "'${cmd}' requires --network <network>  (dfx | juno | ic)"
+		log_error "Example: ic-siwa ${cmd} --network juno"
+		exit 1
+	fi
 
 	# Check dependencies before running command (skip for help/check)
 	if [[ ${cmd} != "help" && ${cmd} != "--help" && ${cmd} != "-h" && ${cmd} != "check" ]]; then

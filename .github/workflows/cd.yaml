@@ -33,6 +33,13 @@ on:
         required: false
         type: string
         default: ""
+      version:
+        description: >-
+          Version override — Testnet only (e.g. v0.3.0 or 0.3.0).
+          Overrides convco auto-bump. Leave blank for automatic versioning.
+        required: false
+        type: string
+        default: ""
       accept_breaking_changes:
         description: "Accept breaking candid interface changes"
         type: boolean
@@ -160,18 +167,36 @@ jobs:
         name: Compute Version
         shell: devenv shell --quiet bash -- -e {0}
         run: |
-          # Get next version from conventional commits
-          NEXT_VERSION=$(convco version --bump 2>/dev/null || echo "")
+          RAW_VERSION="${{ inputs.version }}"
 
-          if [[ -z "${NEXT_VERSION}" ]]; then
-            echo "No bump-worthy commits found (e.g. chore). Skipping release."
-            NEXT_VERSION=$(convco version)
-            echo "skip=true" >> "${GITHUB_OUTPUT}"
-          else
+          if [[ -n "${RAW_VERSION}" ]]; then
+            # Normalize: strip leading 'v', then re-add for canonical form
+            SEMVER="${RAW_VERSION#v}"
+            if ! [[ "${SEMVER}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+].+)?$ ]]; then
+              echo "::error::Invalid version '${RAW_VERSION}'. Expected e.g. 1.2.3 or v1.2.3"
+              exit 1
+            fi
+            NEXT_VERSION="${SEMVER}"
             echo "skip=false" >> "${GITHUB_OUTPUT}"
+          else
+            # Auto-bump from conventional commits
+            NEXT_VERSION=$(convco version --bump 2>/dev/null || echo "")
+            if [[ -z "${NEXT_VERSION}" ]]; then
+              echo "No bump-worthy commits found (e.g. chore). Skipping release."
+              NEXT_VERSION=$(convco version)
+              echo "skip=true" >> "${GITHUB_OUTPUT}"
+            else
+              echo "skip=false" >> "${GITHUB_OUTPUT}"
+            fi
           fi
 
           TAG="v${NEXT_VERSION}"
+
+          # Guard: abort if this tag already exists on remote
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
+            echo "::error::Tag '${TAG}' already exists on remote. Aborting to prevent overwrite."
+            exit 1
+          fi
 
           echo "version=${NEXT_VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
