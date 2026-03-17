@@ -1,32 +1,42 @@
 ---
 ##################################################
 # Name: cd-testnet.yaml
-# Description: Testnet deployment pipeline
+# Description: Testnet release pipeline
 #
-# Called by: cd-release.yaml (pre-release job)
+# Triggers:
+#   - Manual dispatch
 #
-# Pipeline:
-#   1. Lint + test (skipped when called from release)
-#   2. Build all canisters and npm package
-#   3. Deploy to IC (testnet configuration)
-#   4. Verify deployment
-#   5. Publish npm package (dry run)
+# Flow:
+#   1. check-cache probes the Nix store cache key (lookup-only, ~5s).
+#   2. setup-environment only runs on a cache miss (~60 min warm-up).
+#   3. pre-release computes version via convco, creates a GitHub pre-release.
+#   4. build-canisters + build-npm run in parallel.
+#   5. deploy-provider deploys to IC testnet.
+#   6. verify-deployment confirms the canister is live.
+#   7. deploy-test-canisters + publish-npm (dry run) run conditionally.
 ##################################################
 
-name: Deploy (Testnet)
+name: Release (Testnet)
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
-      version:
-        description: "Release version tag (e.g. v0.1.0)"
+      confirm:
+        description: |
+          Type "ship it" to confirm the Testnet release.
+        required: true
         type: string
+      version:
+        description: >-
+          Version override (e.g. v0.3.0 or 0.3.0).
+          Overrides convco auto-bump. Leave blank for automatic versioning.
         required: false
+        type: string
         default: ""
       accept_breaking_changes:
-        description: "Accept breaking candid interface changes"
-        type: boolean
+        description: "Accept breaking Candid interface changes"
         required: false
+        type: boolean
         default: false
 
 concurrency:
@@ -34,8 +44,12 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write
   contents: write
-  actions: read
+  id-token: write
+  packages: read
+  pull-requests: write
+  statuses: write
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -48,10 +62,211 @@ defaults:
 
 jobs:
   ##################################################
+  # Gatekeeper - Check whether the Nix cache already exists
+  ##################################################
+  check-cache:
+    name: Check Cache
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+    continue-on-error: false
+
+    outputs:
+      cache-hit: ${{ steps.nix_cache_lookup.outputs.cache-hit }}
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - id: nix_cache_lookup
+        name: Lookup Nix Cache
+        uses: actions/cache@v5
+        with:
+          path: /nix
+          key: ${{ runner.os }}-nix-${{ hashFiles('devenv.lock', 'devenv.nix') }}
+          lookup-only: true
+
+  ##################################################
+  # Warm Cache - Only runs on a cache miss
+  ##################################################
+  setup-environment:
+    name: Setup Environment
+
+    needs: check-cache
+    if: needs.check-cache.outputs.cache-hit != 'true'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+  ##################################################
+  # Create a pre-release
+  ##################################################
+  pre-release:
+    name: Pre-Release
+    needs:
+      - check-cache
+      - setup-environment
+
+    if: >-
+      always() &&
+      needs.check-cache.result == 'success'
+
+    runs-on: ubuntu-latest
+    environment: Testnet
+
+    timeout-minutes: 120
+    continue-on-error: false
+
+    outputs:
+      version: ${{ steps.compute_version.outputs.version }}
+      tag: ${{ steps.compute_version.outputs.tag }}
+      skip: ${{ steps.compute_version.outputs.skip }}
+
+    steps:
+      - id: confirm_intent
+        name: Confirm Intent
+        run: |
+          if [[ "${{ inputs.confirm }}" != "ship it" ]]; then
+            echo "::error::Confirmation must be exactly \"ship it\". Got: \"${{ inputs.confirm }}\""
+            exit 1
+          fi
+          echo "✅ Confirmation accepted"
+
+      - id: checkout_repository
+        name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+
+      - id: setup_devenv
+        name: Setup Devenv
+        uses: ./.github/actions/setup-devenv
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
+          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
+
+      - id: compute_version
+        name: Compute Version
+        shell: devenv shell --quiet bash -- -e {0}
+        run: |
+          RAW_VERSION="${{ inputs.version }}"
+
+          if [[ -n "${RAW_VERSION}" ]]; then
+            # Normalize: strip leading 'v', then re-add for canonical form
+            SEMVER="${RAW_VERSION#v}"
+            if ! [[ "${SEMVER}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+].+)?$ ]]; then
+              echo "::error::Invalid version '${RAW_VERSION}'. Expected e.g. 1.2.3 or v1.2.3"
+              exit 1
+            fi
+            NEXT_VERSION="${SEMVER}"
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          else
+            # Auto-bump from conventional commits (accumulates all feat/fix since last tag)
+            NEXT_VERSION=$(convco version --bump 2>/dev/null || echo "")
+            if [[ -z "${NEXT_VERSION}" ]]; then
+              echo "No bump-worthy commits found (e.g. chore). Skipping release."
+              NEXT_VERSION=$(convco version)
+              echo "skip=true" >> "${GITHUB_OUTPUT}"
+            else
+              echo "skip=false" >> "${GITHUB_OUTPUT}"
+            fi
+          fi
+
+          TAG="v${NEXT_VERSION}"
+
+          # Guard: abort if this tag already exists on remote
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
+            echo "::error::Tag '${TAG}' already exists on remote. Aborting to prevent overwrite."
+            exit 1
+          fi
+
+          echo "version=${NEXT_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Version: ${NEXT_VERSION}, Tag: ${TAG}"
+
+      - id: create_release
+        name: Create Pre-Release
+        if: steps.compute_version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.compute_version.outputs.tag }}"
+
+          # Idempotent: reuse existing pre-release if already created
+          if gh release view "${TAG}" > /dev/null 2>&1; then
+            echo "Pre-release ${TAG} already exists, reusing for deployment"
+          else
+            gh release create "${TAG}" \
+              --title "Pre-Release ${TAG}" \
+              --notes "Release ${TAG}" \
+              --prerelease \
+              --target "${{ github.sha }}"
+          fi
+
+      - id: generate_changelog
+        name: Generate Changelog
+        if: steps.compute_version.outputs.skip != 'true'
+        shell: devenv shell --quiet bash -- -e {0}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.compute_version.outputs.tag }}"
+
+          # Fetch the tag created by gh release so convco can see it
+          git fetch --tags --force
+
+          # Generate changelog for the latest version
+          CHANGELOG=$(convco changelog --max-versions 1 --no-links 2>/dev/null || echo "Release ${TAG}")
+
+          {
+            echo "${CHANGELOG}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## :rocket: Testnet Deployment"
+            echo ""
+            echo "| Resource | ID |"
+            echo "|----------|-----|"
+            echo "| ic_siwa_provider | (see job output) |"
+          } > /tmp/changelog.md
+
+          # Update the release with the real changelog
+          gh release edit "${TAG}" --notes-file /tmp/changelog.md
+
+          echo "Updated release ${TAG} with changelog"
+
+  ##################################################
   # Setup - Read configuration
   ##################################################
   setup:
     name: Setup
+    needs:
+      - pre-release
+    if: >-
+      always() &&
+      needs.pre-release.result == 'success' &&
+      needs.pre-release.outputs.skip != 'true'
     runs-on: ubuntu-latest
     environment: Testnet
     outputs:
@@ -83,21 +298,12 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: get_version
         name: Get Version
         run: |
-          if [[ -n "${{ inputs.version }}" ]]; then
-            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
-          else
-            # Get latest git tag (requires fetch-depth: 0)
-            VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo "")"
-            if [[ -z "${VERSION}" ]]; then
-              echo "::error::No git tags found and no version input provided"
-              exit 1
-            fi
-            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          fi
+          echo "version=${{ needs.pre-release.outputs.tag }}" >> "$GITHUB_OUTPUT"
 
       - id: read_config
         name: Read Config
@@ -106,100 +312,13 @@ jobs:
           environment: testnet
 
   ##################################################
-  # Lint - Check code quality (skipped on workflow_call)
-  ##################################################
-  lint:
-    name: Lint
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    environment: Testnet
-
-    steps:
-      - id: checkout_repository
-        name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - id: cache_cargo
-        name: Cache Cargo
-        uses: ./.github/actions/cache-cargo
-
-      - id: rust_fmt
-        name: Check Rust Formatting
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo fmt --all -- --check
-
-      - id: rust_clippy
-        name: Run Clippy
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo clippy --all-targets -- -D warnings
-
-  ##################################################
-  # Test - Run unit tests (skipped on workflow_call)
-  ##################################################
-  test:
-    name: Test
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    environment: Testnet
-
-    steps:
-      - id: checkout_repository
-        name: Checkout Repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - id: setup_devenv
-        name: Setup Devenv
-        uses: ./.github/actions/setup-devenv
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
-          cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      - id: cache_cargo
-        name: Cache Cargo
-        uses: ./.github/actions/cache-cargo
-
-      - id: cache_bun
-        name: Cache Bun
-        uses: ./.github/actions/cache-bun
-
-      - id: rust_tests
-        name: Run Rust Tests
-        shell: devenv shell --quiet bash -- -e {0}
-        run: cargo test -p ic_siwa
-
-      - id: typescript_tests
-        name: Run TypeScript Tests
-        shell: devenv shell --quiet bash -- -e {0}
-        run: |
-          cd libs/ic_siwa_ts
-          bun install
-          bun test
-
-  ##################################################
   # Build Canisters
   ##################################################
   build-canisters:
     name: Build Canister ${{ matrix.canister }}
     needs:
-      - lint
-    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
+      - setup
+    if: always() && needs.setup.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     environment: Testnet
@@ -230,6 +349,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: cache_cargo
         name: Cache Cargo
@@ -254,7 +374,10 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.canister }}-testnet
-          path: ${{ matrix.type == 'rust' && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister) || format('canisters/{0}/dist/', matrix.canister) }}
+          path: >-
+            ${{ matrix.type == 'rust'
+              && format('target/wasm32-unknown-unknown/release/{0}.wasm', matrix.canister)
+              || format('canisters/{0}/dist/', matrix.canister) }}
           include-hidden-files: true
           retention-days: 7
 
@@ -264,8 +387,8 @@ jobs:
   build-npm:
     name: Build npm
     needs:
-      - lint
-    if: always() && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
+      - setup
+    if: always() && needs.setup.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     environment: Testnet
@@ -287,6 +410,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: cache_bun
         name: Cache Bun
@@ -315,8 +439,7 @@ jobs:
     needs:
       - setup
       - build-canisters
-      - test
-    if: always() && needs.build-canisters.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    if: always() && needs.build-canisters.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     environment: Testnet
@@ -338,6 +461,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: setup_canister_ids
         name: Setup Canister IDs
@@ -403,6 +527,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: setup_canister_ids
         name: Setup Canister IDs
@@ -450,6 +575,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: setup_canister_ids
         name: Setup Canister IDs
@@ -515,6 +641,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: register_domain
         name: Register Domain
@@ -524,7 +651,7 @@ jobs:
           canister_id: ${{ needs.deploy-test-canisters.outputs.test_canister_ts_id }}
 
   ##################################################
-  # Publish npm (dry run)
+  # Publish npm (dry run on testnet)
   ##################################################
   publish-npm:
     name: Publish npm (dry run)
@@ -553,6 +680,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: download_artifact
         name: Download Artifact
@@ -575,9 +703,8 @@ jobs:
     name: Status
     needs:
       [
+        pre-release,
         setup,
-        lint,
-        test,
         build-canisters,
         build-npm,
         deploy-provider,
@@ -596,22 +723,29 @@ jobs:
         name: Write Results Summary
         run: |
           {
-            echo "## Testnet Deployment Results"
+            echo "## Testnet Release Results"
             echo ""
             echo "### Job Status"
             echo "| Job | Status |"
             echo "|-----|--------|"
+            echo "| Pre-Release | ${{ needs.pre-release.result }} |"
             echo "| Setup | ${{ needs.setup.result }} |"
-            echo "| Lint | ${{ needs.lint.result }} |"
-            echo "| Test | ${{ needs.test.result }} |"
             echo "| Build Canisters | ${{ needs.build-canisters.result }} |"
             echo "| Build npm | ${{ needs.build-npm.result }} |"
             echo "| Deploy Provider | ${{ needs.deploy-provider.result }} |"
             echo "| Verify Deployment | ${{ needs.verify-deployment.result }} |"
             echo "| Deploy Test Canisters | ${{ needs.deploy-test-canisters.result }} |"
             echo "| Register Domain | ${{ needs.register-domain.result }} |"
-            echo "| Publish npm | ${{ needs.publish-npm.result }} |"
+            echo "| Publish npm (dry run) | ${{ needs.publish-npm.result }} |"
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${{ needs.pre-release.result }}" == "success" ]]; then
+            {
+              echo ""
+              echo "### Pre-Release"
+              echo "**Tag**: \`${{ needs.pre-release.outputs.tag }}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
           if [[ "${{ needs.deploy-provider.result }}" == "success" ]]; then
             {
@@ -633,10 +767,10 @@ jobs:
       - id: check_failures
         name: Check for Failures
         run: |
-          CRITICAL_JOBS="${{ needs.build-canisters.result }},${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }}"
+          CRITICAL_JOBS="${{ needs.pre-release.result }},${{ needs.build-canisters.result }},${{ needs.deploy-provider.result }},${{ needs.verify-deployment.result }}"
           if echo "${CRITICAL_JOBS}" | grep -qE "(failure|cancelled)"; then
-            echo "::error::Testnet deployment failed"
+            echo "::error::Testnet release failed"
             exit 1
           fi
 
-          echo "Testnet deployment completed successfully!"
+          echo "Testnet release completed successfully!"

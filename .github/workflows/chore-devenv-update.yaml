@@ -64,19 +64,6 @@ jobs:
         name: Run Devenv Test
         run: devenv test
 
-      - id: write_summary
-        name: Write Results Summary
-        if: always()
-        run: |
-          {
-            echo "## Devenv Update Results"
-            echo ""
-            echo "### Test Status"
-            echo "| Step | Status |"
-            echo "|------|--------|"
-            echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - id: create_pull_request
         name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
@@ -94,3 +81,19 @@ jobs:
           signoff: true
           delete-branch: true
           sign-commits: true
+
+      - id: write_summary
+        name: Write Results Summary
+        if: always()
+        run: |
+          {
+            echo "## Devenv Update Results"
+            echo ""
+            echo "### Step Status"
+            echo "| Step | Status |"
+            echo "|------|--------|"
+            echo "| Devenv Update | ${{ steps.devenv_update.outcome }} |"
+            echo "| Install Dependencies | ${{ steps.install_deps.outcome }} |"
+            echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
+            echo "| Create Pull Request | ${{ steps.create_pull_request.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

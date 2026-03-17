@@ -4,21 +4,26 @@
 
 ```mermaid
 graph TD
-    C["Manual dispatch"] --> B["cd.yaml"]
+    TESTNET_TRIGGER["Manual dispatch"] --> TESTNET_WORKFLOW["cd-testnet.yaml<br/>(workflow_dispatch)"]
+    MAINNET_TRIGGER["Manual dispatch"] --> MAINNET_WORKFLOW["cd-mainnet.yaml<br/>(workflow_dispatch)"]
 
-    B --> D{"Environment?"}
-    D -->|"Testnet"| E["pre-release job"]
-    D -->|"Mainnet"| F["promote job"]
+    TESTNET_WORKFLOW --> TESTNET_CACHE["check-cache (~5s)"]
+    TESTNET_CACHE --> |cache miss| TESTNET_SETUP["setup-environment (~60m)"]
+    TESTNET_CACHE --> |cache hit| TESTNET_JOB["pre-release job"]
+    TESTNET_SETUP --> TESTNET_JOB
 
-    E --> G["Create GitHub Pre-Release<br/>(with convco changelog)"]
-    G --> H["cd-testnet.yaml<br/>(workflow_call)"]
+    TESTNET_JOB --> TESTNET_VERSION["Compute version<br/>(convco --bump or override)"]
+    TESTNET_VERSION --> TESTNET_RELEASE["Create GitHub Pre-Release<br/>(with convco changelog)"]
+    TESTNET_RELEASE --> TESTNET_BUILD["Build → Deploy → Verify<br/>→ npm (dry run)"]
 
-    F --> I["Auto-discover or validate tag"]
-    I --> J["Promote Pre-Release → Release<br/>(with convco changelog)"]
-    J --> K["cd-mainnet.yaml<br/>(workflow_call)"]
+    MAINNET_WORKFLOW --> MAINNET_CACHE["check-cache (~5s)"]
+    MAINNET_CACHE --> |cache miss| MAINNET_SETUP["setup-environment (~60m)"]
+    MAINNET_CACHE --> |cache hit| MAINNET_JOB["release job"]
+    MAINNET_SETUP --> MAINNET_JOB
 
-    H --> L["Build → Deploy → Verify → npm (dry run)"]
-    K --> M["Build → Deploy → Verify → npm (publish)"]
+    MAINNET_JOB --> MAINNET_VALIDATE["Validate pre-release tag<br/>(auto-discover or input)"]
+    MAINNET_VALIDATE --> MAINNET_PROMOTE["Promote Pre-Release → Release<br/>(append mainnet changelog)"]
+    MAINNET_PROMOTE --> MAINNET_BUILD["Build → Deploy → Verify<br/>→ npm (publish)"]
 ```
 
 ## Developer Workflow
@@ -26,15 +31,15 @@ graph TD
 ```mermaid
 graph LR
     A["Create branch"] --> B["Open PR"]
-    B --> C["CI runs<br/>(lint, test, build, security)"]
+    B --> C["CI runs\n(lint, test, build, security)"]
     C --> D["PR approved"]
     D --> E["Merge queue"]
     E --> F["Merged to trunk"]
-    F --> G["Merge more PRs<br/>(accumulate changes)"]
-    G --> H["Run cd.yaml<br/>(Testnet — manual)"]
-    H --> I["Pre-release created<br/>+ Testnet deployed"]
+    F --> G["Merge more PRs\n(accumulate changes)"]
+    G --> H["Run cd-testnet.yaml\n(manual dispatch)"]
+    H --> I["Pre-release created\n+ Testnet deployed"]
     I --> J["UAT / QA"]
-    J --> K["Run cd.yaml<br/>(Mainnet)"]
+    J --> K["Run cd-mainnet.yaml\n(manual dispatch)"]
     K --> L["Promoted + deployed"]
 ```
 
@@ -42,41 +47,56 @@ graph LR
 
 Only these workflows can be triggered manually via `workflow_dispatch`:
 
-| Workflow                   | Purpose                                           |
-| -------------------------- | ------------------------------------------------- |
-| `cd.yaml`                  | Create pre-release (Testnet) or promote (Mainnet) |
-| `chore-devenv-update.yaml` | Update devenv.lock, create PR                     |
+| Workflow                   | Purpose                                   |
+| -------------------------- | ----------------------------------------- |
+| `cd-testnet.yaml`          | Create pre-release + deploy to Testnet    |
+| `cd-mainnet.yaml`          | Promote pre-release and deploy to Mainnet |
+| `chore-devenv-update.yaml` | Update devenv.lock, create PR             |
 
 All other workflows are triggered automatically by events (PR, push, merge_group, schedule, workflow_call).
 
+## Testnet Release
+
+When running `cd-testnet.yaml`:
+
+- **With `version`**: Uses the specified version (e.g. `v0.3.0` or `0.3.0`)
+- **Without `version`**: Auto-bumps from conventional commits via `convco version --bump`
+  - Multiple `feat`/`fix` PRs merged since the last tag all appear in the single release changelog
+  - If no bump-worthy commits exist, the release is skipped
+- Creates a GitHub **pre-release** tagged `vX.Y.Z`
+- Runs a `ship it` confirmation guard before proceeding
+
 ## Mainnet Promotion
 
-When running `cd.yaml` with `Environment: Mainnet`:
+When running `cd-mainnet.yaml`:
 
 - **With `release_tag`**: Promotes that specific pre-release
 - **Without `release_tag`**: Auto-discovers the latest pre-release and promotes it
 - **If latest release is already promoted**: Errors with a helpful message
+- Promotes the GitHub pre-release to a full **release**
+- Appends mainnet deployment info to the release notes
+- Runs a `ship it` confirmation guard before proceeding
 
-The GitHub `Mainnet` environment requires manual approval before the promote job runs.
+The GitHub `Mainnet` environment requires manual approval before the deploy job runs.
 
 ## CI Pipeline
 
 ```mermaid
 graph LR
-    PR["Pull Request"] --> CC["check-cache<br/>(lookup-only, ~5s)"]
+    PR["Pull Request"] --> CC["check-cache\n(lookup-only, ~5s)"]
 
-    CC --> |cache hit| CI["ci.yaml jobs<br/>(all parallel)"]
-    CC --> |cache miss| SE["setup-environment<br/>(warm cache, ~60m)"]
+    CC --> |cache hit| CI["ci.yaml jobs\n(all parallel)"]
+    CC --> |cache miss| SE["setup-environment\n(warm cache, ~60m)"]
     SE --> CI
 
     CI --> |workflow_call| CI_LINT["ci-lint.yaml"]
     CI --> |workflow_call| CI_TEST["ci-test.yaml"]
-    CI --> |workflow_call| CI_BUILD_CAN["ci-build-canisters.yaml"]
+    CI --> |workflow_call| CI_BUILD_RUST["ci-build-rust.yaml"]
     CI --> |workflow_call| CI_BUILD_TS["ci-build-typescript.yaml"]
+    CI --> |workflow_call| CI_DEVENV["ci-devenv.yaml"]
     CI --> |workflow_call| CI_PR_TITLE["ci-pr-title.yaml"]
     CI --> |workflow_call| CI_TRIVY["ci-trivy.yaml"]
     CI --> |workflow_call| CI_CODEQL["sec-codeql.yaml"]
-    BC --> |workflow_call| CI_VERIFY_CAN["ci-verify-candid.yaml"]
 ```
 
 ### The "Gatekeeper" Strategy
@@ -94,27 +114,32 @@ We use a cache-aware orchestration pipeline that avoids redundant warm-up work.
 The weekly `chore-devenv-update.yaml` runs every Sunday night and warms the cache for the coming
 week, so developer PRs consistently hit the fast (~10 min) path.
 
+### Cachix Push Optimisation
+
+Only the `setup-environment` job (the Gatekeeper warm-up) pushes to Cachix.
+All other jobs — CI sub-workflows and CD deploy jobs — set `skip-push: "true"` on the
+`setup-devenv` action so they only pull/substitute from the cache, never push.
+
 **Cache Key (`devenv.lock` + `devenv.nix` Hash)**
 The `setup-devenv` action uses `hashFiles('devenv.lock', 'devenv.nix')` for the primary cache key,
 achieving a **0-second upload penalty** on subsequent restores.
 
 ## Workflow Inventory
 
-| Workflow                   | Prefix | Trigger                     | Purpose                                          |
-| -------------------------- | ------ | --------------------------- | ------------------------------------------------ |
-| `cd.yaml`                  | cd     | dispatch only               | Create pre-release or promote to release         |
-| `cd-testnet.yaml`          | cd     | workflow_call only          | Build, deploy, verify on IC Testnet              |
-| `cd-mainnet.yaml`          | cd     | workflow_call only          | Build, deploy, verify, publish npm on IC Mainnet |
-| `ci.yaml`                  | ci     | pull_request, merge_group   | Gatekeeper entrypoint for CI                     |
-| `ci-lint.yaml`             | ci     | workflow_call only          | Lint the project                                 |
-| `ci-test.yaml`             | ci     | workflow_call only          | Test the project                                 |
-| `ci-build-canisters.yaml`  | ci     | workflow_call only          | Build all IC canisters                           |
-| `ci-build-typescript.yaml` | ci     | workflow_call only          | Build npm package                                |
-| `ci-verify-candid.yaml`    | ci     | workflow_call only          | Verify Candid interfaces                         |
-| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch | Update devenv.lock, create PR                    |
-| `ci-pr-title.yaml`         | ci     | workflow_call only          | Validate conventional commit PR titles           |
-| `sec-codeql.yaml`          | sec    | workflow_call only          | CodeQL security analysis                         |
-| `ci-trivy.yaml`            | ci     | workflow_call only          | Trivy vulnerability scanning                     |
+| Workflow                   | Prefix | Trigger                     | Purpose                                           |
+| -------------------------- | ------ | --------------------------- | ------------------------------------------------- |
+| `cd-testnet.yaml`          | cd     | dispatch only               | Create pre-release + deploy to IC Testnet         |
+| `cd-mainnet.yaml`          | cd     | dispatch only               | Promote release + deploy + publish npm on Mainnet |
+| `ci.yaml`                  | ci     | pull_request, merge_group   | Gatekeeper entrypoint for CI                      |
+| `ci-lint.yaml`             | ci     | workflow_call only          | Lint the project                                  |
+| `ci-test.yaml`             | ci     | workflow_call only          | Test the project                                  |
+| `ci-build-rust.yaml`       | ci     | workflow_call only          | Build all IC canisters + verify Candid            |
+| `ci-build-typescript.yaml` | ci     | workflow_call only          | Build npm package                                 |
+| `ci-devenv.yaml`           | ci     | workflow_call only          | Validate developer environment setup              |
+| `chore-devenv-update.yaml` | chore  | schedule (weekly), dispatch | Update devenv.lock, create PR                     |
+| `ci-pr-title.yaml`         | ci     | workflow_call only          | Validate conventional commit PR titles            |
+| `sec-codeql.yaml`          | sec    | workflow_call only          | CodeQL security analysis                          |
+| `ci-trivy.yaml`            | ci     | workflow_call only          | Trivy vulnerability scanning                      |
 
 ## Composite Actions
 
@@ -136,7 +161,7 @@ achieving a **0-second upload penalty** on subsequent restores.
 | Element           | Convention                                 | Example                    |
 | ----------------- | ------------------------------------------ | -------------------------- |
 | Workflow filename | `{ci\|cd\|chore}-{component}[-{env}].yaml` | `chore-devenv-update.yaml` |
-| Workflow `name:`  | Title Case                                 | `Deploy (Testnet)`         |
+| Workflow `name:`  | Title Case                                 | `Release (Testnet)`        |
 | Job ID            | `kebab-case`                               | `deploy-provider`          |
 | Job `name:`       | Title Case                                 | `Deploy Provider`          |
 | Step ID           | `snake_case`                               | `setup_devenv`             |

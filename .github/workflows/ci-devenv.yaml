@@ -49,6 +49,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cachix-cache-name: ${{ vars.CACHIX_CACHE_NAME }}
           cachix-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skip-push: "true"
 
       - id: install_deps
         name: Install Dependencies
@@ -69,5 +70,6 @@ jobs:
             echo "### Test Status"
             echo "| Step | Status |"
             echo "|------|--------|"
+            echo "| Install Dependencies | ${{ steps.install_deps.outcome }} |"
             echo "| Devenv Test | ${{ steps.devenv_test.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
