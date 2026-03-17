@@ -760,7 +760,7 @@ jobs:
           TAG="${{ needs.release.outputs.tag }}"
 
           # Re-fetch the current release notes (has changelog + testnet table)
-          EXISTING=$(gh release view "${TAG}" --json body -q '.body')
+          EXISTING=$(gh release view "${TAG}" --repo "${{ github.repository }}" --json body -q '.body')
 
           # Replace the mainnet placeholder with real canister ID
           {
@@ -773,7 +773,7 @@ jobs:
             echo "| ic_siwa_provider | \`${{ needs.deploy-provider.outputs.canister_id }}\` |"
           } > /tmp/updated_notes.md
 
-          gh release edit "${TAG}" --notes-file /tmp/updated_notes.md
+          gh release edit "${TAG}" --repo "${{ github.repository }}" --notes-file /tmp/updated_notes.md
           echo "Updated release ${TAG} with real canister ID"
 
       - id: check_failures

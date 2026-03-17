@@ -776,7 +776,7 @@ jobs:
           TAG="${{ needs.pre-release.outputs.tag }}"
 
           # Re-fetch the current release notes (has changelog already)
-          EXISTING=$(gh release view "${TAG}" --json body -q '.body')
+          EXISTING=$(gh release view "${TAG}" --repo "${{ github.repository }}" --json body -q '.body')
 
           # Replace the placeholder table with real canister IDs
           {
@@ -793,7 +793,7 @@ jobs:
             fi
           } > /tmp/updated_notes.md
 
-          gh release edit "${TAG}" --notes-file /tmp/updated_notes.md
+          gh release edit "${TAG}" --repo "${{ github.repository }}" --notes-file /tmp/updated_notes.md
           echo "Updated release ${TAG} with real canister IDs"
 
       - id: check_failures
