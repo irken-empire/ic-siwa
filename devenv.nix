@@ -241,6 +241,12 @@ in
       #rustflags = "--cfg getrandom_backend=\"wasm_js\"";
       targets = [ "wasm32-unknown-unknown" ];
     };
+    solidity = {
+      enable = true;
+      foundry = {
+        enable = true;
+      };
+    };
   };
 
   difftastic = {
