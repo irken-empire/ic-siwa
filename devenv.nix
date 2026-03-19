@@ -255,11 +255,19 @@ in
 
   git-hooks = {
     excludes = [
+      "**/candid/*.ts"
+      "*.did"
+      ".dfx/"
       ".direnv/"
       ".dist/"
       ".git/"
       ".vscode/"
+      "^contracts/" # Using custom pre-commit hook.
       "^docs/agents/.*"
+      "dist/"
+      "node_modules/"
+      "target/"
+      ".vscode/"
     ];
     hooks = {
       actionlint.enable = true;
