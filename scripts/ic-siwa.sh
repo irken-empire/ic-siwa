@@ -445,13 +445,30 @@ get_ic_host() {
 }
 
 # Build TypeScript test canister
-# Args: $1 = provider_canister_id, $2 = ic_host
+# Args: $1 = network, $2 = provider_canister_id, $3 = ic_host
 build_ts_canister() {
-	local provider_id="$1"
-	local ic_host="$2"
+	local network="$1"
+	local provider_id="$2"
+	local ic_host="$3"
 
 	log_debug "  Provider Canister ID: ${provider_id}"
 	log_debug "  IC Host: ${ic_host}"
+
+	local config_file
+	case "${network}" in
+	dfx | juno) config_file="${PROJECT_ROOT}/config/development.yaml" ;;
+	testnet) config_file="${PROJECT_ROOT}/config/testnet.yaml" ;;
+	ic) config_file="${PROJECT_ROOT}/config/mainnet.yaml" ;;
+	*) config_file="${PROJECT_ROOT}/config/development.yaml" ;;
+	esac
+
+	local chain_id
+	chain_id=$(yq -r '.avalanche.chain_id' "${config_file}")
+	local rpc_url
+	rpc_url=$(yq -r '.avalanche.rpc_url // ""' "${config_file}")
+
+	log_debug "  Chain ID: ${chain_id}"
+	log_debug "  RPC URL: ${rpc_url}"
 
 	cd "${PROJECT_ROOT}/canisters/test_canister_ts"
 
@@ -462,6 +479,8 @@ build_ts_canister() {
 	run_cmd "Building Astro app..." \
 		env PUBLIC_SIWA_PROVIDER_CANISTER_ID="${provider_id}" \
 		PUBLIC_IC_HOST="${ic_host}" \
+		PUBLIC_AVALANCHE_CHAIN_ID="${chain_id}" \
+		PUBLIC_AVALANCHE_RPC_URL="${rpc_url}" \
 		bun run build || return 1
 
 	cd "${PROJECT_ROOT}"
@@ -1045,15 +1064,31 @@ cmd_test_integration() {
 		log_error "test_canister_rs not deployed. Run 'ic-siwa deploy --network ${network}' first."
 		return 1
 	}
+	local evm_rpc_id
+	evm_rpc_id=$(dfx canister id evm_rpc --network "${network}" 2>/dev/null) || {
+		log_error "evm_rpc not deployed. Run 'ic-siwa deploy --network ${network}' first."
+		return 1
+	}
 
 	log_info "Testing ic_siwa_provider (${provider_id})..."
 	log_info "Testing test_canister_rs (${rs_id})..."
+	log_info "Testing evm_rpc (${evm_rpc_id})..."
 
 	local failed=0
 	local test_num=0
-	local total_tests=27
+	local total_tests=28
 
-	# Test 1: Health check on test canister
+	# Test 1: EVM RPC canister health/deployment check
+	((++test_num))
+	log_info "[${test_num}/${total_tests}] Testing evm_rpc status..."
+	if dfx canister metadata evm_rpc candid:service --network "${network}" >/dev/null 2>&1; then
+		log_success "  evm_rpc candid interface is available"
+	else
+		log_error "  evm_rpc candid metadata check failed"
+		failed=$((failed + 1))
+	fi
+
+	# Test 2: Health check on test canister
 	((++test_num))
 	log_info "[${test_num}/${total_tests}] Testing test_canister_rs health..."
 	if dfx canister call test_canister_rs health --network "${network}" 2>/dev/null | grep -q "ok"; then
@@ -2077,7 +2112,7 @@ cmd_deploy() {
 	# Build and deploy TypeScript test canister
 	local ic_host
 	ic_host=$(get_ic_host "${network}")
-	build_ts_canister "${provider_id}" "${ic_host}" || return 1
+	build_ts_canister "${network}" "${provider_id}" "${ic_host}" || return 1
 
 	run_cmd "Deploying test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --yes || {
 		log_error "Failed to deploy test_canister_ts"
@@ -2191,7 +2226,7 @@ cmd_upgrade() {
 	# Rebuild and upgrade test_canister_ts
 	local ic_host
 	ic_host=$(get_ic_host "${network}")
-	build_ts_canister "${canister_id}" "${ic_host}" || return 1
+	build_ts_canister "${network}" "${canister_id}" "${ic_host}" || return 1
 
 	run_cmd "Upgrading test_canister_ts..." dfx deploy test_canister_ts --network "${network}" --mode upgrade --yes || return 1
 

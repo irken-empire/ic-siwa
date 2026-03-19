@@ -15,11 +15,20 @@ const SIWA_PROVIDER_CANISTER_ID = import.meta.env.PUBLIC_SIWA_PROVIDER_CANISTER_
 const IC_HOST = import.meta.env.PUBLIC_IC_HOST || "http://127.0.0.1:5987";
 const WALLETCONNECT_PROJECT_ID = import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID || "";
 
-// Avalanche Fuji configuration
-const EXPECTED_CHAIN_ID = 43113;
-const CHAIN_NAME = "Avalanche Fuji";
-const RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc";
-const BLOCK_EXPLORER = "https://testnet.snowtrace.io";
+// Avalanche Network configuration from environment
+const EXPECTED_CHAIN_ID = parseInt(import.meta.env.PUBLIC_AVALANCHE_CHAIN_ID || "43113");
+const RPC_URL = import.meta.env.PUBLIC_AVALANCHE_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
+
+let CHAIN_NAME = "Avalanche Fuji";
+let BLOCK_EXPLORER = "https://testnet.snowtrace.io";
+
+if (EXPECTED_CHAIN_ID === 43114) {
+  CHAIN_NAME = "Avalanche Mainnet";
+  BLOCK_EXPLORER = "https://snowtrace.io";
+} else if (EXPECTED_CHAIN_ID === 31337) {
+  CHAIN_NAME = "Anvil (Local)";
+  BLOCK_EXPLORER = ""; // Explicitly empty for local anvil without explorer
+}
 
 const title = "IC-SIWA Test";
 ---
@@ -209,7 +218,7 @@ const title = "IC-SIWA Test";
             <div class="collapse-content text-sm">
               <ul class="list-disc pl-4 space-y-2">
                 <li><strong>No wallets:</strong> Install MetaMask, Core, Rabby, or Brave Wallet</li>
-                <li><strong>Wrong network:</strong> Click "Switch Network" to add Avalanche Fuji</li>
+                <li><strong>Wrong network:</strong> Click "Switch Network" to add {CHAIN_NAME}</li>
                 <li><strong>WalletConnect:</strong> Scan QR with mobile wallet (Trust, Rainbow, etc.)</li>
                 <li><strong>Debug:</strong> Open browser console (F12) to see detailed logs</li>
                 <li><strong>URL format:</strong> Use subdomain URLs (e.g., canister-id.localhost:5987) for AppKit</li>
@@ -273,14 +282,18 @@ const title = "IC-SIWA Test";
       log.info("Config loaded", config);
 
       // ============================================================
-      // Define Avalanche Fuji network for AppKit
+      // Define target network for AppKit
       // ============================================================
 
-      const avalancheFujiNetwork = defineChain({
-        id: 43113,
-        caipNetworkId: "eip155:43113",
+      const blockExplorers = config.blockExplorer ? {
+        default: { name: "Explorer", url: config.blockExplorer }
+      } : undefined;
+
+      const targetNetwork = defineChain({
+        id: config.chainId,
+        caipNetworkId: `eip155:${config.chainId}`,
         chainNamespace: "eip155",
-        name: "Avalanche Fuji",
+        name: config.chainName,
         nativeCurrency: {
           decimals: 18,
           name: "AVAX",
@@ -288,12 +301,10 @@ const title = "IC-SIWA Test";
         },
         rpcUrls: {
           default: {
-            http: ["https://api.avax-test.network/ext/bc/C/rpc"],
+            http: [config.rpcUrl],
           },
         },
-        blockExplorers: {
-          default: { name: "Snowtrace", url: "https://testnet.snowtrace.io" },
-        },
+        blockExplorers,
       });
 
       // ============================================================
@@ -431,7 +442,7 @@ const title = "IC-SIWA Test";
           // Create Wagmi adapter (provides wagmiConfig for @wagmi/core actions)
           const wagmiAdapter = new WagmiAdapter({
             projectId: config.walletConnectProjectId,
-            networks: [avalancheFujiNetwork],
+            networks: [targetNetwork],
           });
 
           // Store wagmiConfig for use with @wagmi/core actions
@@ -441,7 +452,7 @@ const title = "IC-SIWA Test";
           const appKit = createAppKit({
             adapters: [wagmiAdapter],
             projectId: config.walletConnectProjectId,
-            networks: [avalancheFujiNetwork],
+            networks: [targetNetwork],
             metadata: {
               name: "IC-SIWA Test",
               description: "Sign in with Avalanche for Internet Computer",
@@ -451,7 +462,7 @@ const title = "IC-SIWA Test";
             themeMode: "dark",
             // Provide network images to prevent SVG rendering errors
             chainImages: {
-              43113: "https://raw.githubusercontent.com/ava-labs/avalanche-docs/main/static/img/Avalanche_Horizontal_Red.svg",
+              [config.chainId]: `${window.location.origin}/favicon.svg`,
             },
           });
 
@@ -668,7 +679,7 @@ const title = "IC-SIWA Test";
           if (await siwaClient.isAuthenticated()) {
             log.info("User already authenticated");
             const principal = await siwaClient.getPrincipal();
-            const address = await siwaClient.getAddress();
+            // const address = await siwaClient.getAddress(); // Unused
 
             state.isAuthenticated = true;
             state.principal = principal?.toText() || null;

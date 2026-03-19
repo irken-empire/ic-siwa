@@ -4,7 +4,7 @@
 //! It provides endpoints to test the login flow and verify authentication.
 
 use candid::{CandidType, Deserialize, Principal};
-use ic_cdk_macros::query;
+use ic_cdk_macros::{query, update};
 
 /// Response types matching ic_siwa_provider.did interface
 
@@ -32,6 +32,57 @@ pub struct LoginOk {
 pub enum LoginResponse {
     Ok(LoginOk),
     Err(String),
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct SignedDelegation {
+    pub delegation: Vec<u8>,
+    pub signature: Vec<u8>,
+}
+
+#[query]
+fn health() -> String {
+    "ok".to_string()
+}
+
+#[query]
+fn whoami() -> Principal {
+    ic_cdk::api::msg_caller()
+}
+
+#[query]
+fn protected_data() -> Result<String, String> {
+    let p = ic_cdk::api::msg_caller();
+    if p == Principal::anonymous() {
+        return Err("Anonymous principal not allowed".to_string());
+    }
+    Ok(format!("Protected data for principal: {}", p))
+}
+
+// Dummy endpoints to satisfy test_canister_rs.did
+#[update]
+fn test_prepare_login(_provider_id: Principal, _address: String) -> Result<String, String> {
+    unimplemented!()
+}
+
+#[update]
+fn test_login(
+    _provider_id: Principal,
+    _signature: String,
+    _address: String,
+    _session_key: Vec<u8>,
+) -> Result<Principal, String> {
+    unimplemented!()
+}
+
+#[update]
+fn test_get_delegation(
+    _provider_id: Principal,
+    _address: String,
+    _session_key: Vec<u8>,
+    _expiration: u64,
+) -> Result<SignedDelegation, String> {
+    unimplemented!()
 }
 
 /// Serve simple HTML test page

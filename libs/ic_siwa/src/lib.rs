@@ -83,6 +83,7 @@
 //!
 //! - Avalanche C-Chain Mainnet: `43114`
 //! - Avalanche Fuji Testnet: `43113`
+//! - Anvil Local Network: `31337`
 //!
 //! ## Modules
 //!
@@ -127,6 +128,8 @@ pub mod chain_ids {
     pub const AVALANCHE_MAINNET: u64 = 43114;
     /// Avalanche Fuji Testnet
     pub const AVALANCHE_FUJI: u64 = 43113;
+    /// Anvil Local Network
+    pub const AVALANCHE_ANVIL: u64 = 31337;
 }
 
 /// Library version

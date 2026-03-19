@@ -16,15 +16,16 @@
 avalanche:
   # Chain ID determines which Avalanche network to use for signature verification.
   # Must be one of:
+  #   31337 = Anvil (Local)
   #   43113 = Fuji Testnet (for development and testing)
   #   43114 = C-Chain Mainnet (for production)
   # Validated by Config::validate() and Settings::validate().
-  chain_id: 43113
+  chain_id: 31337
 
   # RPC endpoint URL for the Avalanche network.
   # For reference only - not used by the canister itself (canisters can't make
   # HTTP calls to external chains). Used by deploy scripts and off-chain tooling.
-  rpc_url: "https://api.avax-test.network/ext/bc/C/rpc"
+  rpc_url: "http://127.0.0.1:8545"
 
 # -----------------------------------------------------------------------------
 # Internet Computer Settings
@@ -34,6 +35,7 @@ ic:
   # IC network to deploy to.
   #   "local" = local dfx replica
   #   "ic"    = IC mainnet
+  #   "juno"  = Juno SkyLab container
   network: "local"
 
   # Canister IDs for this deployment.

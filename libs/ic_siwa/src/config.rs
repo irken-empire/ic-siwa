@@ -26,7 +26,7 @@ pub struct Config {
 /// Avalanche chain configuration
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AvalancheConfig {
-    /// Chain ID (43114 for mainnet, 43113 for Fuji)
+    /// Chain ID (43114 for mainnet, 43113 for Fuji, 31337 for Anvil)
     pub chain_id: u64,
     /// RPC endpoint URL (for reference, not used by canisters)
     #[serde(default)]
@@ -182,9 +182,12 @@ impl Config {
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), SiwaError> {
         // Validate chain_id
-        if self.avalanche.chain_id != 43113 && self.avalanche.chain_id != 43114 {
+        if self.avalanche.chain_id != 31337
+            && self.avalanche.chain_id != 43113
+            && self.avalanche.chain_id != 43114
+        {
             return Err(SiwaError::ConfigError(
-                "chain_id must be 43113 (Fuji) or 43114 (Mainnet)".into(),
+                "chain_id must be 31337 (Anvil), 43113 (Fuji) or 43114 (Mainnet)".into(),
             ));
         }
 

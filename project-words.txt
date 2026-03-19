@@ -1,3 +1,4 @@
+onclick
 Assasian
 Clippy
 FOMO

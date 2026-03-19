@@ -33,7 +33,7 @@ pub struct Settings {
     pub uri: String,
     /// Salt for principal derivation
     pub salt: String,
-    /// Chain ID (Avalanche C-Chain mainnet: 43114, Fuji testnet: 43113)
+    /// Chain ID (Avalanche C-Chain mainnet: 43114, Fuji testnet: 43113, Anvil local: 31337)
     pub chain_id: u64,
     /// Session expiration in nanoseconds
     pub session_expiration_time: u64,
@@ -128,9 +128,9 @@ impl Settings {
         }
 
         // Chain ID must be a known Avalanche chain
-        if self.chain_id != 43113 && self.chain_id != 43114 {
+        if self.chain_id != 31337 && self.chain_id != 43113 && self.chain_id != 43114 {
             return Err(format!(
-                "Chain ID must be 43113 (Fuji) or 43114 (Mainnet), got {}",
+                "Chain ID must be 31337 (Anvil), 43113 (Fuji) or 43114 (Mainnet), got {}",
                 self.chain_id
             ));
         }
