@@ -90,6 +90,29 @@ Available documentation:
 
 When working on specific features, reference the relevant documentation file for accurate, up-to-date API information.
 
+## ICP Skills (`icskills`)
+
+The project includes the [`icskills`](https://github.com/dfinity/icskills) package
+(`node_modules/icskills/skills/`), which provides **agent-readable skill files** for
+Internet Computer capabilities. Each skill is a self-contained `SKILL.md` with YAML
+frontmatter, prerequisites, common pitfalls, tested implementation examples, and
+deployment instructions.
+
+**How to use:**
+
+1. **Discover available skills** — List the subdirectories under
+   `node_modules/icskills/skills/` (ignore `_template/` and `skill.schema.json`).
+   Each subdirectory name is a skill
+   (e.g., `ckbtc`, `evm-rpc`, `internet-identity`, `stable-memory`).
+2. **Read relevant skills** — Before implementing any ICP feature, check if a
+   matching skill exists. Read its `SKILL.md` (and any files in its `references/`
+   subdirectory) for correct canister IDs, API patterns, and pitfalls that
+   prevent hallucinations.
+3. **Follow the pitfalls section** — This is the highest-value part of each skill. Every documented pitfall is a hallucination prevented.
+
+> [!IMPORTANT]
+> The skills package is updated independently. New skills may appear after updates — always scan the directory rather than relying on a hardcoded list.
+
 ## Technology Stack
 
 ### Backend (Rust Only)

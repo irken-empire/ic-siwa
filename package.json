@@ -10,6 +10,7 @@
     "@eslint/js": "10.0.1",
     "eslint": "10.0.3",
     "globals": "17.4.0",
+    "icskills": "dfinity/icskills",
     "typescript": "5.9.3",
     "typescript-eslint": "8.57.0"
   }
