@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import {Principal} from "@dfinity/principal";
+import {Principal} from "@icp-sdk/core/principal";
 import {SiwaClient} from "../client";
 import {SiwaErrorCode} from "../errors";
 import {MemoryStorageProvider} from "../storage";

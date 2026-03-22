@@ -19,7 +19,7 @@ describe("generateSessionKey", () => {
   it("produces a DER-encoded public key", () => {
     const key = generateSessionKey();
     const der = key.getPublicKey().toDer();
-    // @dfinity/identity v3.x returns Uint8Array for DER keys
+    // @icp-sdk/core/identity returns Uint8Array for DER keys
     expect(der.byteLength).toBeGreaterThan(0);
   });
 
