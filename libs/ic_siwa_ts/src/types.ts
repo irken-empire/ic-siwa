@@ -2,7 +2,7 @@
  * Type definitions for IC-SIWA
  */
 
-import type {Principal} from "@dfinity/principal";
+import type {Principal} from "@icp-sdk/core/principal";
 
 /**
  * Options for preparing a login request

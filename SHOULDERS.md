@@ -16,7 +16,7 @@ Thank you for the incredible foundation. This project could not exist without yo
 
 - **[DFINITY SDK](https://github.com/dfinity/sdk)** - The tooling that makes building on the IC possible
 - **[ic-cdk](https://github.com/dfinity/cdk-rs)** - Rust CDK for Internet Computer canisters
-- **[@dfinity/agent](https://github.com/dfinity/agent-js)** - JavaScript/TypeScript agent for IC interaction
+- **[@icp-sdk/core](https://github.com/dfinity/agent-js)** - JavaScript/TypeScript SDK for IC interaction (formerly @dfinity/agent)
 
 ## Avalanche & Ethereum
 

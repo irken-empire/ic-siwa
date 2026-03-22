@@ -127,12 +127,46 @@ deployment instructions.
 - **Framework**: Astro
 - **Language**: TypeScript
 - **Styling**: DaisyUI (Tailwind CSS)
+- **ICP JS SDK**: `@icp-sdk/core` v5 (replaces deprecated `@dfinity/{agent,candid,identity,principal}`)
 
 ### Development Environment
 
 - **Nix/Devenv**: All dependencies managed via `devenv.nix`
-- **IC Tools**: DFX, candid-extractor, ic-wasm
+- **IC Tools**: DFX (≥ v0.30.1 required for `@icp-sdk/core` v5), candid-extractor, ic-wasm
 - **Secrets**: Managed via secretspec
+
+> [!IMPORTANT]
+> `@icp-sdk/core` v5 uses `/api/v4` for calls and `/api/v3` for queries.
+> This requires **dfx ≥ v0.30.1** for local development.
+> See: <https://js.icp.build/core/latest/upgrading/v5/>
+>
+> [!NOTE]
+> **ICP CLI** (`@icp-sdk/icp-cli`) is the next-generation replacement for `dfx`.
+> It uses `icp.yaml` instead of `dfx.json` and introduces recipes/environments.
+> Migration guide: <https://cli.internetcomputer.org/0.2/migration/from-dfx/>
+> Both tools can coexist during migration. Consider migrating in a future task.
+
+### Library Consumer Bundler Config
+
+When consuming `ic-siwa` in a Vite/Rollup project, each `@icp-sdk/core/*` submodule
+must be listed as an external dependency to avoid bundling the SDK:
+
+```js
+// vite.config.js / rollup.config.js
+export default {
+  build: {
+    rollupOptions: {
+      external: [
+        "@icp-sdk/core/agent",
+        "@icp-sdk/core/candid",
+        "@icp-sdk/core/identity",
+        "@icp-sdk/core/identity/secp256k1",
+        "@icp-sdk/core/principal",
+      ],
+    },
+  },
+};
+```
 
 ## Development Workflow
 
@@ -305,5 +339,6 @@ Secrets are managed via `secretspec.toml`. Never commit actual secret values.
 - `docs/spec.md`: Functional specifications (source of truth for behavior)
 - `docs/issues/todo/*.md`: Active tickets and tasks
 - `Cargo.toml`: Workspace dependencies and members
-- `dfx.json`: Canister definitions and network configuration
+- `dfx.json`: Canister definitions and network configuration (legacy, will migrate to `icp.yaml`)
 - `devenv.nix`: Development environment and available scripts
+- `libs/ic_siwa_ts/package.json`: TypeScript library dependencies (`@icp-sdk/core` v5)
