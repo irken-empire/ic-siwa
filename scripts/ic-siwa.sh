@@ -66,6 +66,7 @@ AGENT_DOC_SOURCES=(
 	"astro|https://docs.astro.build/llms-full.txt"
 	"daisyui|https://daisyui.com/llms.txt"
 	"foundry|https://getfoundry.sh/llms-full.txt"
+	"icp-cli|https://cli.internetcomputer.org/llms.txt"
 	"juno|https://juno.build/llms-full.txt"
 	"oisy|https://docs.oisy.com/llms-full.txt"
 	"reown|https://docs.reown.com/llms-full.txt"
@@ -991,15 +992,9 @@ cmd_candid() {
 	# Step 3: Post-process the generated TypeScript for compatibility
 	log_info "Fixing Candid TypeScript imports and unused variables..."
 
-	# Fix imports from @icp-sdk/core to @dfinity/* (didc generates new SDK paths)
-	sed -i \
-		-e "s|@icp-sdk/core/principal|@dfinity/principal|g" \
-		-e "s|@icp-sdk/core/agent|@dfinity/agent|g" \
-		-e "s|@icp-sdk/core/candid|@dfinity/candid|g" \
-		"${ts_file}"
-
 	# Remove unused top-level IDL import (IDL is passed as parameter to factory functions)
-	sed -i "/^import { IDL } from '@dfinity\/candid';$/d" "${ts_file}"
+	# didc generates @icp-sdk/core/* paths which match our dependencies
+	sed -i "/^import { IDL } from '@icp-sdk\/core\/candid';$/d" "${ts_file}"
 
 	# Remove init-only type declarations (RateLimitArgs, InitArgs) from idlFactory.
 	# didc emits these at the top of idlFactory but they're only needed in init().

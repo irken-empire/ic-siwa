@@ -495,6 +495,102 @@ Choose **Application** if your project needs user sign-in, data management, or s
 
 You can change this later in your Satellite "Hosting" settings.
 
+# Analytics
+
+Juno Analytics, a simple, performant, and open-source analytics solution that respects your users' privacy and doesn't use cookies, ensuring anonymity while providing valuable user insights.
+
+![A screenshot of the Juno&#39;s Analytics dashboard](/assets/images/analytics-dashboard-5382305cc42b9e367eb0e84046a58585.webp)
+
+---
+
+## Features
+
+Juno Analytics offers several advantages for developers:
+
+### 🍪 No Cookie Banners Needed
+
+Just like all of Juno's features, Analytics prioritizes privacy. It conducts dapp and site measurements entirely anonymously, without using cookies or collecting personal data. There are no persistent identifiers, cross-site tracking, or cross-device tracking. Your analytics data is not used for any other purposes.
+
+### ⚡️ Tiny & Blazing Fast
+
+Juno’s analytics library is built for speed and simplicity. It’s a tiny JavaScript snippet (under 3KB gzipped) that integrates seamlessly with your application’s UI without affecting performance or boot time. This lightweight design ensures that analytics tracking won’t interfere with your user experience or your conversion rates.
+
+### 🎯 Track What Matters
+
+Beyond standard page views, you can gain valuable insights into your visitors by creating custom events to track conversions and attribution.
+
+### 📣 Understand Campaign Performance
+
+Measure the impact of your campaigns using `utm` parameters. See how people find your app — whether through ads, newsletters, or social posts — and track which sources drive the most traffic, all from your dashboard.
+
+### 📊 Web Vitals Insights Built-In
+
+In addition to tracking user interactions, the Analytics can also automatically collect key performance metrics using [Web Vitals](https://web.dev/articles/vitals). These metrics are essential for measuring user experience accurately, aligning with how they are captured by Chrome and reported to other Google tools. This enhancement is valuable for developers aiming to optimize the UI performance of their applications, ensuring a smoother and more responsive user experience.
+
+### 🔍 Transparent & Open Source
+
+Juno is fully open source, including all its Analytics features, setting it apart from proprietary tools like Google Analytics.
+
+### 🧑🚀 Built for the Future
+
+Unlike any other analytics alternative or solution, Juno's long-term vision is to evolve into a decentralized organization (DAO), embracing a new paradigm in the analytics industry.
+
+---
+
+## Considerations
+
+In deploying Juno Analytics, it's important to understand various aspects that can affect its use and compliance.
+
+### GDPR and PECR compliance
+
+Juno Analytics refrains from generating persistent identifiers. It employs a random unique string to calculate unique visitor sessions on a website with each new visit.
+
+While we are not legal experts and the responsibility for adding analytics to your project ultimately rests with you, the above approach aligns our analytics with various cookie laws and privacy regulations, including GDPR and PECR.
+
+### Hosted on the blockchain
+
+All tracked data is securely stored on the [Internet Computer](https://internetcomputer.org/) blockchain, without any specific geolocation by default. However, if you select a European subnet when creating the Orbiter for Analytics, your data will be stored in Europe. This gives you flexibility based on your data residency needs.
+
+### No cross-dapp tracking
+
+Juno Analytics does not follow users across websites and applications they visit. All data remains isolated to a single Satellite.
+
+### You 100% own your data
+
+As with all services provided by Juno, you are the sole controller of your containers, and your data belongs exclusively to you.
+
+You have the capability to delete all collected data within your Analytics at any time by utilizing the [CLI](/docs/reference/cli.md).
+
+---
+
+## How does it work?
+
+To gather analytics for your dapps, you need to create a module called [orbiter](/docs/terminology.md#orbiter). Creating an Orbiter requires Cycles, and its price is defined in the [transaction costs](/docs/pricing.md#transaction-costs).
+
+Each Orbiter is used to collect analytics for one or multiple [satellites](/docs/terminology.md#satellite).
+
+Page views are collected anonymously and saved with a unique random ID for attribution. This data is organized based on its collection timestamp.
+
+You can also collect custom tracking events, which are organized in the same manner.
+
+Additionally, a unique random session ID is generated for all data. Each time a visitor visits your dapps, a new session is created.
+
+---
+
+## Limitation
+
+Currently, an Orbiter can store up to 500 GB of data.
+
+**Caution:**
+
+Similar to other analytics services, an Orbiter accepts data submitted from any source as long as the requested payload matches the expected format, and the targeted Satellite is configured to accept analytics. This is because the origin of the HTTP request cannot be accessed, for a valid reason – to prevent tracking. Therefore, calls cannot be limited to the domain of your dapps.
+
+Consequently, this leaves the canister open to potential attacks that can pollute the data and consume cycles. For this reason, we recommend the following:
+
+1.  Avoid topping up with excessive cycles; instead, adopt a lean approach.
+2.  Enable [monitoring](/docs/management/monitoring.md) to ensure your modules are automatically refueled and stay online.
+3.  Interpret the statistics provided by this feature with some reservation, similar to any other analytics data, considering potential inaccuracies.
+
 # Development
 
 Learn how to track page views, custom events, and performance metrics.
@@ -768,6 +864,89 @@ juno.config.js
 import { defineConfig } from "@junobuild/config";export default defineConfig({  satellite: {    ids: {      production: "qsgjb-riaaa-aaaaa-aaaga-cai"    },    source: "dist"  },  orbiter: {    ids: {      production: "aaaa-bbbbb-ccccc-ddddd-cai",      development: "ffff-eeee-ddddd-ccccc-cai"    }  }});
 ```
 
+# Authentication
+
+Juno provides a secure, passwordless authentication framework built directly into your project. It supports multiple providers out of the box, including:
+
+*   [Google](/docs/build/authentication/google.md) - secure and familiar login
+*   [GitHub](/docs/build/authentication/github.md) - the login your developers already use
+*   [Internet Identity](/docs/build/authentication/internet-identity.md) - decentralized, privacy-preserving authentication
+*   [Passkeys](/docs/build/authentication/passkeys.md) - passwordless, device-native authentication using WebAuthn
+
+It integrates seamlessly with your [Datastore](/docs/build/datastore.md) and [Storage](/docs/build/storage.md) to power the rich features you are building.
+
+Whether you need decentralized login, device-native passkeys, or a familiar OAuth-based sign-in, Juno - by extension your project and its Satellite - handles the complexity for you so you can focus on your app instead of managing user accounts, sessions, and sensitive data.
+
+You can view and manage your users anytime in the [Authentication](https://console.juno.build/authentication)
+
+![An overview of the anonymous display of the users in Juno Console](/assets/images/authentication-ab02444b993f7be77642939b0437e586.webp)
+
+---
+
+## User Identity
+
+When someone signs in to your app, they get an identity.
+
+That user identity is what ties them to the data they create and the actions they take.
+
+Identities are **scoped to your app** - users can't be tracked across other sites or services.
+
+Depending on the sign-in method and what the user consents to, your app may also receive basic profile metadata such as a name or email address.
+
+---
+
+## Domain-Based Identity
+
+For privacy reasons and to prevent tracking across sites, a user's identity is tied to the domain where they sign in.
+
+### Passkeys
+
+With Passkeys, the identity is linked to the hostname the user signs in on. It works for that domain and its subdomains.
+
+For example, a passkey created on `hello.com` will also work on `www.hello.com`, but not on a different domain like `world.com`.
+
+You can change this in the sign-up options if you want it to cover a different domain than the one read from the browser's URL. For example, you may want to use the top-level domain when signing in on a subdomain. You cannot specify a totally different domain.
+
+---
+
+## Choosing a Provider
+
+Each authentication method has its strengths. The right choice depends not only on your app's technical needs, but also on what your users expect and feel comfortable with.
+
+*   **Google**:
+    
+    *   ✅ Familiar and frictionless login with a trusted provider.
+    *   ✅ Works across devices and browsers in all your applications.
+    *   ✅ Supports account recovery and multi-device sync.
+    *   🤔 Depends on Google's infrastructure and availability.
+    *   🤔 Slightly higher resource usage on your Satellite and per extension costs, since it must verify tokens issued by Google and sign identities.
+*   **GitHub**:
+    
+    *   ✅ Familiar login for developer-focused apps.
+    *   ✅ Works across devices and browsers in all your applications.
+    *   🤔 Requires a backend proxy to handle the OAuth flow securely.
+    *   ⚠️ You need to self-host the [Juno API](https://github.com/junobuild/api) or run your own compatible proxy.
+*   **Internet Identity**:
+    
+    *   ✅ Fully decentralized and privacy-preserving.
+    *   ✅ Prevents tracking between domains.
+    *   ✅ Supports account recovery.
+    *   🤔 Requires a brief context switch to an external window.
+    *   🤔 Domain scoping requires correct configuration.
+    *   🤔 When users choose to sign in with a third party (Google, Apple, etc.), it also depends on their infrastructure and availability. Plus, it relies on configured credentials owned by the DFINITY Foundation.
+    *   🤔 Less known outside the Internet Computer ecosystem.
+*   **Passkeys**:
+    
+    *   ✅ Passwordless and device-native (Face ID, Touch ID, etc.).
+    *   ✅ Familiar Web2-like UX with strong cryptographic security. ✅ Supports multi-device sync through password managers.
+    *   🤔 Users must distinguish between sign-up and sign-in flows.
+    *   🤔 Sync depends on Apple or Google password managers and their infrastructure.
+    *   ⚠️ Passkeys stored locally can be lost if the browser or device is reset.
+
+**Tip:**
+
+Many developers combine multiple providers - for example, offering Google as the default and Internet Identity or Passkeys as alternatives.
+
 # Local Development and E2E
 
 Implementing Google, Internet Identity, or Passkeys requires some setup and doesn't always fit best in a local development environment or E2E test suite. For example, they take various steps to complete and therefore consume repetitive time.
@@ -856,6 +1035,211 @@ Clearing identifiers only removes the usage history.
 *   Use different identifiers to test multi-user scenarios
 *   Switch to real providers (Google, Internet Identity, Passkeys) before deploying
 
+# GitHub
+
+GitHub Sign-In lets users authenticate with their existing GitHub account — a natural fit for developer-facing apps.
+
+Because GitHub does not natively support OpenID Connect, authentication requires a small backend proxy that handles the OAuth flow and issues a signed JWT your Satellite can verify.
+
+---
+
+## How It Works
+
+1.  The user signs in with GitHub.
+2.  GitHub verifies their credentials and issues an OAuth access token.
+3.  The proxy exchanges that token for user information and issues a signed JWT.
+4.  Your Satellite verifies the JWT and extracts the user's information (such as email or profile).
+5.  It then establishes a session for the user.
+
+**Note:**
+
+GitHub authentication is not domain-scoped. A user signing in with the same GitHub account will have the same identity across all domains pointing to the same Satellite.
+
+---
+
+## The Proxy API
+
+Because the GitHub OAuth flow requires a client secret that cannot be exposed in the browser, you need a backend service to handle the exchange securely.
+
+Juno provides an open-source API for this purpose. You can find it at [github.com/junobuild/api](https://github.com/junobuild/api), where setup and self-hosting instructions are documented.
+
+---
+
+## Configuration
+
+To enable GitHub authentication for your project:
+
+### 1\. Create a GitHub App
+
+1.  Go to [GitHub Developer Settings](https://github.com/settings/developers).
+2.  Click **New GitHub App**.
+3.  Under **Identifying and authorizing users**, enable **Request user authorization (OAuth) during installation**.
+4.  Set the **Callback URL** to match your app — for example `https://example.com/auth/callback/github` in production or `http://localhost:3000/auth/callback/github` for local development.
+5.  Save your **Client ID** and generate a **Client Secret** — you will need both when configuring the proxy.
+
+**Caution:**
+
+Use a separate GitHub App for each environment (development, staging, production) and always configure the correct callback URL. Leaving a localhost callback URL alongside production is a security risk.
+
+### 2\. Set up the proxy
+
+Deploy your own instance of the [Juno API](https://github.com/junobuild/juno-api) and configure it with your GitHub App credentials. The repo contains all the documentation you need to get it running.
+
+### 3\. Configure the provider
+
+Once your proxy is running, add your GitHub configuration to your `juno.config` file:
+
+```
+import { defineConfig } from "@junobuild/config";export default defineConfig({  satellite: {    ids: {      development: "<DEV_SATELLITE_ID>",      production: "<PROD_SATELLITE_ID>"    },    source: "dist",    authentication: {      github: {        clientId: "your-github-client-id"      }    }  }});
+```
+
+If you use different Client IDs for each environment (as recommended), you can leverage the build mode to load configuration conditionally.
+
+For example, to enable GitHub Sign-In only in production:
+
+```
+import { defineConfig } from "@junobuild/config";export default defineConfig(({ mode }) => ({  satellite: {    ids: {      development: "<DEV_SATELLITE_ID>",      production: "<PROD_SATELLITE_ID>"    },    source: "dist",    ...(mode === "production" && {      authentication: {        github: {          clientId: "your-github-client-id"        }      }    })  }}));
+```
+
+### 4\. Apply the configuration
+
+Once your credentials are set in `juno.config`, you need to make sure both your frontend and your Satellite are using the correct and same Google Client ID.
+
+#### Frontend
+
+The frontend, your application, needs the Client ID to start the sign-in flow.
+
+If you are using the Juno Vite or Next.js plugin, the configuration is read automatically from `juno.config`, so you do not need to do anything. The Client ID is injected at build time.
+
+If you are not using a plugin, you need to pass the Client ID manually, either from your environment variables or directly in the sign-in call (see ([Options](#options))).
+
+#### Backend
+
+Your Satellite also needs the Client ID because it is used to validate the JWT tokens issued during the sign-in flow with the third party provider in this case GitHub.
+
+You can configure this in two ways:
+
+*   **Through the Console:**
+
+Go to [console.juno.build](https://console.juno.build), select your Satellite, then open **Authentication → Setup** and enable **GitHub**.
+
+The wizard will ask for your Client ID and enable the provider.
+
+*   **Through the CLI:**
+
+If you already have the CLI installed and since the Client ID has been defined in your `juno.config`, you can apply the configuration directly with:
+
+```
+juno config apply
+```
+
+By default, this applies the production configuration. You can specify another mode using `--mode` argument if needed.
+
+---
+
+## Sign-In
+
+Once your configuration is ready, you can let users sign in with their GitHub account.
+
+```
+import { signIn } from "@junobuild/core";await signIn({  github: {}});
+```
+
+After the user authenticates, they are redirected to the URL you configured as the Authorization callback URL in your GitHub OAuth App.
+
+You can pass this URL through the `redirectUrl` option. If you omit it, the current origin (`window.location.origin`) is used.
+
+### Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `clientId` | `string` | from `juno.config` | Your GitHub OAuth Client ID. If not provided, it is automatically read from your project configuration using the plugins. |
+| `redirectUrl` | `string` | `window.location.origin` | The URL where the user is redirected after sign-in. It must match the callback URL in your GitHub OAuth App. |
+| `initUrl` | `string` |     | The URL of your proxy's init endpoint. |
+| `finalizeUrl` | `string` |     | The URL of your proxy's finalize endpoint. |
+
+Example:
+
+```
+import { signIn } from "@junobuild/core";await signIn({  github: {    redirect: {      clientId: "your-github-client-id",      redirectUrl: "https://example.com/auth/callback/github",      initUrl: "https://your-api.example.com/v1/auth/init/github",      finalizeUrl: "https://your-api.example.com/v1/auth/finalize/github"    }  }});
+```
+
+---
+
+## Handling the Redirect
+
+After authentication, GitHub redirects the user back to your app. You must handle that redirect on the route that matches your configured callback URL.
+
+```
+import { handleRedirectCallback } from "@junobuild/core";await handleRedirectCallback({ github: null });
+```
+
+If the callback is successful, the user is signed in and a session is created.
+
+**Tip:**
+
+After handling the redirect, navigate elsewhere in your app without keeping browser history. This prevents the user from re-triggering authentication when pressing the back button.
+
+---
+
+## Advanced Configuration
+
+You can optionally configure how authentication sessions behave on your Satellite.
+
+These settings can be defined in your `juno.config` file and applied with `juno config apply` or adjusted directly in the Console under **Authentication → Setup**.
+
+### Delegation
+
+The `delegation` section defines how long sessions last and which modules authenticated users are allowed to call using their active session.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `allowedTargets` | `PrincipalText[]` or `null` | restricted to this Satellite | List of modules (canisters on the Internet Computer) that authenticated users may call. Omit to restrict access to this Satellite only. Provide an array to allow calls only to specific targets. Set to `null` to allow calls to **any** backend (**use with caution**). |
+| `sessionDuration` | `bigint` | 1 day | How long a user session remains valid, expressed in **nanoseconds**. Cannot exceed 30 days. Applies only to new sessions. |
+
+Example configuration:
+
+```
+authentication: {  github: {    clientId: "1234567890-abcde12345fghijklmno.apps.googleusercontent.com"  },  delegation: {    allowedTargets: ["<YOUR_SATELLITE_ID>", "<LEDGER_CANISTER_ID>"],    sessionDuration: BigInt(7 * 24 * 60 * 60 * 1_000_000_000) // 7 days  }}
+```
+
+---
+
+## Recommendations
+
+*   ⚠️ Always configure the **Callback URL** in your GitHub App.
+*   Use a separate **GitHub App** for each environment (development, staging, production).
+*   Keep your frontend and Satellite **Client IDs** in sync.
+*   Do not expose your **Client Secret** in the browser — that is exactly what the proxy is for.
+
+---
+
+## Infrastructure Overview
+
+When you enable GitHub Sign-In, authentication involves three systems: GitHub, the Juno API proxy, and your Satellite.
+
+GitHub handles the user-facing part — displaying the sign-in screen and issuing an OAuth access token once the user authenticates.
+
+The proxy exchanges that token for user information, signs a JWT, and exposes a JWKS endpoint so Satellites can verify those tokens.
+
+From there, everything else runs within your Satellite container:
+
+*   The Satellite verifies the JWT's signature.
+*   It prepares and signs a delegation identity that represents the authenticated user session.
+*   It creates (or retrieves) the user entry that your app can then use with Juno services such as [Datastore](/docs/build/datastore.md) and [Storage](/docs/build/storage.md).
+
+### Token Verification
+
+JWTs are signed by the proxy using RSA keys. Therefore, to verify these signatures, Satellites need access to those keys.
+
+Instead of having each Satellite perform HTTPS outcalls to your proxy — which would add cost and subnet load — Juno relies on a shared infrastructure module called [Observatory](/docs/miscellaneous/architecture.md#observatory) to fetch and cache those keys.
+
+Observatory regularly polls your proxy's JWKS endpoint and makes the public keys available to your Satellite, ensuring that verification remains fast and reliable without additional overhead.
+
+Since you are self-hosting the proxy, you will also need to deploy your own Observatory instance and configure it to point to your proxy's JWKS endpoint. This gives you full control over the verification chain.
+
+Reach out if you need guidance on setting that up.
+
 # Google
 
 Google Sign-In lets users authenticate with their existing Google account using OpenID Connect (OIDC) - a modern, secure identity standard built on top of OAuth 2.0.
@@ -875,7 +1259,7 @@ It's the easiest way to onboard users who expect a simple, frictionless login fl
 
 **Note:**
 
-Google authentication is not domain-scoped. Users keep the same identity across all your apps each time you use the same Google Client ID.
+Google authentication is not domain-scoped. A user signing in with the same Google account will have the same identity across all domains pointing to the same Satellite.
 
 ---
 
@@ -1043,8 +1427,6 @@ authentication: {  google: {    clientId: "1234567890-abcde12345fghijklmno.apps.
 *   Keep your frontend and Satellite **Client IDs** in sync.
 *   Do not leave a **localhost URI** next to production URIs in the same Client ID.
 *   In the future, Juno will support **FedCM (Federated Credential Management)** for Google Sign-In without redirects.
-
----
 
 ---
 
@@ -1293,7 +1675,7 @@ import { signUp } from "@junobuild/core";await signUp({  webauthn: {}});
 
 **Note:**
 
-Returning users don't need to go through sign-up again. They can simply use ([sign-in](#passkeys-1)) with their existing passkey to authenticate.
+Returning users don't need to go through sign-up again. They can simply use ([sign-in](#sign-in)) with their existing passkey to authenticate.
 
 ### Options
 
@@ -1339,7 +1721,7 @@ import { signIn } from "@junobuild/core";await signIn({  webauthn: {}});
 
 **Note:**
 
-New users must first go through ([sign-up](#passkeys)) to create a passkey before they can sign in.
+New users must first go through ([sign-up](#sign-up)) to create a passkey before they can sign in.
 
 ### Options
 
@@ -1485,6 +1867,80 @@ The worker also emits an event named `junoDelegationRemainingTime`, which provid
 ```
 document.addEventListener(  "junoDelegationRemainingTime",  ({ detail: remainingTime }) => {    // Display the remaining session duration to your users  },  { passive: true });
 ```
+
+# Datastore
+
+The Juno Datastore offers a simple key-value model, organized by collections containing documents, for managing structured data.
+
+Use it for structured data like user profiles, tasks, settings, or other data of your app stored as documents inside collections.
+
+**Tip:**
+
+For binary files like images or files, use the [Storage](/docs/build/storage.md) instead.
+
+![A screenshot of the Datastore in Juno&#39;s Console](/assets/images/datastore-0157af5a41e6910f0fb30a49552c4da1.webp)
+
+---
+
+## How does it work?
+
+Each [satellite](/docs/terminology.md#satellite) you create has a "Datastore", which can have as many [collections](/docs/build/datastore/collections.md) as you wish.
+
+A collection contains a list of documents, each identified by a textual key that you define.
+
+Each document is a record that holds the data you want to persist, along with timestamps (created and last updated), an associated owner (the creator of the document), and a version.
+
+The version is used to prevent data from being overwritten, and the associated owner is used to grant read and write permissions.
+
+Each document is identified by a `key` (unique within a collection).
+
+In essence, a "Datastore" functions as a keypair store.
+
+---
+
+## Limitation
+
+Each Satellite has specific memory limits. For detailed information, please refer to the related [documentation](/docs/miscellaneous/memory.md) page.
+
+As for documents, they can be up to 2MB in size. However, larger files can be saved in the [storage](/docs/build/storage.md).
+
+---
+
+## Configuration
+
+The Datastore supports various configuration options to fine-tune its behavior, such as resource limits and operational constraints. For a detailed explanation of all available options, see the [configuration](/docs/reference/configuration.md#datastore) section.
+
+---
+
+## Datastore vs Storage
+
+Juno gives you two ways to persist data. Both follow a collections-based architecture, but they serve different purposes and behave differently in practice.
+
+| Feature | **Datastore** (Structured) | **Storage** (Files) |
+| --- | --- | --- |
+| Use case | App state, user profiles, config | Images, files, generated user content |
+| Data format | JSON-like documents | Binary files |
+| Identifier | `key` (string you define) | `fullPath` (auto or custom) |
+| Accessible via web URL | No  | Yes |
+| Size limit | Max 2 MB per document | Chunked; limited by available Satellite space |
+
+**`key` vs `fullPath`**
+
+Both Datastore and Storage use a unique identifier per item — but they refer to different things and are used differently.
+
+*   **Datastore → `key`**:
+    
+    *   A unique string you assign to each document within a collection.
+    *   Used to retrieve, update, or delete a specific document.
+    *   Commonly a UUID (e.g. `crypto.randomUUID()`), a nanoid, or any meaningful string like a slug or user ID.
+    *   Example: `bafkb4by...`, `user:42`, or `config/theme`.
+*   **Storage → `fullPath`**:
+    
+    *   The full path of an asset used to build a valid web URL.
+    *   It's automatically generated from the uploaded filename unless explicitly set.
+    *   The `fullPath` must include the collection name (except for your app's frontend assets like HTML, JS, etc.).
+    *   Used to serve, list, or delete files.
+    *   Example: `/images/logo.png` (collection: `images`) or `/avatars/user42/profile.jpg` (collection: `avatars`).
 
 # Collections
 
@@ -1812,6 +2268,97 @@ You never need to set this parameter in a browser context.
 import { getDoc } from "@junobuild/core";await getDoc({  collection: "my_collection_key",  key: "my_document_key",  satellite: {    identity: myIdentity,    satelliteId: "aaaaa-bbbbb-ccccc-ddddd-cai",    container: true  }});
 ```
 
+# Functions
+
+Functions are a set of features enabling developers to extend the native capabilities of [Satellites](/docs/terminology.md#satellite) using Rust or TypeScript. They let you define serverless behaviors directly within your containerized environment.
+
+There are two types of functions:
+
+*   ([Event-driven functions](#event-driven-functions)): triggered automatically in response to actions such as a document being created or an asset being uploaded.
+*   ([Callable functions](#callable-functions)): explicitly invoked from your frontend or from other services.
+
+---
+
+## Event-driven Functions
+
+Event-driven functions respond to actions occurring in your Satellite. They are triggered automatically and never invoked directly.
+
+### Hooks
+
+Hooks respond to specific actions within your Satellite. They run asynchronously, independently of the caller's request - meaning the caller may receive a response before the hook has finished executing.
+
+![Functions hooks flow](/assets/images/functions-b7f754766a61062ffb5d9ebf5d8519a5.png)
+
+**Note:**
+
+Hooks are only initiated when the preceding operation completes without errors.
+
+| Hook | Provider | Description |
+| --- | --- | --- |
+| `on_set_doc` | Datastore | Triggered when a document is created or updated. |
+| `on_set_many_docs` | Datastore | Activated for operations involving multiple documents. |
+| `on_delete_doc` | Datastore | Invoked when a document is deleted. |
+| `on_delete_many_docs` | Datastore | Used when multiple documents are deleted. |
+| `on_delete_filtered_docs` | Datastore | Invoked when documents are deleted according filters. |
+| `on_upload_asset` | Storage | Triggered during asset upload. |
+| `on_delete_asset` | Storage | Activated when an asset is deleted. |
+| `on_delete_many_assets` | Storage | Used for deleting multiple assets. |
+| `on_delete_filtered_assets` | Storage | Invoked when assets are deleted based on filters. |
+| `on_init` | Satellite | Called during the initialization of the Satellite. |
+| `on_post_upgrade` | Satellite | Invoked after the Satellite has been upgraded to a new version. |
+
+### Assertions
+
+Assertions run synchronously before an operation is executed. They allow you to validate or reject actions before any data is written.
+
+| Assertion | Provider | Description |
+| --- | --- | --- |
+| `assert_set_doc` | Datastore | Ensures a document can be created or updated. |
+| `assert_delete_doc` | Datastore | Verifies that a document can be deleted. |
+| `assert_upload_asset` | Storage | Confirms an asset upload can be committed. |
+| `assert_delete_asset` | Storage | Checks that an asset can be deleted. |
+
+---
+
+## Callable Functions
+
+Callable functions are explicitly invoked — from your frontend or from other services. They expose query and update endpoints directly from your Satellite.
+
+**Tip:**
+
+This is conceptually similar to exposing your own endpoints on an API.
+
+| Type | Description |
+| --- | --- |
+| `query` | A read-only function that returns data without modifying state. |
+| `update` | A function that can read and write state. |
+
+---
+
+## Rust vs. TypeScript
+
+You can write serverless functions in either [Rust](/docs/build/functions/development/rust.md) or [TypeScript](/docs/build/functions/development/typescript.md), depending on your needs and project goals.
+
+Rust will always be more performant than TypeScript because TypeScript code is evaluated by the Rust runtime under the hood. This means that, no matter how optimized, functions written in Rust will consume fewer cycles and execute faster. That said, not every project needs maximum performance from day one. For smaller apps, rapid prototypes, or internal tools, TypeScript can be a perfect fit.
+
+The Rust ecosystem is also more mature, having been supported on the Internet Computer from the beginning. It benefits from better compatibility with libraries that support `wasm32-unknown-unknown`.
+
+TypeScript support was introduced on Juno in April 2025. While developer-friendly, it currently lacks Node.js polyfills, which means many npm libraries may not work out of the box. That said, we’re actively improving this — and if there's a specific package or feature you'd like to use, reach out. We're happy to explore adding support.
+
+It is worth to note that in both environments, there is no standard library or file system access. Functions like reading from or writing to disk aren’t available. Instead, e.g. Juno provides purpose-built features such as Storage.
+
+Despite their differences, Rust and TypeScript serverless functions are designed with interoperability in mind. The API surface and structure are intentionally aligned, so migrating from TypeScript to Rust later should feel intuitive and straightforward.
+
+### Summary
+
+| Feature / Consideration | Rust | TypeScript |
+| --- | --- | --- |
+| **Performance** | ✅ Highest, runs natively in WASM | ⚠️ Interpreted by Rust, slower |
+| **Library Support** | ✅ Many crates | ⚠️ Limited (only few Node.js polyfills currently supported) |
+| **Ease of Use** | ✅ Developer-friendly (with or without AI) | ✅ Developer-friendly (with or without AI) |
+| **Migration Path** | —   | ✅ Can migrate to Rust easily |
+| **Recommended For** | Production apps, performance-critical code | Prototypes, smaller tools, quick dev cycles |
+
 # Lifecycle
 
 Understand the full journey of Serverless Functions in Juno, from setup and development to deployment and maintenance.
@@ -2022,6 +2569,342 @@ Logs are stored in stable memory, accommodating up to 100 entries. Once this lim
 | `error` | Error | Logs an error message. |
 | `error_with_data` | Error | Logs an error message with additional serialized data. |
 
+# Development
+
+When you're ready to implement Functions within your Juno Satellite, you'll have a variety of event-driven macros at your disposal, enabling custom logic execution in response to specific actions. Here's how to implement each available Function:
+
+---
+
+## Event-driven Functions
+
+Event-driven functions respond to actions occurring in your Satellite. They are triggered automatically and never invoked directly.
+
+---
+
+### Hooks
+
+Hooks allow you to define event-driven logic that responds to specific actions within your Satellite. The following is a list of available hooks and their respective use cases.
+
+#### on\_set\_doc
+
+Triggered when a document is created or updated in the datastore.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_set_doc]async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {    // Custom logic for handling document creation or updates    Ok(())}
+```
+
+```
+export const onSetDoc = defineHook<OnSetDoc>({  collections: [],  run: async (context) => {    // Custom logic for handling document creation or updates  }});
+```
+
+#### on\_set\_many\_docs
+
+Invoked for batch operations involving multiple document creations or updates.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_set_many_docs]async fn on_set_many_docs(context: OnSetManyDocsContext) -> Result<(), String> {    // Custom logic for handling multiple document creations or updates    Ok(())}
+```
+
+```
+export const onSetManyDocs = defineHook<OnSetManyDocs>({  collections: [],  run: async (context) => {    // Custom logic for handling multiple document creations or updates  }});
+```
+
+#### on\_delete\_doc
+
+Invoked when a document is deleted from the datastore.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_delete_doc]async fn on_delete_doc(context: OnDeleteDocContext) -> Result<(), String> {    // Custom logic for handling document deletion    Ok(())}
+```
+
+```
+export const onDeleteDoc = defineHook<OnDeleteDoc>({  collections: [],  run: async (context) => {    // Custom logic for handling document deletion  }});
+```
+
+#### on\_delete\_many\_docs
+
+Used when multiple documents are deleted in a batch operation.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_delete_many_docs]async fn on_delete_many_docs(context: OnDeleteManyDocsContext) -> Result<(), String> {    // Custom logic for handling the deletion of multiple documents    Ok(())}
+```
+
+```
+export const onDeleteManyDocs = defineHook<OnDeleteManyDocs>({  collections: [],  run: async (context) => {    // Custom logic for handling the deletion of multiple documents  }});
+```
+
+#### on\_delete\_filtered\_docs
+
+Invoked when documents are deleted according to specified filters in the datastore.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_delete_filtered_docs]async fn on_delete_filtered_docs(context: OnDeleteFilteredDocsContext) -> Result<(), String> {    // Custom logic for handling the deletion of filtered documents    Ok(())}
+```
+
+```
+export const onDeleteFilteredDocs = defineHook<OnDeleteFilteredDocs>({  collections: [],  run: async (context) => {    // Custom logic for handling the deletion of filtered documents  }});
+```
+
+#### on\_upload\_asset
+
+Triggered during the process of uploading an asset.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_upload_asset]async fn on_upload_asset(context: OnUploadAssetContext) -> Result<(), String> {    // Custom logic for handling asset uploads    Ok(())}
+```
+
+```
+export const onUploadAsset = defineHook<OnUploadAsset>({  collections: [],  run: async (context) => {    // Custom logic for handling asset uploads  }});
+```
+
+#### on\_delete\_asset
+
+Activated when an asset is removed from the datastore.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_delete_asset]async fn on_delete_asset(context: OnDeleteAssetContext) -> Result<(), String> {    // Custom logic for handling asset deletion    Ok(())}
+```
+
+```
+export const onDeleteAsset = defineHook<OnDeleteAsset>({  collections: [],  run: async (context) => {    // Custom logic for handling asset deletion  }});
+```
+
+#### on\_delete\_many\_assets
+
+Used for operations that involve deleting multiple assets in a batch.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_delete_many_assets]async fn on_delete_many_assets(context: OnDeleteManyAssetsContext) -> Result<(), String> {    // Custom logic for handling the deletion of multiple assets    Ok(())}
+```
+
+```
+export const onDeleteManyAssets = defineHook<OnDeleteManyAssets>({  collections: [],  run: async (context) => {    // Custom logic for handling the deletion of multiple assets  }});
+```
+
+#### on\_delete\_filtered\_assets
+
+Invoked when assets are deleted according to specified filters in the storage.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_delete_filtered_assets]async fn on_delete_filtered_assets(context: OnDeleteFilteredAssetsContext) -> Result<(), String> {    // Custom logic for handling the deletion of filtered assets    Ok(())}
+```
+
+```
+export const onDeleteFilteredAssets = defineHook<OnDeleteFilteredAssets>({  collections: [],  run: async (context) => {    // Custom logic for handling the deletion of filtered assets  }});
+```
+
+#### on\_init
+
+*   Rust
+*   TypeScript
+
+Called during the initialization of the Satellite. This hook is invoked when the Satellite is first deployed and can be used to set up initial configurations or resources.
+
+```
+#[on_init]fn on_init() -> Result<(), String> {    // Custom logic for initialization    Ok(())}
+```
+
+Unlike datastore or storage hooks, `on_init` cannot be scoped to specific collections or assets, as it is meant to handle global initialization logic.
+
+This feature is not enabled by default. To use it, you’ll need to opt in by updating your `Cargo.toml` file.
+
+```
+[dependencies]junobuild-satellite = { version = "*", features = ["default", "on_init"] }
+```
+
+This hook is not available when writing functions in TypeScript.
+
+#### on\_post\_upgrade
+
+*   Rust
+*   TypeScript
+
+Invoked after the Satellite has been upgraded to a new version. This hook is typically used to manage migration tasks, or starting custom processes like timers.
+
+```
+#[on_post_upgrade]fn on_post_upgrade() -> Result<(), String> {    // Custom logic for post-upgrade tasks    Ok(())}
+```
+
+Similar to `on_init`, the `on_post_upgrade` hook cannot be scoped to collections or assets. It operates globally to handle upgrade-related operations.
+
+This feature is not enabled by default. To use it, you’ll need to opt in by updating your `Cargo.toml` file.
+
+```
+[dependencies]junobuild-satellite = { version = "*", features = ["default", "on_post_upgrade"] }
+```
+
+This hook is not available when writing functions in TypeScript.
+
+---
+
+### Assertions
+
+Assertions enable validation checks before specific actions are executed within your Satellite. The following is a list of available assertions and their functionalities.
+
+#### assert\_set\_doc
+
+Ensures a document can be created or updated.
+
+*   Rust
+*   TypeScript
+
+```
+#[assert_set_doc]fn assert_set_doc(_context: AssertSetDocContext) -> Result<(), String> {    // Custom logic for asserting a document's creation or update is possible    // Return an error if the condition fails to prevent the action    Ok(())}
+```
+
+```
+export const assertSetDoc = defineAssert<AssertSetDoc>({  collections: [],  assert: (context) => {    // Custom logic for asserting a document's creation or update is possible    // Throw an error if the condition fails to prevent the action  }});
+```
+
+#### assert\_delete\_doc
+
+Verifies that a document can be deleted.
+
+*   Rust
+*   TypeScript
+
+```
+#[assert_delete_doc]fn assert_delete_doc(context: AssertDeleteDocContext) -> Result<(), String> {    // Custom logic for asserting a document can be deleted    // Return an error if the condition fails to prevent the action    Ok(())}
+```
+
+```
+export const assertDeleteDoc = defineAssert<AssertDeleteDoc>({  collections: [],  assert: (context) => {    // Custom logic for asserting a document can be deleted    // Throw an error if the condition fails to prevent the action  }});
+```
+
+#### assert\_upload\_asset
+
+Confirms an asset upload can be committed.
+
+*   Rust
+*   TypeScript
+
+```
+#[assert_upload_asset]fn assert_upload_asset(_context: AssertUploadAssetContext) -> Result<(), String> {    // Custom logic for asserting an asset upload is possible    // Return an error if the condition fails to prevent the action    Ok(())}
+```
+
+```
+export const assertUploadAsset = defineAssert<AssertUploadAsset>({  collections: [],  assert: (context) => {    // Custom logic for asserting an asset upload is possible    // Throw an error if the condition fails to prevent the action  }});
+```
+
+#### assert\_delete\_asset
+
+Checks that an asset can be deleted.
+
+*   Rust
+*   TypeScript
+
+```
+#[assert_delete_asset]fn assert_delete_asset(_context: AssertDeleteAssetContext) -> Result<(), String> {    // Custom logic for asserting an asset can be deleted    // Return an error if the condition fails to prevent the action    Ok(())}
+```
+
+```
+export const assertDeleteAsset = defineAssert<AssertDeleteAsset>({  collections: [],  assert: (context) => {    // Custom logic for asserting an asset can be deleted    // Throw an error if the condition fails to prevent the action  }});
+```
+
+---
+
+### When Hooks and Assertions Run
+
+*   Rust
+*   TypeScript
+
+When no attributes are provided, the hook is triggered for any document set in any collection. For better control and performance, it’s recommended to scope the hook to a specific list of `collections`.
+
+This behavior applies to **all hooks and assertions**, except for the lifecycle hooks such as `on_init` or `on_post_upgrade`, which operate globally.
+
+A hook is only executed if the function is declared and exported. Additionally, the `collections` field must be defined. If it's empty, the hook will not run.
+
+This behavior applies to **all hooks and assertions**, except for the lifecycle hooks such as `on_init` or `on_post_upgrade`, which operate globally.
+
+*   Rust
+*   TypeScript
+
+```
+#[on_set_doc(collections = ["demo"])]async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {    // Custom logic for handling document creation or updates    Ok(())}
+```
+
+The attributes accept a list of comma-separated collections. If the attribute array is left empty, the hook will never be called.
+
+```
+export const onSetDoc = defineHook<OnSetDoc>({  collections: ["demo"],  run: async (context) => {    // Custom logic for handling document creation or updates  }});
+```
+
+The `collections` attribute accepts a list of comma-separated collection names.
+
+---
+
+## Callable Functions
+
+Callable functions (also referenced as custom functions) are explicitly invoked — from your frontend or from other canisters.
+
+### Query
+
+Defines a read-only function that returns data without modifying any state.
+
+*   Rust
+*   TypeScript
+
+```
+#[ic_cdk::query]fn my_function() -> String {    // Your logic here}
+```
+
+```
+export const myFunction = defineQuery({  args: Schema,  result: Schema,  handler: ({ args }) => {    // Your logic here    return args;  }});
+```
+
+### Update
+
+Defines a function that can read and write state.
+
+*   Rust
+*   TypeScript
+
+```
+#[ic_cdk::update]fn my_function() -> String {    // Your logic here}
+```
+
+```
+export const myFunction = defineUpdate({  args: Schema,  result: Schema,  handler: async ({ args }) => {    // Your logic here    return args;  }});
+```
+
+---
+
+## Further Resources
+
+*   Rust
+*   TypeScript
+
+For practical use cases, check out the [Examples](/docs/guides/rust.md) page with sample projects and resources available on GitHub.
+
+For practical use cases, check out the [Examples](/docs/guides/typescript.md) page with sample projects and resources available on GitHub.
+
 # Rust
 
 This page covers advanced options for writing serverless functions in Rust.
@@ -2058,19 +2941,19 @@ With this setup, only `on_set_doc` and `assert_set_doc` must be implemented with
 
 ---
 
-## Maintenance
+## Upgrade
 
 After deployment, keeping your Satellite functional and optimized requires ongoing monitoring and updates. Staying up to date is also a key factor, as we may introduce new features that need to be integrated into your Satellite to ensure full functionality within the Juno Console.
 
-Since your project includes all Satellite features using `include_satellite!();`, it's essential to stay in sync with Juno’s updates to maintain compatibility.
+Since your project includes all Satellite features using `include_satellite!();`, it's essential to stay in sync with Juno's updates to maintain compatibility.
 
-**Caution:**
+**Important:**
 
-Always upgrade iteratively and avoid skipping version numbers. While we strive to minimize breaking changes, it's crucial to upgrade through each released version sequentially.
+If your Satellite includes custom serverless functions, **do not upgrade through the Juno Console**. The Console upgrade replaces your Satellite with the stock version, which would overwrite your custom code.
 
-For example, if you're on **v0.0.23** and the latest release is **v0.0.26**, first upgrade to **v0.0.24**, then **v0.0.25**, and finally **v0.0.26**. Skipping versions could lead to unexpected issues.
+When the Console notifies you of a new version, use it as a reminder to update your dependencies and redeploy your custom build, as described below.
 
-### Updating Your Satellite
+### What to do
 
 To upgrade your Satellite, bump the dependencies in your `Cargo.toml` file located in `/src/satellite/`. The key dependencies to check and update are:
 
@@ -2082,9 +2965,17 @@ To upgrade your Satellite, bump the dependencies in your `Cargo.toml` file locat
 
 If other crates in your project depend on these, they should also be upgraded accordingly.
 
-The recommended versions for each release can be found in the [changelog](/changelog) or [release notes on GitHub](https://github.com/junobuild/juno/releases).
+Once updated, build your functions and redeploy using the CLI or the GitHub Actions flow.
+
+👉 Check the [Crate Versions](/docs/reference/functions/rust/crate-versions.md) reference page for the exact versions to use.
 
 If you need assistance, feel free to reach out through the available support channels.
+
+**Caution:**
+
+Always upgrade iteratively and avoid skipping version numbers. While we strive to minimize breaking changes, it's crucial to upgrade through each released version sequentially.
+
+For example, if you're on **v0.0.23** and the latest release is **v0.0.26**, first upgrade to **v0.0.24**, then **v0.0.25**, and finally **v0.0.26**. Skipping versions could lead to unexpected issues.
 
 ---
 
@@ -2122,11 +3013,27 @@ This page covers advanced options for writing serverless functions in TypeScript
 
 ---
 
-## Maintenance
+## Upgrade
 
 Since your project includes all Satellite features, it's essential to stay in sync with Juno’s updates to maintain compatibility.
 
 Always check the [releases](https://github.com/junobuild/juno/releases) page for the latest changes, and update your local container image (source [repo](https://github.com/junobuild/juno-docker)) accordingly to ensure you're running the latest runtime and features.
+
+**Important:**
+
+If your Satellite includes custom serverless functions, **do not upgrade through the Juno Console**. The Console upgrade replaces your Satellite with the stock version, which would overwrite your custom code.
+
+When the Console notifies you of a new version, use it as a reminder to update your dependencies and redeploy your custom build, as described below.
+
+### What to do
+
+The most important step is to keep your local Docker image up to date by pulling the latest version. The entire toolchain is shipped within the emulator, so you don't have to install additional tools on your machine, but it also means the image needs to stay current.
+
+Check the [releases](https://github.com/junobuild/juno/releases) page to know when a new image is available.
+
+If a release also includes updates to the JavaScript library, bump the relevant package in your project accordingly.
+
+If you deploy with GitHub Actions, your workflow always inherits the latest image, so triggering a new CI run is enough to stay up to date, unless you have pinned a specific action version, in which case update it to `latest`.
 
 **Caution:**
 
@@ -2159,6 +3066,24 @@ This version is embedded into the compiled Wasm binary and displayed in the Juno
 *   Move independently of Juno updates — you're in full control of your own function versioning.
 
 You can use any versioning scheme that suits your development workflow (e.g. `0.1.0`, `1.0.0-beta`, `2025.04.18`...).
+
+# Hosting
+
+Juno Hosting makes it easy to put your project online: fast, secure, and reliable by default.
+
+Deploy your web applications or static sites directly to a Satellite using [GitHub Actions](/docs/guides/github-actions.md). Your builds run automatically, so shipping updates feels as simple as pushing code.
+
+Prefer running things locally? You can also use the [CLI](/docs/guides/manual-deployment.md).
+
+![An overview of the custom domains once configured](/assets/images/hosting-6a7825c7b43defaa3854209bebc03ff0.webp)
+
+---
+
+## Using your Custom Domain
+
+Want to maintain your unique brand identity? You can use your own domain - like `yolo.com` or `hello.world.com` - instead of the default provisioned address.
+
+This comes with an automatically generated SSL certificate for each domain, ensuring secure connections for your users.
 
 # Configuration
 
@@ -2297,7 +3222,7 @@ This `source` attribute works similarly to Git's `.gitignore`, and you can speci
 *   Rewrites are only applied to requests that do not match any existing resources.
 *   By default, all unknown paths are automatically rewritten to `/index.html` (or `/404.html` if you provide such a page). You cannot disable this default behavior.
 
-### GZIP
+### Precompress
 
 When deploying your application, the CLI automatically searches for files matching the pattern `**/*.+(css|js|mjs|html)` in the `source` folder to optimize them using Gzip compression. This improves the performance of your app when it is served on the web.
 
@@ -2509,6 +3434,84 @@ If you're having trouble, feel free to reach out for assistance—we’re happy 
 *   `Failed`: The registration request failed.
 
 If one of the status `Pending...` is reached, the console will automatically refresh the status every few seconds until your domain is available.
+
+# Storage
+
+Juno Storage is for files — like images or other user-generated content.
+
+It provides a simple way to upload, serve, and delete files, with support for multiple encodings and custom headers.
+
+**Tip:**
+
+For structured data, use the [Datastore](/docs/build/datastore.md) instead.
+
+![A screenshot of the Storage in Juno&#39;s Console](/assets/images/storage-e26671e1f672a816f3f99ee9947a7920.webp)
+
+---
+
+## How does it work?
+
+Each [satellite](/docs/terminology.md#satellite) you create includes a "Storage" provider, which can store assets (images, documents, etc.) that are automatically made available on the internet.
+
+Assets are stored in [collections](/docs/build/storage/collections.md), and you can create as many as you need.
+
+Each asset within a collection is identified by a `path` -- e.g. `/images/a-user-image.jpg` -- unique within all collections.
+
+Those assets hold the data you want to persist on chain, along with metadata (the "owner" or creator of the asset).
+
+**Caution:**
+
+Unless you use the optional [`token` parameter](/docs/build/storage/development.md#protected-asset) to persist an asset in your Satellite and make its URL difficult to guess, any asset stored in Juno Storage will be publicly available on the internet.
+
+---
+
+## Limitation
+
+Each Satellite has specific memory limits. For detailed information, please refer to the related [documentation](/docs/miscellaneous/memory.md) page.
+
+There is no specific limit on the size of assets (files) that can be uploaded to Juno, unless you choose to set an optional [rule](/docs/build/storage/collections.md#permissions) to restrict it.
+
+---
+
+## Configuration
+
+The Storage system offers various configuration options to fine-tune its behavior, including HTTP headers, redirects, and iFrame support. These settings help optimize how stored files are accessed and delivered.
+
+If you're configuring the hosting behavior of your site, start by checking out the [Hosting Configuration](/docs/build/hosting/configuration.md) section, as Storage is an integral part of the hosting system.
+
+For a complete list of available Storage options, refer to the [configuration](/docs/reference/configuration.md) section.
+
+---
+
+## Datastore vs Storage
+
+Juno gives you two ways to persist data. Both follow a collections-based architecture, but they serve different purposes and behave differently in practice.
+
+| Feature | **Datastore** (Structured) | **Storage** (Files) |
+| --- | --- | --- |
+| Use case | App state, user profiles, config | Images, files, generated user content |
+| Data format | JSON-like documents | Binary files |
+| Identifier | `key` (string you define) | `fullPath` (auto or custom) |
+| Accessible via web URL | No  | Yes |
+| Size limit | Max 2 MB per document | Chunked; limited by available Satellite space |
+
+**`key` vs `fullPath`**
+
+Both Datastore and Storage use a unique identifier per item — but they refer to different things and are used differently.
+
+*   **Datastore → `key`**:
+    
+    *   A unique string you assign to each document within a collection.
+    *   Used to retrieve, update, or delete a specific document.
+    *   Commonly a UUID (e.g. `crypto.randomUUID()`), a nanoid, or any meaningful string like a slug or user ID.
+    *   Example: `bafkb4by...`, `user:42`, or `config/theme`.
+*   **Storage → `fullPath`**:
+    
+    *   The full path of an asset used to build a valid web URL.
+    *   It's automatically generated from the uploaded filename unless explicitly set.
+    *   The `fullPath` must include the collection name (except for your app's frontend assets like HTML, JS, etc.).
+    *   Used to serve, list, or delete files.
+    *   Example: `/images/logo.png` (collection: `images`) or `/avatars/user42/profile.jpg` (collection: `avatars`).
 
 # Collections
 
@@ -3439,6 +4442,38 @@ Write serverless backend logic for your app using TypeScript or Rust. These exam
 
 3 items](/docs/examples/functions/typescript.md)
 
+# Frontend
+
+Build full apps with Juno using your preferred frontend framework. These examples cover everything from auth to data handling with React, SvelteKit, Angular, Next.js, and more.
+
+[## 📄️ Next.js
+
+A fullstack note-taking app built with Next.js, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/nextjs.md)
+
+[## 📄️ React TypeScript
+
+A fullstack note-taking app built with React, TypeScript, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/react-typescript.md)
+
+[## 📄️ React JavaScript
+
+A fullstack note-taking app built with React, JavaScript, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/react-javascript.md)
+
+[## 📄️ Vue
+
+A fullstack note-taking app built with Vue, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/vue.md)
+
+[## 📄️ SvelteKit
+
+A fullstack note-taking app built with SvelteKit, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/sveltekit.md)
+
+[## 📄️ Angular
+
+A fullstack note-taking app built with Angular, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/angular.md)
+
+[## 📄️ Vanilla JavaScript
+
+A fullstack note-taking app built with vanilla JavaScript, and Tailwind CSS using Juno for authentication, data, and file storage.](/docs/examples/frontend/vanilla-javascript.md)
+
 # Angular Example
 
 This project is a note-taking app template built with **Angular**, **TypeScript**, and **Tailwind CSS**, designed to demonstrate integration with Juno for app development. It showcases authentication, data storage, and file storage using Juno's Satellite container.
@@ -3563,8 +4598,6 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/app/app.component.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/app.component.ts) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/app/services/auth.service.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/services/auth.service.ts) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/app/components/login/login.component.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/components/login/login.component.ts) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/app/components/logout/logout.component.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/components/logout/logout.component.ts) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/app/services/docs.service.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/services/docs.service.ts) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/app/components/modal/modal.component.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/components/modal/modal.component.ts) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/app/components/delete/delete.component.ts`](https://github.com/junobuild/create-juno/blob/main/templates/angular-example/src/app/components/delete/delete.component.ts) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
@@ -3693,8 +4726,6 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/app/page.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/app/page.tsx) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/components/auth.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/components/auth.tsx) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/components/login.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/components/login.tsx) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/components/logout.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/components/logout.tsx) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/components/table.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/components/table.tsx) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/components/modal.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/components/modal.tsx) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/components/delete.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/nextjs-example/src/components/delete.tsx) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
@@ -3827,8 +4858,6 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/App.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/App.jsx) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/components/Auth.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/components/Auth.jsx) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/components/Login.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/components/Login.jsx) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/components/Logout.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/components/Logout.jsx) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/components/Table.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/components/Table.jsx) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/components/Modal.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/components/Modal.jsx) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/components/Delete.jsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-example/src/components/Delete.jsx) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
@@ -3961,8 +4990,6 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/App.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/App.tsx) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/components/Auth.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/components/Auth.tsx) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/components/Login.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/components/Login.tsx) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/components/Logout.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/components/Logout.tsx) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/components/Table.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/components/Table.tsx) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/components/Modal.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/components/Modal.tsx) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/components/Delete.tsx`](https://github.com/junobuild/create-juno/blob/main/templates/react-ts-example/src/components/Delete.tsx) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
@@ -4092,8 +5119,6 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/routes/+layout.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/routes/+layout.svelte) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/lib/components/Auth.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/lib/components/Auth.svelte) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/lib/components/Login.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/lib/components/Login.svelte) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/lib/components/Logout.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/lib/components/Logout.svelte) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/lib/components/Table.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/lib/components/Table.svelte) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/lib/components/Modal.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/lib/components/Modal.svelte) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/lib/components/Delete.svelte`](https://github.com/junobuild/create-juno/blob/main/templates/sveltekit-example/src/lib/components/Delete.svelte) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
@@ -4221,8 +5246,6 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/main.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/main.js) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/main.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/main.js), [`src/components/modal.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/components/modal.js) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/components/login.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/components/login.js) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/components/logout.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/components/logout.js) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/components/table.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/components/table.js) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/components/modal.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/components/modal.js) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/components/delete.js`](https://github.com/junobuild/create-juno/blob/main/templates/vanilla-js-example/src/components/delete.js) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
@@ -4352,13 +5375,23 @@ The following functions from `@junobuild/core` are used in this example:
 | --- | --- | --- | --- |
 | `initSatellite` | Initialize Juno Satellite container | [`src/App.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/App.vue) | [Initialization](/docs/setup-the-sdk.md#initialization) |
 | `onAuthStateChange` | Subscribe to auth state changes | [`src/stores/auth.store.ts`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/stores/auth.store.ts) | [Listening to Auth Changes](/docs/build/authentication/utilities.md#listening-to-auth-changes) |
-| `signIn` | Sign in user | [`src/components/Login.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Login.vue) | [Sign-in](/docs/build/authentication/internet-identity.md#sign-in) |
-| `signOut` | Sign out user | [`src/components/Logout.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Logout.vue) | [Sign-out](/docs/build/authentication/utilities.md#sign-out) |
 | `listDocs` | List documents in a collection | [`src/components/Table.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Table.vue) | [List documents](/docs/build/datastore/development.md#list-documents) |
 | `setDoc` | Create or update a document | [`src/components/Modal.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Modal.vue) | [Add a document](/docs/build/datastore/development.md#add-a-document) |
 | `deleteDoc` | Delete a document | [`src/components/Delete.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Delete.vue) | [Delete a document](/docs/build/datastore/development.md#delete-a-document) |
 | `uploadFile` | Upload a file to storage | [`src/components/Modal.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Modal.vue) | [Upload file](/docs/build/storage/development.md#upload-file) |
 | `deleteAsset` | Delete a file from storage | [`src/components/Delete.vue`](https://github.com/junobuild/create-juno/blob/main/templates/vue-example/src/components/Delete.vue) | [Delete asset](/docs/build/storage/development.md#delete-asset) |
+
+# Functions
+
+Write serverless backend logic for your app using TypeScript or Rust. These examples show how to use hooks, assertions, and common function patterns on Juno.
+
+[## 🗃️ Rust
+
+4 items](/docs/examples/functions/rust.md)
+
+[## 🗃️ TypeScript
+
+3 items](/docs/examples/functions/typescript.md)
 
 # Rust
 
@@ -4395,6 +5428,26 @@ An example demonstrating how to modify and re-save documents in Juno Satellites 
 [## 📄️ Canister Calls
 
 An example showing how to call external canisters (e.g., ICRC ledger) from a serverless function written in TypeScript using Juno Satellites.](/docs/examples/functions/typescript/canister-calls.md)
+
+# Rust
+
+Examples of writing serverless functions in Rust for Juno. Includes patterns like custom assertions, data manipulation and calls.
+
+[## 📄️ Assertion
+
+An example demonstrating how to write custom assertions in Rust for Juno serverless functions.](/docs/examples/functions/rust/assertion.md)
+
+[## 📄️ Mutation
+
+An example demonstrating how to modify and re-save documents in Juno Satellites using Rust hooks.](/docs/examples/functions/rust/mutating-docs.md)
+
+[## 📄️ Asset Generation
+
+An example showing how to dynamically generate and store assets (like JSON) in Storage using Rust in Juno Satellites.](/docs/examples/functions/rust/generating-assets.md)
+
+[## 📄️ Canister Calls
+
+An example showing how to call external canisters (e.g., ICRC ledger) from a serverless function written in Rust using Juno Satellites.](/docs/examples/functions/rust/canister-calls.md)
 
 # Rust Assertion Example
 
@@ -5094,6 +6147,22 @@ These crates are used to build and extend serverless functions in Rust with Juno
 *   [junobuild-utils](https://docs.rs/junobuild-utils): Utility helpers for working with documents, including data encoding, decoding, and assertion context handling.
 *   [junobuild-shared](https://docs.rs/junobuild-shared): Shared types and helpers for Juno projects. Used by all containers including the Console.
 *   [junobuild-storage](https://docs.rs/junobuild-storage): Storage helpers for working with assets and HTTP headers in Juno.
+
+# TypeScript
+
+Examples of writing serverless functions in TypeScript for Juno. Includes patterns like custom assertions, data manipulation and calls.
+
+[## 📄️ Assertion
+
+An example demonstrating how to write custom assertions in TypeScript for Juno serverless functions.](/docs/examples/functions/typescript/assertion.md)
+
+[## 📄️ Mutation
+
+An example demonstrating how to modify and re-save documents in Juno Satellites using TypeScript hooks.](/docs/examples/functions/typescript/mutating-docs.md)
+
+[## 📄️ Canister Calls
+
+An example showing how to call external canisters (e.g., ICRC ledger) from a serverless function written in TypeScript using Juno Satellites.](/docs/examples/functions/typescript/canister-calls.md)
 
 # TypeScript Assertion Example
 
@@ -5966,7 +7035,7 @@ Learn how to deploy your React project to Juno. Follow the deployment guide to c
 
 # Code Functions in Rust
 
-Learn how to develop, integrate, and extend Juno Satellites with serverless functions written in Rust.
+Learn how to write and extend serverless functions for your Satellite in Rust.
 
 ---
 
@@ -5992,7 +7061,7 @@ yarn global add @junobuild/cli
 pnpm add -g @junobuild/cli
 ```
 
-At the root of your application, eject the Satellite if you haven't already used a template.
+At your project root, eject the Satellite if you haven't already used a template.
 
 ```
 juno functions eject
@@ -6016,35 +7085,19 @@ Changes are detected and automatically deployed, allowing you to test your custo
 
 ---
 
-## Hooks and Data Operations
+## Hooks
 
-Serverless Functions are triggered by hooks, which respond to events occurring in the Satellite, such as setting a document. Before implementing a hook that manipulates data ("backend"), let's first set up a JavaScript function in your ("frontend") dApp.
+Hooks respond to events occurring in your Satellite, such as a document being created or updated. They run automatically in the background and are not invoked directly.
 
-Define a setter function in your frontend dApp as follows:
-
-```
-interface Example {  hello: string;}let key: string | undefined;const set = async () => {  key = crypto.randomUUID();  const record = await setDoc<Example>({    collection: "demo",    doc: {      key,      data: {        hello: "world"      }    }  });  console.log("Set done", record);};
-```
-
-This code generates a key and persists a document in a collection of the Datastore named "demo".
-
-Additionally, add a getter to your code:
-
-```
-const get = async () => {  if (key === undefined) {    return;  }  const record = await getDoc({    collection: "demo",    key  });  console.log("Get done", record);};
-```
-
-Without a hook, executing these two operations one after the other would result in a record containing "hello: world".
-
-Now, let's create a hook within `src/satellite/src/lib.rs` with the following implementation:
+The following example declares a hook that listens to changes in the `demo` collection and modifies the document's data before saving it back:
 
 ```
 use ic_cdk::print;use junobuild_macros::{    on_delete_asset, on_delete_doc, on_delete_many_assets, on_delete_many_docs, on_set_doc,    on_set_many_docs, on_upload_asset,};use junobuild_satellite::{    include_satellite, set_doc_store, OnDeleteAssetContext, OnDeleteDocContext,    OnDeleteManyAssetsContext, OnDeleteManyDocsContext, OnSetDocContext, OnSetManyDocsContext,    OnUploadAssetContext, SetDoc,};use junobuild_utils::{decode_doc_data, encode_doc_data};use serde::{Deserialize, Serialize};// The data of the document we are looking to update in the Satellite's Datastore.#[derive(Serialize, Deserialize)]struct Person {    hello: String,}// We tells the hooks that we only want to listen to changes in collection "demo".#[on_set_doc(collections = ["demo"])]async fn on_set_doc(context: OnSetDocContext) -> Result<(), String> {    // We decode the new data saved in the Datastore because it holds those as blob.    let mut data: Person = decode_doc_data(&context.data.data.after.data)?;    // We update the document's data that was saved in the Datastore with the call from the frontend dapp.    // i.e. the frontend saved "hello: world" and we enhance it to "hello: world checked"    data.hello = format!("{} checked", data.hello);    // We encode the data back to blob.    let encode_data = encode_doc_data(&data)?;    // We construct the parameters required to call the function that save the data in the Datastore.    let doc: SetDoc = SetDoc {        data: encode_data,        description: context.data.data.after.description,        version: context.data.data.after.version,    };    // We save the document for the same caller as the one who triggered the original on_set_doc, in the same collection with the same key as well.    set_doc_store(        context.caller,        context.data.collection,        context.data.key,        doc,    )?;    Ok(())}// Other hooksinclude_satellite!();
 ```
 
-As outlined in the ([Quickstart](#quickstart)) chapter, run `juno emulator build` to compile and deploy the code locally.
+**Note:**
 
-When testing this feature, if you wait a bit before calling the getter, unlike in the previous step, you should now receive the modified "hello: world checked" text set by the hook. This delay occurs because serverless Functions run fully asynchronously from the request-response between your frontend and the Satellite.
+Hooks execute asynchronously, separate from the request-response cycle. Changes made by a hook will not be immediately visible to the caller.
 
 ---
 
@@ -6060,7 +7113,7 @@ This example ensures that any document added to the `notes` collection does not 
 
 ---
 
-## Calling Canisters on ICP
+## Calling Other Canisters
 
 You can make calls to other canisters on the Internet Computer directly from your serverless functions using `ic_cdk::call`.
 
@@ -6146,9 +7199,9 @@ Learn how to integrate Juno with SvelteKit. Follow our quickstart guide to set u
 
 Learn how to deploy your SvelteKit project to Juno. Follow the deployment guide to configure static exports, set up your satellite, and publish your site to production.](/docs/guides/sveltekit/deploy.md)
 
-# Code Functions in TypeScript
+# Serverless Functions in TypeScript
 
-Learn how to develop, integrate, and extend Juno Satellites with serverless functions written in TypeScript.
+Learn how to write and extend serverless functions for your Satellite in TypeScript.
 
 ---
 
@@ -6174,7 +7227,7 @@ yarn global add @junobuild/cli
 pnpm add -g @junobuild/cli
 ```
 
-At the root of your application, eject the Satellite if you haven't already used a template.
+At your project root, eject the Satellite if you haven't already used a template.
 
 ```
 juno functions eject
@@ -6186,41 +7239,71 @@ In a new terminal window, kick off the emulator:
 juno emulator start --watch
 ```
 
-Now, your local development environment is up and running, ready for you to start coding.
-
-Every time you make changes to your code, it will automatically recompile and reload.
+Your local development environment is now up and running.
 
 ---
 
-## Hooks and Data Operations
+## Hooks
 
-Serverless Functions are triggered by hooks, which respond to events occurring in the Satellite, such as setting a document. Before implementing a hook that manipulates data ("backend"), let's first set up a JavaScript function in your ("frontend") dApp.
+Hooks respond to events occurring in your Satellite, such as a document being created or updated. They run automatically in the background and are not invoked directly.
 
-Define a setter function in your frontend dApp as follows:
-
-```
-interface Example {  hello: string;}let key: string | undefined;const set = async () => {  key = crypto.randomUUID();  const record = await setDoc<Example>({    collection: "demo",    doc: {      key,      data: {        hello: "world"      }    }  });  console.log("Set done", record);};
-```
-
-This code generates a key and persists a document in a collection of the Datastore named "demo".
-
-Additionally, add a getter to your code:
-
-```
-const get = async () => {  if (key === undefined) {    return;  }  const record = await getDoc({    collection: "demo",    key  });  console.log("Get done", record);};
-```
-
-Without a hook, executing these two operations one after the other would result in a record containing "hello: world".
-
-Now, let's create a hook within `src/satellite/index.ts` with the following implementation:
+The following example declares a hook that listens to changes in the `demo` collection and modifies the document's data before saving it back:
 
 ```
 import { defineHook, type OnSetDoc } from "@junobuild/functions";import {  decodeDocData,  encodeDocData,  setDocStore} from "@junobuild/functions/sdk";// The data shape stored in the Satellite's Datastoreinterface Person {  hello: string;}// We declare a hook that listens to changes in the "demo" collectionexport const onSetDoc = defineHook<OnSetDoc>({  collections: ["demo"],  run: async (context) => {    // Decode the document's data (stored as a blob)    const data = decodeDocData<Person>(context.data.data.after.data);    // Update the document's data by enhancing the "hello" field    const updated = {      hello: `${data.hello} checked`    };    // Encode the data back to blob format    const encoded = encodeDocData(updated);    // Save the updated document using the same caller, collection, and key    await setDocStore({      caller: context.caller,      collection: context.data.collection,      key: context.data.key,      doc: {        data: encoded,        description: context.data.data.after.description,        version: context.data.data.after.version      }    });  }});
 ```
 
-Once saved, your code should be automatically compiled and deployed.
+**Note:**
 
-When testing this feature, if you wait a bit before calling the getter, you should now receive the modified "hello: world checked" text set by the hook. This delay occurs because serverless Functions execute fully asynchronously, separate from the request-response cycle between your frontend and the Satellite.
+Hooks execute asynchronously, separate from the request-response cycle. Changes made by a hook will not be immediately visible to the caller.
+
+### Handling Multiple Collections
+
+If your hook applies to many collections, a switch statement is one way to route logic:
+
+```
+import { defineHook, type OnSetDoc } from "@junobuild/functions";export const onSetDoc = defineHook<OnSetDoc>({  collections: ["posts", "comments"],  run: async (context) => {    switch (context.data.collection) {      case "posts":        // Handle posts logic        break;      case "comments":        // Handle comments logic        break;    }  }});
+```
+
+While this works, you might accidentally forget to handle one of the observed collections. To prevent that, you can use a typed map:
+
+```
+import {  defineHook,  type OnSetDoc,  type OnSetDocContext,  type RunFunction} from "@junobuild/functions";const collections = ["posts", "comments"] as const;type OnSetDocCollection = (typeof collections)[number];export const onSetDoc = defineHook<OnSetDoc>({  collections,  run: async (context) => {    const fn: Record<OnSetDocCollection, RunFunction<OnSetDocContext>> = {      posts: yourFunction,      comments: yourOtherFunction    };    await fn[context.data.collection as OnSetDocCollection]?.(context);  }});
+```
+
+This ensures all collections are handled and you'll get a TypeScript error if one is missing.
+
+---
+
+## Custom Functions
+
+Custom Functions let you define callable endpoints directly inside your Satellite. Unlike hooks, which react to events, custom functions are explicitly invoked - from your frontend or from other modules.
+
+You define them using `defineQuery` or `defineUpdate`, describe their input and output shapes with the `j` type system, and Juno takes care of generating all the necessary bindings under the hood.
+
+### Query vs. Update
+
+A **query** is a read-only function. It returns data without modifying any state. Queries are fast and suitable for fetching or computing information.
+
+An **update** is a function that can read and write state. Use it when your logic needs to persist data or trigger side effects. Updates can also be used for read operations when the response needs to be certified - making them suitable for security-sensitive use cases where data integrity must be guaranteed.
+
+### Defining a Function
+
+Describe your function's input and output shapes using the `j` type system, then pass them to `defineQuery` or `defineUpdate` along with your handler:
+
+```
+import { defineUpdate } from "@junobuild/functions";import { j } from "@junobuild/schema";const Schema = j.strictObject({  name: j.string(),  id: j.principal()});export const helloWorld = defineUpdate({  args: Schema,  result: Schema,  handler: async ({ args }) => {    // Your logic here    return args;  }});
+```
+
+Handlers can be synchronous or asynchronous. Both `args` and `returns` are optional.
+
+### Calling from the Frontend
+
+When you build your project, a type-safe client API is automatically generated based on your function definitions. You can import and call your functions directly from your frontend without writing any glue code:
+
+```
+import { functions } from "../declarations/satellite/satellite.api.ts";await functions.helloWorld({ name: "World", id: Principal.anonymous() });
+```
 
 ---
 
@@ -6236,21 +7319,7 @@ This example ensures that any document added to the `notes` collection does not 
 
 ---
 
-### Validating with Zod
-
-To simplify and strengthen your assertions, we recommend using [Zod](https://zod.dev/) — a TypeScript-first schema validation library. It's already bundled as a dependency of the `@junobuild/functions` package, so there's nothing else to install.
-
-Here's how you can rewrite your assertion using Zod for a cleaner and more declarative approach:
-
-```
-import { z } from "zod";import { decodeDocData } from "@junobuild/functions/sdk";import { defineAssert, type AssertSetDoc } from "@junobuild/functions";interface NoteData {  text: string;}const noteSchema = z.object({  text: z    .string()    .refine(      (value) => !value.toLowerCase().includes("hello"),      "The text must not include the word 'hello'"    )});export const assertSetDoc = defineAssert<AssertSetDoc>({  collections: ["notes"],  assert: (context) => {    const data = decodeDocData<NoteData>(context.data.data.proposed.data);    noteSchema.parse(data);  }});
-```
-
-This approach is more expressive, easier to extend, and automatically gives you type safety and error messaging. If the validation fails, `parse()` will throw and reject the request.
-
----
-
-## Calling Canisters on ICP
+## Calling Other Canisters
 
 This is useful if you want to:
 
@@ -6270,25 +7339,21 @@ The `args` field contains a tuple with the Candid type definition and the corres
 
 The `call` function handles both encoding the request and decoding the response using the provided types.
 
-To encode and decode these calls, you need JavaScript structures that match the Candid types used by the target canister. Currently, the best (and slightly annoying) way to get them is to copy/paste from the `service` output generated by tools like `didc`. It's not ideal, but that’s the current status. We’ll improve this in the future — meanwhile, feel free to reach out if you need help finding or shaping the types.
+To encode and decode these calls, you need JavaScript structures that match the Candid IDL types used by the target canister.
 
 ---
 
-## Handling Multiple Collections
+## Schema Types
 
-If your hook applies to many collections, a switch statement is one way to route logic:
+The `j` type system is Juno's schema layer for custom functions. It is built on top of [Zod](https://zod.dev/) and extends it with types specific to the Juno and Internet Computer environment, such as `j.principal()`.
 
-```
-import { defineHook, type OnSetDoc } from "@junobuild/functions";export const onSetDoc = defineHook<OnSetDoc>({  collections: ["posts", "comments"],  run: async (context) => {    switch (context.data.collection) {      case "posts":        // Handle posts logic        break;      case "comments":        // Handle comments logic        break;    }  }});
-```
-
-While this works, you might accidentally forget to handle one of the observed collections. To prevent that, you can use a typed map:
+You use it to describe the shape of your function's arguments and return value. These schemas are both validated at runtime and used at build time to generate the necessary types and bindings.
 
 ```
-import {  defineHook,  type OnSetDoc,  type OnSetDocContext,  type RunFunction} from "@junobuild/functions";const collections = ["posts", "comments"] as const;type OnSetDocCollection = (typeof collections)[number];export const onSetDoc = defineHook<OnSetDoc>({  collections,  run: async (context) => {    const fn: Record<OnSetDocCollection, RunFunction<OnSetDocContext>> = {      posts: yourFunction,      comments: yourOtherFunction    };    await fn[context.data.collection as OnSetDocCollection]?.(context);  }});
+import { j } from "@junobuild/schema";const Schema = j.strictObject({  name: j.string(),  id: j.principal()});
 ```
 
-This ensures all collections are handled and you'll get a TypeScript error if one is missing.
+📦 Import from `@junobuild/schema`
 
 # Vue
 
@@ -6301,6 +7366,18 @@ Learn how to integrate Juno with Vue. Follow our quickstart guide to set up your
 [## 📄️ Deploy
 
 Learn how to deploy your Vue project to Juno. Follow the deployment guide to configure static exports, set up your satellite, and publish your site to production.](/docs/guides/vue/deploy.md)
+
+# Angular
+
+Explore how to create a Juno project developed with Angular.
+
+[## 📄️ Build
+
+Learn how to integrate Juno with Angular. Follow our quickstart guide to set up your development environment, configure your project, and start building with Juno.](/docs/guides/angular/build.md)
+
+[## 📄️ Deploy
+
+Learn how to deploy your Angular project to Juno. Follow the deployment guide to configure static exports, set up your Satellite, and publish your site to production.](/docs/guides/angular/deploy.md)
 
 # Build an Angular App
 
@@ -6489,17 +7566,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -6509,19 +7582,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -6562,6 +7635,18 @@ An access token is used to identify your terminal. That's why the CLI asks wheth
 ```
 juno hosting deploy
 ```
+
+# Astro
+
+Explore how to create a Juno project developed with Astro.
+
+[## 📄️ Build
+
+Learn how to integrate Juno with Astro. Follow our quickstart guide to set up your development environment, configure your project, and start building with Juno.](/docs/guides/astro/build.md)
+
+[## 📄️ Deploy
+
+Learn how to deploy your Astro project to Juno. Follow the deployment guide to configure static exports, set up your Satellite, and publish your site to production.](/docs/guides/astro/deploy.md)
 
 # Build an Astro App
 
@@ -6714,17 +7799,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -6734,19 +7815,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -6787,6 +7868,14 @@ An access token is used to identify your terminal. That's why the CLI asks wheth
 ```
 juno hosting deploy
 ```
+
+# Docusaurus
+
+Explore how to deploy a Juno project developed with Docusaurus.
+
+[## 📄️ Deploy
+
+Learn how to deploy your Docusaurus project to Juno. Follow the deployment guide to configure static exports, set up your Satellite, and publish your site to production.](/docs/guides/docusaurus/deploy.md)
 
 # Deploy a Docusaurus Site
 
@@ -6821,17 +7910,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -6841,19 +7926,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -6895,6 +7980,107 @@ An access token is used to identify your terminal. That's why the CLI asks wheth
 juno hosting deploy
 ```
 
+# GitHub Actions
+
+You can leverage the Juno [CLI](/docs/reference/cli.md) to perform tasks within GitHub Actions.
+
+This guide shows you how to use the [junobuild/juno-action](https://github.com/junobuild/juno-action) to deploy your frontend assets, build and publish serverless functions, and optionally upgrade your WASM container.
+
+---
+
+## 1\. Configure your project
+
+If you already have a `juno.config` file at the root of your project, you can skip to the next chapter. Otherwise, you need to create one ([manually](#configuration-file-example)) or by running:
+
+```
+npx @junobuild/cli init --minimal
+```
+
+The configuration file can be a TypeScript, JavaScript, or JSON file (`juno.config.ts`, `juno.config.js|.mjs`, or `juno.config.json`), depending on your preference.
+
+At a minimum, the configuration file must include the following:
+
+*   **Satellite ID**: A unique identifier for your Satellite.
+*   **Source**: The directory containing the built assets for your Satellite. This is typically the output folder of your build process, generated after running a command like `npm run build`.
+
+### Satellite ID
+
+Your Satellite ID can be found in the 'Overview' tab.
+
+![A screenshot of the Overview tab in Juno Console where the Satellite ID finds place](/assets/images/overview-13ccdf2cda43e8ce477508c9776543b3.png)
+
+### Source
+
+Commonly, or if you are using the templates, these are the folders that can be set as the `source` field:
+
+| Framework | Source |
+| --- | --- |
+| Next.js | `out` |
+| React, Astro, or Vue | `dist` |
+| SvelteKit | `build` |
+| Angular | `dist/<your-project-name>/browser` |
+
+### Configuration File Example
+
+Here’s an example of configuration file:
+
+```
+import { defineConfig } from "@junobuild/config";export default defineConfig({  satellite: {    ids: {      production: "qsgjb-riaaa-aaaaa-aaaga-cai" // Replace with your satellite ID    },    source: "dist", // Replace with your build output directory    predeploy: ["npm run build"] // Adjust based on your package manager  }});
+```
+
+For detailed information about all available configuration options, refer to the [configuration](/docs/reference/configuration.md) section.
+
+---
+
+## 2\. Connect Your Repository
+
+By default, your Satellite does not accept any deployments from unknown source. To enable automation from GitHub Actions, you need to authorize which repositories are allowed to trigger them.
+
+### Using the Console
+
+1.  Go to the Juno [Console](https://console.juno.build).
+2.  Select your Satellite.
+3.  Navigate to the **Deployments** tab.
+4.  Click **Connect repository** and follow the steps to register your repository and, optionally, restrict deployments to specific references.
+
+![A screenshot of the Deployments page in Juno Console when the Satellite is not yet configured](/assets/images/deployments-config-cf0c3b6440e3528c713c106bab3fded3.png)
+
+Once configured, the Console will start displaying your future deployments from GitHub Actions.
+
+![A screenshot of the Deployments page in Juno Console with few executed worfklows](/assets/images/deployments-workflows-36e9e685e36149aa3fce64f190e44ebf.png)
+
+### Using the CLI
+
+You can also configure automation via the CLI. Refer to the [CLI configuration](/docs/reference/cli.md) documentation for details.
+
+**Note:**
+
+Juno uses GitHub's OpenID Connect (OIDC) to authenticate your workflows without requiring any secret tokens. GitHub automatically generates short-lived tokens for each workflow run, which Juno verifies to authorize deployments.
+
+The duration (up to one hour) and role of those short-lived tokens can also be configured.
+
+---
+
+## 3\. Create the GitHub Action
+
+You can use GitHub Actions to automate different parts of your Juno deployment workflow:
+
+*   🪄 Deploy frontend assets to your Satellite. [Learn how.](/docs/guides/github-actions/deploy-frontend.md)
+*   🛠️ Build and publish serverless functions (TypeScript or Rust). [Learn how.](/docs/guides/github-actions/publish-functions.md)
+*   ⚠️ Optionally upgrade your Satellite's WASM container. [Learn how.](/docs/guides/github-actions/upgrade-functions.md)
+
+Each task can be performed independently or combined, depending on your project setup.
+
+---
+
+## Environment Variables
+
+When using the Actions, you can configure the following environment variables:
+
+| Environment Variable | Mandatory | Description |
+| --- | --- | --- |
+| `PROJECT_PATH` | No  | The path to the folder containing the `juno.config` file if it doesn't exist at the root of your repository. e.g. `./my-app-subfolder`. |
+
 # Deploy Frontend
 
 This section describes how to deploy the frontend of your project using GitHub Actions. The frontend typically includes all client-side assets — such as HTML, CSS, JavaScript, and other static files—that are served to users.
@@ -6917,19 +8103,19 @@ To configure an action to deploy your frontend assets, follow these steps:
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 Whenever code is pushed to your `main` branch, this action performs the following tasks: it checks out your repository, installs dependencies. It then utilizes the [junobuild/juno-action](https://github.com/junobuild/juno-action) GitHub Action to build and deploy your dapp.
@@ -6953,13 +8139,13 @@ The GitHub Action is basically just an environment that proxies commands to the 
 You can either hardcode the mode in the arguments:
 
 ```
-- name: Deploy to Juno  uses: junobuild/juno-action@main  with:    args: hosting deploy --mode staging  env:    JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+- name: Deploy to Juno  uses: junobuild/juno-action@main  with:    args: hosting deploy --mode staging
 ```
 
 Or, if you're using an environment variable, pass it like this:
 
 ```
-- name: Deploy to Juno  uses: junobuild/juno-action@main  with:    args: hosting deploy --mode ${{ env.JUNO_MODE }}  env:    JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}    JUNO_MODE: staging
+- name: Deploy to Juno  uses: junobuild/juno-action@main  with:    args: hosting deploy --mode ${{ env.JUNO_MODE }}  env:    JUNO_MODE: staging
 ```
 
 ---
@@ -7000,19 +8186,19 @@ To configure an action to build and publish serverless functions, follow these s
 .github/workflows/publish.yml
 
 ```
-name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish
 ```
 
 .github/workflows/publish.yml
 
 ```
-name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish
 ```
 
 .github/workflows/publish.yml
 
 ```
-name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Publish Serverless Functionson:  workflow_dispatch:  push:    branches: [main]jobs:  publish:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Publish        uses: junobuild/juno-action@full        with:          args: functions publish
 ```
 
 This action will build and publish your serverless function bundle.
@@ -7022,7 +8208,7 @@ If your access key is an **editor**, the changes will be automatically deployed 
 If your key is only a **submitter**, the release will be proposed as a pending change for manual approval. To avoid errors in submit-only workflows, you can explicitly use the `--no-apply` flag to skip auto-application.
 
 ```
-- name: Publish  uses: junobuild/juno-action@full  with:    args: functions publish --no-apply  env:    JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+- name: Publish  uses: junobuild/juno-action@full  with:    args: functions publish --no-apply
 ```
 
 ---
@@ -7049,7 +8235,23 @@ We do not recommend upgrading your container directly from CI in **production**.
 
 ---
 
-## Configuration
+## 1\. Authentication
+
+Unlike other actions, upgrading a container requires admin privileges. Since OIDC-generated tokens are intentionally restricted from admin permissions for security reasons, you need to set up a secret token instead.
+
+Follow the steps below to generate such a token:
+
+1.  Go to the Juno's [console](https://console.juno.build).
+2.  Select your Satellite.
+3.  On the Satellite's dashboard, navigate to the "Setup" tab.
+4.  Click on "Add an access key".
+5.  Generate a new key and assign it an "Administrator" (⚠️) role.
+6.  Click "Submit".
+7.  Upon successful creation, a new access key will be generated, and a "Secret token" will be displayed. Copy the token value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your repository or organization, using the key `JUNO_TOKEN`.
+
+---
+
+## 2\. Configuration
 
 To configure an action to upgrade your Satellite container, follow these steps:
 
@@ -7077,6 +8279,18 @@ name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-
 ```
 name: Upgrade Satellite Containeron:  workflow_dispatch:jobs:  upgrade:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Build        uses: junobuild/juno-action@full        with:          args: functions build      - name: Upgrade        uses: junobuild/juno-action@full        with:          args: functions upgrade        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
 ```
+
+# Next.js
+
+Explore how to create a Juno project developed with Next.js.
+
+[## 📄️ Build
+
+Learn how to integrate Juno with Next.js. Follow our quickstart guide to set up your development environment, configure your project, and start building with Juno.](/docs/guides/nextjs/build.md)
+
+[## 📄️ Deploy
+
+Learn how to deploy your Next.js project to Juno. Follow the deployment guide to configure static exports, set up your satellite, and publish your site to production.](/docs/guides/nextjs/deploy.md)
 
 # Build a Next.js App
 
@@ -7283,17 +8497,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -7303,19 +8513,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -7356,6 +8566,18 @@ An access token is used to identify your terminal. That's why the CLI asks wheth
 ```
 juno hosting deploy
 ```
+
+# React
+
+Explore how to create a Juno project developed with React.
+
+[## 📄️ Build
+
+Learn how to integrate Juno with React. Follow our quickstart guide to set up your development environment, configure your project, and start building with Juno.](/docs/guides/react/build.md)
+
+[## 📄️ Deploy
+
+Learn how to deploy your React project to Juno. Follow the deployment guide to configure static exports, set up your Satellite, and publish your site to production.](/docs/guides/react/deploy.md)
 
 # Build a React App
 
@@ -7544,17 +8766,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -7564,19 +8782,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -7617,6 +8835,18 @@ An access token is used to identify your terminal. That's why the CLI asks wheth
 ```
 juno hosting deploy
 ```
+
+# SvelteKit
+
+Explore how to create a Juno project developed with SvelteKit.
+
+[## 📄️ Build
+
+Learn how to integrate Juno with SvelteKit. Follow our quickstart guide to set up your development environment, configure your project, and start building with Juno.](/docs/guides/sveltekit/build.md)
+
+[## 📄️ Deploy
+
+Learn how to deploy your SvelteKit project to Juno. Follow the deployment guide to configure static exports, set up your satellite, and publish your site to production.](/docs/guides/sveltekit/deploy.md)
 
 # Build a SvelteKit App
 
@@ -7839,17 +9069,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -7859,19 +9085,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -7912,6 +9138,18 @@ An access token is used to identify your terminal. That's why the CLI asks wheth
 ```
 juno hosting deploy
 ```
+
+# Vue
+
+Explore how to create a Juno project developed with Vue.
+
+[## 📄️ Build
+
+Learn how to integrate Juno with Vue. Follow our quickstart guide to set up your development environment, configure your project, and start building with Juno.](/docs/guides/vue/build.md)
+
+[## 📄️ Deploy
+
+Learn how to deploy your Vue project to Juno. Follow the deployment guide to configure static exports, set up your satellite, and publish your site to production.](/docs/guides/vue/deploy.md)
 
 # Build a Vue App
 
@@ -8100,17 +9338,13 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 
 ### GitHub Actions deployment
 
-1.  From your Satellite's overview, navigate to the **Setup** tab.
+1.  From your Satellite's overview, navigate to the **Deployments** page.
     
-2.  Click on **Add an access key**.
+2.  Click **Connect repository** and follow the steps to register your repository.
     
-3.  Generate a new key with the default option. Click **Submit**.
+3.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
     
-4.  Upon successful creation, a **Secret token** will be displayed. Copy the value and save it as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) in your GitHub repository or organization, using the key `JUNO_TOKEN`.
-    
-5.  Create a `deploy.yml` file in the `.github/workflows` subfolder of your repo.
-    
-6.  Add the following workflow configuration:
+4.  Add the following workflow configuration:
     
 
 *   npm
@@ -8120,19 +9354,19 @@ You can deploy using either ([GitHub Actions](#github-actions-deployment)) or ([
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Install Dependencies        run: npm ci      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - name: Enable Corepack        run: corepack enable      - name: Activate Yarn        run: corepack prepare yarn@1.x --activate      - name: Install Dependencies        run: yarn install --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 .github/workflows/deploy.yml
 
 ```
-name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy        env:          JUNO_TOKEN: ${{ secrets.JUNO_TOKEN }}
+name: Deploy to Junoon:  workflow_dispatch:  push:    branches: [main]jobs:  deploy:    runs-on: ubuntu-latest    permissions:      id-token: write    steps:      - name: Check out the repo        uses: actions/checkout@v4      - uses: actions/setup-node@v4        with:          node-version: 24          registry-url: "https://registry.npmjs.org"      - uses: pnpm/action-setup@v4        with:          version: 10      - name: Install Dependencies        run: pnpm i --frozen-lockfile      - name: Deploy to Juno        uses: junobuild/juno-action@main        with:          args: hosting deploy
 ```
 
 ### CLI deployment
@@ -8808,7 +10042,7 @@ For most applications, we recommend using the default subnets and staying on the
 
 | Subnet ID | Type | Canisters (Running/Stopped) | Nodes (Up/Total) |
 | --- | --- | --- | --- |
-| 6pbhf-qzpdk-kuqbr-pklfa-5ehhf-jfjps-zsj6q-57nrl-kzhpd-mu7hc-vae | Juno's Subnet | 36101/703 | 13/13 |
+| 6pbhf-qzpdk-kuqbr-pklfa-5ehhf-jfjps-zsj6q-57nrl-kzhpd-mu7hc-vae | Juno's Subnet | 36185/704 | 13/13 |
 | pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae | Fiduciary | 3564/12 | 34/34 |
 | bkfrj-6k62g-dycql-7h53p-atvkj-zg4to-gaogh-netha-ptybj-ntsgw-rqe | European | 25096/663 | 13/13 |
 | brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae |     | 35432/815 | 13/13 |
@@ -9093,7 +10327,7 @@ Usage: juno logout [options]Options:  -h, --help            Output usage informa
 Deploy or clear the frontend code of your app on your satellite.
 
 ```
-Usage: juno hosting <subcommand> [options]Subcommands:  clear               Remove frontend files (JS, HTML, CSS, etc.) from your satellite.  deploy              Deploy your app to your satellite.
+Usage: juno hosting <subcommand> [options]Subcommands:  clear               Remove frontend files (JS, HTML, CSS, etc.) from your satellite.  deploy              Deploy your app to your satellite.  prune               Remove stale frontend files from your satellite that are no longer in your build output.
 ```
 
 ---
@@ -9108,7 +10342,17 @@ Usage: juno hosting clear [options]Options:  -f, --fullPath        Clear a parti
 
 **Note:**
 
-This command removes existing files from the Satellite and only affects the app assets, your frontend. Your user's uploaded files will not be cleared from your custom collections in the storage.
+This command removes existing assets from the Satellite related to your frontend app. Your user's uploaded files will not be cleared from your custom collections.
+
+---
+
+#### Prune
+
+Remove stale frontend files from your satellite that are no longer in your build output.
+
+```
+Usage: juno hosting prune [options]Options:  --batch               Number of files to prune in parallel per batch (default: 100).  --dry-run             List stale files that would be deleted without actually deleting them.  -m, --mode            Choose which environment to use (production, staging, development). Defaults to production if omitted.  -p, --profile         Specify an optional profile to use (e.g. personal, team). Useful when managing multiple Mission Controls.  --container-url       Override a custom container URL. If not provided, defaults to production or the local container in development mode.  --console-url         Specify a custom URL to access the developer Console.  -h, --help            Output usage information.
+```
 
 ---
 
@@ -9117,7 +10361,7 @@ This command removes existing files from the Satellite and only affects the app 
 Deploy your app to your satellite.
 
 ```
-Usage: juno hosting deploy [options]Options:  --batch               Number of files to upload in parallel per batch (default: 50).  --clear               Clear existing app files before proceeding with deployment.  --config              Apply configuration after deployment succeeds.  --no-apply            Submit the deployment as a change but do not apply it yet.  -k, --keep-staged     Keep staged assets in memory after applying the change.  -i, --immediate       Deploy files instantly (bypasses the change workflow).  -m, --mode            Choose which environment to use (production, staging, development). Defaults to production if omitted.  -p, --profile         Specify an optional profile to use (e.g. personal, team). Useful when managing multiple Mission Controls.  --container-url       Override a custom container URL. If not provided, defaults to production or the local container in development mode.  --console-url         Specify a custom URL to access the developer Console.  -h, --help            Output usage information.Notes:- The option --keep-staged only applies when --no-apply is NOT used (i.e. the change is applied immediately).
+Usage: juno hosting deploy [options]Options:  --batch               Number of files to upload in parallel per batch (default: 50).  --clear               Clear existing app files before proceeding with deployment.  --config              Apply configuration after deployment succeeds.  --no-apply            Submit the deployment as a change but do not apply it yet.  -k, --keep-staged     Keep proposed staged assets in memory after applying the change.  -i, --immediate       Deploy files instantly (bypasses the change workflow).  --prune               Prune stale app files after successful deployment.  -m, --mode            Choose which environment to use (production, staging, development). Defaults to production if omitted.  -p, --profile         Specify an optional profile to use (e.g. personal, team). Useful when managing multiple Mission Controls.  --container-url       Override a custom container URL. If not provided, defaults to production or the local container in development mode.  --console-url         Specify a custom URL to access the developer Console.  -h, --help            Output usage information.Notes:- The option --keep-staged only applies when --no-apply is NOT used (i.e. the change is applied immediately).
 ```
 
 ---
@@ -9236,7 +10480,7 @@ Usage: juno changes <subcommand> [options]Subcommands:  apply               Appl
 Apply a submitted change.
 
 ```
-Usage: juno changes apply [options]Options:  -i, --id              The ID of the change to apply.  --snapshot            Create a snapshot before applying.  --hash                The expected hash of all included changes (for verification).  -k, --keep-staged     Keep staged assets in memory after applying the change.  -h, --help            Output usage information.
+Usage: juno changes apply [options]Options:  -i, --id              The ID of the change to apply.  --snapshot            Create a snapshot before applying.  --hash                The expected hash of all included changes (for verification).  -k, --keep-staged     Keep proposed staged assets in memory after applying the change.  -h, --help            Output usage information.
 ```
 
 ---
@@ -9256,7 +10500,7 @@ Usage: juno changes list [options]Options:  -a, --all           Search through a
 Reject a change.
 
 ```
-Usage: juno changes reject [options]Options:  -i, --id              The ID of the change to reject.  --hash                The expected hash of all included changes (for verification).  -k, --keep-staged     Keep staged assets in memory after applying the change.  -h, --help            Output usage information.
+Usage: juno changes reject [options]Options:  -i, --id              The ID of the change to reject.  --hash                The expected hash of all included changes (for verification).  -k, --keep-staged     Keep proposed staged assets in memory after applying the change.  -h, --help            Output usage information.
 ```
 
 ---
@@ -9266,7 +10510,7 @@ Usage: juno changes reject [options]Options:  -i, --id              The ID of th
 Handle tasks related to the emulator like starting/stopping a local network.
 
 ```
-Usage: juno emulator <subcommand> [options]Subcommands:  start               Start the emulator for local development.  stop                Stop the local network.  wait                Wait until the emulator is ready.
+Usage: juno emulator <subcommand> [options]Subcommands:  clear               Clear the local emulator state (volume and container).  start               Start the emulator for local development.  stop                Stop the local network.  wait                Wait until the emulator is ready.
 ```
 
 ---
@@ -9326,7 +10570,7 @@ Usage: juno functions eject [options]Options:  -l, --lang            Specify the
 Publish a new version of your serverless functions.
 
 ```
-Usage: juno functions publish [options]Options:  --no-apply            Submit the release as a change but do not apply it yet.  -k, --keep-staged     Keep staged assets in memory after applying the change.  -s, --src             A path to a specific local gzipped WASM file to publish.  -m, --mode            Choose which environment to use (production, staging, development). Defaults to production if omitted.  -p, --profile         Specify an optional profile to use (e.g. personal, team). Useful when managing multiple Mission Controls.  --container-url       Override a custom container URL. If not provided, defaults to production or the local container in development mode.  --console-url         Specify a custom URL to access the developer Console.  -h, --help            Output usage information.Notes:- The option --keep-staged only applies when --no-apply is NOT used (i.e. the change is applied immediately).
+Usage: juno functions publish [options]Options:  --no-apply            Submit the release as a change but do not apply it yet.  -k, --keep-staged     Keep proposed staged assets in memory after applying the change.  -s, --src             A path to a specific local gzipped WASM file to publish.  -m, --mode            Choose which environment to use (production, staging, development). Defaults to production if omitted.  -p, --profile         Specify an optional profile to use (e.g. personal, team). Useful when managing multiple Mission Controls.  --container-url       Override a custom container URL. If not provided, defaults to production or the local container in development mode.  --console-url         Specify a custom URL to access the developer Console.  -h, --help            Output usage information.Notes:- The option --keep-staged only applies when --no-apply is NOT used (i.e. the change is applied immediately).
 ```
 
 ---
@@ -9373,10 +10617,16 @@ Usage: juno status [options]Options:  -m, --mode            Choose which environ
 
 ### Version
 
-Check the version of the CLI.
+Manage version related tasks.
 
 ```
-Usage: juno version [options]Options:  -h, --help            Output usage information.
+Usage: juno version <subcommand>Subcommands:  check                 Configure the weekly version check.Options:  -h, --help            Output usage information.
+```
+
+You can also print the current versions of the CLI and emulator (if running) by using:
+
+```
+juno --version
 ```
 
 ---
@@ -9479,7 +10729,7 @@ Each satellite must be uniquely identified using either:
 *   `id`: A single identifier for the satellite.
 *   `ids`: A mapping of identifiers for multiple environments, such as staging or production.
 
-You can use one of these options but not both simultaneously. See the ([Environments - Multiple Satellites](#environments---multiple-satellites)) chapter below for details on setting up multiple ids.
+You can use one of these options but not both simultaneously. See the ([Environments](#multiple-environments)) chapter below for details on setting up multiple ids.
 
 **Tip:**
 
@@ -10043,7 +11293,7 @@ import { defineConfig } from "@junobuild/config";export default defineConfig(({ 
 
 ## Multiple Environments
 
-You might want to deploy or manage a project across different environments, such as staging and production. Juno supports this through the `ids` field, allowing you to define separate Satellite IDs for each ([mode](#modes)).
+You might want to deploy or manage a project across different environments, such as staging and production. Juno supports this through the `ids` field, allowing you to define separate Satellite IDs for each mode.
 
 juno.config.js
 
@@ -10077,11 +11327,11 @@ API reference for writing serverless functions in Rust or TypeScript.
 
 [## 🗃️ Rust
 
-3 items](/docs/reference/functions/rust.md)
+4 items](/docs/reference/functions/rust.md)
 
 [## 🗃️ TypeScript
 
-5 items](/docs/reference/functions/typescript.md)
+6 items](/docs/reference/functions/typescript.md)
 
 # Plugins
 
@@ -10381,6 +11631,22 @@ The default value is `0n` - i.e. no particular allocation.
 
 If you set the compute allocation to `50n`, the module will be allocated 50% of the compute capacity. This ensures that the module has a guaranteed share of the compute resources, potentially improving its performance by ensuring it has sufficient processing power for its operations.
 
+# Emulator
+
+The emulator provides a complete local environment to build, test, and run your project without deploying anything live. There are two images available, depending on your needs:
+
+[## 📄️ Skylab
+
+The junobuild/skylab image is an all-in-one emulator for local development. It bundles everything you need to build, test, and explore the Juno ecosystem:](/docs/reference/emulator/skylab.md)
+
+[## 📄️ Satellite
+
+Unlike Skylab, the image junobuild/satellite runs a single Satellite in a headless environment, without the Console UI. It always mounts the same Satellite, using the fixed ID jx5yt-yyaaa-aaaal-abzbq-cai.](/docs/reference/emulator/satellite.md)
+
+[## 📄️ Infrastructure
+
+In the local environment, several services (which can be either canisters or apps on the Internet Computer) are automatically spun up. This ensures that developers have everything they need to start building right out of the box. Thanks to built-in plugins and tooling, these services are automatically integrated into the environment, eliminating the need for developers to manually manage their bindings.](/docs/reference/emulator/infrastructure.md)
+
 # Infrastructure
 
 In the local environment, several services (which can be either canisters or apps on the Internet Computer) are automatically spun up. This ensures that developers have everything they need to start building right out of the box. Thanks to built-in plugins and tooling, these services are automatically integrated into the environment, eliminating the need for developers to manually manage their bindings.
@@ -10459,6 +11725,18 @@ When running Skylab, the Console UI is available at [http://localhost:5866](http
 
 This is the same interface used in production at [console.juno.build](https://console.juno.build), allowing you to create Satellites and Orbiters, inspect your wallet, manage your Datastore and Storage, etc.
 
+# Functions
+
+API reference for writing serverless functions in Rust or TypeScript.
+
+[## 🗃️ Rust
+
+4 items](/docs/reference/functions/rust.md)
+
+[## 🗃️ TypeScript
+
+6 items](/docs/reference/functions/typescript.md)
+
 # Rust
 
 API reference for writing serverless functions in Rust.
@@ -10475,9 +11753,17 @@ All utilities on this page are provided by the junobuild-utils crate.](/docs/ref
 
 In the context of Juno, it enables your Satellite to perform low-level operations such as logging, accessing your Satellite identities, or communicating with other canisters — all essential when writing advanced serverless functions.](/docs/reference/functions/rust/ic-cdk.md)
 
+[## 📄️ Crate Versions
+
+This page lists the crate versions for each Juno release, to help you upgrade your Rust Serverless Functions. If a release is not listed, no crate updates were required for that version.](/docs/reference/functions/rust/crate-versions.md)
+
 # TypeScript
 
 API reference for writing serverless functions with TypeScript.
+
+[## 📄️ Schema Types
+
+Juno provides a type system built on top of Zod, extended with a few additional types you'll need when working with serverless functions.](/docs/reference/functions/typescript/schema.md)
 
 [## 📄️ SDK
 
@@ -10498,6 +11784,100 @@ The following functions can be used to interact with well-known Internet Compute
 [## 📄️ Node.js
 
 The TypeScript runtime used in Juno does not provide full Node.js support. Polyfills are added iteratively to keep the environment stable and predictable.](/docs/reference/functions/typescript/node.md)
+
+# Rust
+
+API reference for writing serverless functions in Rust.
+
+[## 📄️ SDK
+
+The SDK is provided by the junobuild-satellite crate.](/docs/reference/functions/rust/sdk.md)
+
+[## 📄️ Utils
+
+All utilities on this page are provided by the junobuild-utils crate.](/docs/reference/functions/rust/utils.md)
+
+[## 📄️ IC-CDK
+
+In the context of Juno, it enables your Satellite to perform low-level operations such as logging, accessing your Satellite identities, or communicating with other canisters — all essential when writing advanced serverless functions.](/docs/reference/functions/rust/ic-cdk.md)
+
+[## 📄️ Crate Versions
+
+This page lists the crate versions for each Juno release, to help you upgrade your Rust Serverless Functions. If a release is not listed, no crate updates were required for that version.](/docs/reference/functions/rust/crate-versions.md)
+
+# Crate Versions
+
+This page lists the crate versions for each Juno release, to help you upgrade your Rust Serverless Functions. If a release is not listed, no crate updates were required for that version.
+
+**Tip:**
+
+It is advised to locate the entry matching your current `junobuild-satellite` version and work your way up from there, one release at a time. For each step, build and redeploy before moving to the next. It's a bit tedious but ensures nothing goes wrong.
+
+---
+
+## Juno v0.0.71
+
+Release notes on [GitHub](https://github.com/junobuild/juno/releases/tag/v0.0.71).
+
+```
+[dependencies]candid = "0.10.20"ic-cdk = "0.19.0"ic-cdk-macros = "0.19.0"serde = "1.0.225"serde_cbor = "0.11.2"junobuild-satellite = "0.5.1"junobuild-macros = "0.3.1"junobuild-utils = "0.3.0"
+```
+
+---
+
+## Juno v0.0.69
+
+Release notes on [GitHub](https://github.com/junobuild/juno/releases/tag/v0.0.69).
+
+```
+[dependencies]candid = "0.10.20"ic-cdk = "0.19.0"ic-cdk-macros = "0.19.0"serde = "1.0.225"serde_cbor = "0.11.2"junobuild-satellite = "0.5.0"junobuild-macros = "0.2.0"junobuild-utils = "0.2.0"
+```
+
+---
+
+## Juno v0.0.63
+
+Release notes on [GitHub](https://github.com/junobuild/juno/releases/tag/v0.0.63).
+
+```
+[dependencies]candid = "0.10.20"ic-cdk = "0.19.0"ic-cdk-macros = "0.19.0"serde = "1.0.225"serde_cbor = "0.11.2"junobuild-satellite = "0.4.0"junobuild-macros = "0.2.0"junobuild-utils = "0.2.0"
+```
+
+---
+
+## Juno v0.0.61
+
+Release notes on [GitHub](https://github.com/junobuild/juno/releases/tag/v0.0.61).
+
+```
+[dependencies]candid = "0.10.20"ic-cdk = "0.19.0"ic-cdk-macros = "0.19.0"serde = "1.0.225"serde_cbor = "0.11.2"junobuild-satellite = "0.3.1"junobuild-macros = "0.1.1"junobuild-utils = "0.1.5"
+```
+
+---
+
+## Juno v0.0.59
+
+Release notes on [GitHub](https://github.com/junobuild/juno/releases/tag/v0.0.59).
+
+```
+[dependencies]candid = "0.10.19"ic-cdk = "0.18.5"ic-cdk-macros = "0.18.5"serde = "1.0.225"serde_cbor = "0.11.2"junobuild-satellite = "0.3.0"junobuild-macros = "0.1.1"junobuild-utils = "0.1.4"
+```
+
+---
+
+## Juno v0.0.57
+
+Release notes on [GitHub](https://github.com/junobuild/juno/releases/tag/v0.0.57).
+
+```
+[dependencies]candid = "0.10.19"ic-cdk = "0.18.5"ic-cdk-macros = "0.18.5"serde = "1.0.225"serde_cbor = "0.11.2"junobuild-satellite = "0.2.6"junobuild-macros = "0.1.1"junobuild-utils = "0.1.3"
+```
+
+---
+
+## Older Versions
+
+If your current version is not listed, refer to the [release notes on GitHub](https://github.com/junobuild/juno/releases) for older crate versions.
 
 # IC-CDK
 
@@ -10529,7 +11909,7 @@ To use them, add this to your Cargo.toml:
 [dependencies]junobuild-satellite = "*"
 ```
 
-You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/rust.md#maintenance) for instructions.
+You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/rust.md#upgrade) for instructions.
 
 ---
 
@@ -10863,6 +12243,34 @@ pub fn encode_doc_data_to_string<T: Serialize>(    data: &T,) -> Result<String, 
 
 📦 See full definition on [docs.rs](https://docs.rs/junobuild-utils/latest/junobuild_utils/fn.encode_doc_data_to_string.html)
 
+# TypeScript
+
+API reference for writing serverless functions with TypeScript.
+
+[## 📄️ Schema Types
+
+Juno provides a type system built on top of Zod, extended with a few additional types you'll need when working with serverless functions.](/docs/reference/functions/typescript/schema.md)
+
+[## 📄️ SDK
+
+The SDK is provided by the @junobuild/functions library.](/docs/reference/functions/typescript/sdk.md)
+
+[## 📄️ Utils
+
+All utilities on this page are provided by the @junobuild/functions library.](/docs/reference/functions/typescript/utils.md)
+
+[## 📄️ IC-CDK
+
+Juno exposes a growing set of these features for TypeScript, allowing you to build serverless functions that interact with the IC using a familiar developer experience.](/docs/reference/functions/typescript/ic-cdk.md)
+
+[## 📄️ Canisters
+
+The following functions can be used to interact with well-known Internet Computer canisters from your serverless functions.](/docs/reference/functions/typescript/canisters.md)
+
+[## 📄️ Node.js
+
+The TypeScript runtime used in Juno does not provide full Node.js support. Polyfills are added iteratively to keep the environment stable and predictable.](/docs/reference/functions/typescript/node.md)
+
 # Canisters
 
 The following functions can be used to interact with well-known Internet Computer canisters from your serverless functions.
@@ -10889,7 +12297,7 @@ yarn add @junobuild/functions
 pnpm add @junobuild/functions
 ```
 
-You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/typescript.md#maintenance) for instructions.
+You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/typescript.md#upgrade) for instructions.
 
 ---
 
@@ -11136,7 +12544,7 @@ import { call } from "@junobuild/functions/ic-cdk";import {  IcManagementIdl,  t
 
 *   All canister classes use the [call](/docs/reference/functions/typescript/ic-cdk.md#call) function internally to communicate with the Internet Computer.
 *   The caller's identity is automatically determined by the serverless function execution context.
-*   For admin operations, you can use the [id](/docs/reference/functions/typescript/ic-cdk.md#id) function to get the Satellite's principal, which has admin privileges.
+*   For admin operations, you can use the [id](/docs/reference/functions/typescript/ic-cdk.md#canisterself) function to get the Satellite's principal, which has admin privileges.
 *   Error handling follows the Result pattern: check for `Ok` or `Err` properties in the response.
 
 # IC-CDK
@@ -11169,18 +12577,18 @@ yarn add @junobuild/functions
 pnpm add @junobuild/functions
 ```
 
-You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/typescript.md#maintenance) for instructions.
+You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/typescript.md#upgrade) for instructions.
 
 ---
 
-## id
+## canisterSelf
 
 Retrieves the Principal ID of the current Satellite.
 
 This is useful when you want to use functions such as [setDocStore](/docs/reference/functions/typescript/sdk.md#setdocstore) with the caller set as the administrator. Since the code is running on the backend side (inside the container), the Satellite itself is considered the caller and has admin-level permissions.
 
 ```
-function id(): Principal;
+function canisterSelf(): Principal;
 ```
 
 📦 Import from `@junobuild/functions/ic-cdk`
@@ -11192,6 +12600,7 @@ function id(): Principal;
 #### Notes:
 
 *   This function is a JavaScript binding for the Rust function [ic\_cdk::id()](https://docs.rs/ic-cdk/latest/ic_cdk/fn.id.html).
+*   It was previously named `id()` and is also accessible as `satelliteSelf()`.
 
 ---
 
@@ -11222,6 +12631,28 @@ function call<T>(params: CallParams): Promise<T | undefined>;
 #### Notes:
 
 *   This function is a JavaScript binding for the Rust function [ic\_cdk::call()](https://docs.rs/ic-cdk/latest/ic_cdk/api/call/fn.call.html).
+
+---
+
+## msgCaller
+
+Returns the Principal ID of the caller of the current function.
+
+```
+function msgCaller(): Principal;
+```
+
+📦 Import from `@junobuild/functions/ic-cdk`
+
+#### Returns:
+
+*   `Principal`: The Principal ID of the caller.
+
+#### Notes:
+
+*   This function is a JavaScript binding for the Rust function [ic\_cdk::api::msg\_caller()](https://docs.rs/ic-cdk/latest/ic_cdk/api/fn.msg_caller.html).
+*   In serverless hooks, the caller is the Satellite itself. The end user's Principal can be retrieved from the payload instead.
+*   This function was previously named `caller()`.
 
 ---
 
@@ -11281,6 +12712,48 @@ Logging is fully supported. Objects are stringified and logs are routed to the I
 console.log("Hello from the Satellite");console.info("Hello", { type: "info", msg: "Something happened" });
 ```
 
+# Schema Types
+
+Juno provides a type system built on top of [Zod](https://zod.dev/), extended with a few additional types you'll need when working with serverless functions.
+
+All types are available through `j`.
+
+```
+import { j } from "@junobuild/schema";
+```
+
+---
+
+## Juno Types
+
+The following are specific types provided by Juno:
+
+### j.principal()
+
+Validates and represents an Internet Computer Principal.
+
+```
+j.principal();
+```
+
+### j.uint8array()
+
+Validates and represents a `Uint8Array`.
+
+```
+j.uint8array();
+```
+
+---
+
+## Zod Types
+
+All Zod types are available through `j`. Refer to the [Zod documentation](https://zod.dev/) for the full API reference.
+
+**Note:**
+
+`union` is not supported. Use `discriminatedUnion` instead.
+
 # SDK
 
 The following functions are provided to help you work with document and asset data inside your Satellite. They are part of the tools available when writing serverless functions in TypeScript and support common tasks such as interacting with the datastore, storage, and custom hook logic.
@@ -11307,7 +12780,7 @@ yarn add @junobuild/functions
 pnpm add @junobuild/functions
 ```
 
-You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/typescript.md#maintenance) for instructions.
+You have to follow the pace of the Juno release to ensure compatibility. Refer to the [maintenance guide](/docs/build/functions/development/typescript.md#upgrade) for instructions.
 
 ---
 

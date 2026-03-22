@@ -2,13 +2,18 @@
  * SIWA Client for browser-based authentication
  */
 
-import {Actor, HttpAgent, type Identity, type Signature} from "@dfinity/agent";
+import {
+  Actor,
+  HttpAgent,
+  type Identity,
+  type Signature,
+} from "@icp-sdk/core/agent";
 import {
   Delegation,
   DelegationChain,
   Ed25519KeyIdentity,
-} from "@dfinity/identity";
-import {Principal} from "@dfinity/principal";
+} from "@icp-sdk/core/identity";
+import {Principal} from "@icp-sdk/core/principal";
 import {
   idlFactory,
   type _SERVICE,
@@ -499,7 +504,7 @@ export class SiwaClient {
     }
 
     // The delegation's pubkey is the session key - the key being delegated TO
-    // @dfinity/identity v3.x uses Uint8Array instead of ArrayBuffer
+    // @icp-sdk/core/identity uses Uint8Array instead of ArrayBuffer
     const sessionKeyPubkey =
       candidDelegation.pubkey instanceof Uint8Array
         ? candidDelegation.pubkey
@@ -527,7 +532,7 @@ export class SiwaClient {
           signature: signatureBytes as Signature,
         },
       ],
-      canisterPubkey as unknown as import("@dfinity/agent").DerEncodedPublicKey
+      canisterPubkey as unknown as import("@icp-sdk/core/agent").DerEncodedPublicKey
     );
   }
 

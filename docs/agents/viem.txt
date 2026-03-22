@@ -87,6 +87,7 @@ Sitemap:
 - [writeContract](/docs/contract/writeContract): Executes a write function on a contract.
 - [writeContractSync](/docs/contract/writeContractSync): Executes a write function on a contract synchronously.
 - [Contract Writes with EIP-7702](/docs/eip7702/contract-writes)
+- [getDelegation](/docs/eip7702/getDelegation): Returns the address an account has delegated to via EIP-7702.
 - [hashAuthorization](/docs/eip7702/hashAuthorization): Calculates an Authorization object hash in EIP-7702 format.
 - [prepareAuthorization](/docs/eip7702/prepareAuthorization): Prepares an EIP-7702 Authorization for signing.
 - [recoverAuthorizationAddress](/docs/eip7702/recoverAuthorizationAddress): Recovers the original signing address from a signed Authorization object.
@@ -233,6 +234,12 @@ Sitemap:
 - [Account.fromSecp256k1](/tempo/accounts/account.fromSecp256k1)
 - [Account.fromWebAuthnP256](/tempo/accounts/account.fromWebAuthnP256)
 - [Account.fromWebCryptoP256](/tempo/accounts/account.fromWebCryptoP256)
+- [accessKey.authorize](/tempo/actions/accessKey.authorize)
+- [accessKey.getMetadata](/tempo/actions/accessKey.getMetadata)
+- [accessKey.getRemainingLimit](/tempo/actions/accessKey.getRemainingLimit)
+- [accessKey.revoke](/tempo/actions/accessKey.revoke)
+- [accessKey.signAuthorization](/tempo/actions/accessKey.signAuthorization)
+- [accessKey.updateLimit](/tempo/actions/accessKey.updateLimit)
 - [amm.burn](/tempo/actions/amm.burn)
 - [amm.getLiquidityBalance](/tempo/actions/amm.getLiquidityBalance)
 - [amm.getPool](/tempo/actions/amm.getPool)
@@ -320,6 +327,9 @@ Sitemap:
 - [validator.setNextFullDkgCeremony](/tempo/actions/validator.setNextFullDkgCeremony)
 - [validator.update](/tempo/actions/validator.update)
 - [withFeePayer](/tempo/transports/withFeePayer)
+- [TempoAddress.format](/tempo/utilities/TempoAddress.format)
+- [TempoAddress.parse](/tempo/utilities/TempoAddress.parse)
+- [TempoAddress.validate](/tempo/utilities/TempoAddress.validate)
 - [toMultisigSmartAccount (ZKsync)](/zksync/accounts/toMultisigSmartAccount): Creates a multi-signature ZKsync Smart Account
 - [toSinglesigSmartAccount (ZKsync)](/zksync/accounts/toSinglesigSmartAccount): Creates a single-signature ZKsync Smart Account
 - [toSmartAccount (ZKsync)](/zksync/accounts/toSmartAccount): Creates a ZKsync Smart Account
@@ -3666,24 +3676,24 @@ If you're not using a package manager, you can also use Viem via an ESM-compatib
 
 ## Using Unreleased Commits
 
-If you can't wait for a new release to test the latest features, you can either install from the `canary` tag (tracks the [`main`](https://github.com/wevm/viem/tree/main) branch).
+If you can't wait for a new release to test the latest features, pull requests and commits are continuously released via [pkg.pr.new](https://pkg.pr.new) and can be installed using the pull request number or short commit ID.
 
 :::code-group
 
 ```bash [pnpm]
-pnpm add viem@canary
+pnpm add https://pkg.pr.new/viem@123
 ```
 
 ```bash [npm]
-npm install viem@canary
+npm install https://pkg.pr.new/viem@123
 ```
 
 ```bash [yarn]
-yarn add viem@canary
+yarn add https://pkg.pr.new/viem@123
 ```
 
 ```bash [bun]
-bun add viem@canary
+bun add https://pkg.pr.new/viem@123
 ```
 
 :::
@@ -3705,8 +3715,10 @@ Then go to the project where you are using Viem and run `pnpm link --global viem
 Ethereum-related projects are often targeted in attacks to steal users' assets. Make sure you follow security best-practices for your project. Some quick things to get started.
 
 * Pin package versions, upgrade mindfully, and inspect lockfile changes to minimize the risk of [supply-chain attacks](https://nodejs.org/en/guides/security/#supply-chain-attacks).
-* Install the [Socket Security](https://socket.dev) [GitHub App](https://github.com/apps/socket-security) to help detect and block supply-chain attacks.
+* Use [npm](https://docs.npmjs.com)'s [`min-release-age`](https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age) or [pnpm](https://pnpm.io)'s [`minimumReleaseAge`](https://pnpm.io/settings#minimumreleaseage) and [`trustPolicy`](https://pnpm.io/settings#trustpolicy) to mitigate against supply-chain attacks.
+* Install the [Socket](https://socket.dev) [GitHub App](https://github.com/apps/socket-security) to help detect and block supply-chain attacks.
 * Add a [Content Security Policy](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html) to defend against external scripts running in your app.
+* Pin [GitHub Action](https://x.com/paulmillr/status/1900948425325031448) versions to commits instead of tags. [Actions Up](https://github.com/azat-io/actions-up) is a good tool for using commits instead of tags.
 
 # Why Viem \[A brief preamble on why we built Viem]
 
@@ -4657,6 +4669,13 @@ const hash = await client.sendTransactionSync({
 
 | Action | Description |
 |--------|-------------|
+| **Access Key Actions** | |
+| [`accessKey.authorize`](/tempo/actions/accessKey.authorize) | Authorizes an access key |
+| [`accessKey.getMetadata`](/tempo/actions/accessKey.getMetadata) | Gets access key information |
+| [`accessKey.getRemainingLimit`](/tempo/actions/accessKey.getRemainingLimit) | Gets the remaining spending limit for a key-token pair |
+| [`accessKey.revoke`](/tempo/actions/accessKey.revoke) | Revokes an authorized access key |
+| [`accessKey.signAuthorization`](/tempo/actions/accessKey.signAuthorization) | Signs a key authorization (no transaction sent) |
+| [`accessKey.updateLimit`](/tempo/actions/accessKey.updateLimit) | Updates the spending limit for a specific token on an access key |
 | **AMM Actions** | |
 | [`amm.burn`](/tempo/actions/amm.burn) | Burns liquidity tokens and receives the underlying token pair |
 | [`amm.getLiquidityBalance`](/tempo/actions/amm.getLiquidityBalance) | Gets the liquidity balance for an address in a specific pool |
@@ -17071,6 +17090,82 @@ export const contractAddress = '0x...'
 ```
 
 :::
+
+# getDelegation
+
+Returns the address that an account has delegated to via [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702).
+
+## Usage
+
+:::code-group
+
+```ts [example.ts]
+import { publicClient } from './client'
+
+const delegation = await publicClient.getDelegation({
+  address: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
+})
+// '0x1234...5678' or undefined
+```
+
+```ts [client.ts]
+import { createPublicClient, http } from 'viem'
+import { mainnet } from 'viem/chains'
+
+export const publicClient = createPublicClient({
+  chain: mainnet,
+  transport: http()
+})
+```
+
+:::
+
+## Return Value
+
+[`Address`](/docs/glossary/types#address) | `undefined`
+
+The address the account has delegated to, or `undefined` if the account is not delegated.
+
+## Parameters
+
+### address
+
+* **Type:** [`Address`](/docs/glossary/types#address)
+
+The address to check for delegation.
+
+```ts
+const delegation = await publicClient.getDelegation({
+  address: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e', // [!code focus]
+})
+```
+
+### blockNumber (optional)
+
+* **Type:** `bigint`
+
+The block number to check the delegation at.
+
+```ts
+const delegation = await publicClient.getDelegation({
+  address: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
+  blockNumber: 15121123n, // [!code focus]
+})
+```
+
+### blockTag (optional)
+
+* **Type:** `'latest' | 'earliest' | 'pending' | 'safe' | 'finalized'`
+* **Default:** `'latest'`
+
+The block tag to check the delegation at.
+
+```ts
+const delegation = await publicClient.getDelegation({
+  address: '0xA0Cf798816D4b9b9866b5330EEa46a18382f251e',
+  blockTag: 'safe', // [!code focus]
+})
+```
 
 # hashAuthorization
 
@@ -35242,6 +35337,528 @@ The WebCrypto P256 key pair from `WebCryptoP256.createKeyPair()`.
 
 Parent account to access.
 
+# `accessKey.authorize`
+
+Authorizes an access key by signing a key authorization and sending a transaction.
+
+## Usage
+
+:::code-group
+
+```ts twoslash [example.ts]
+import { generatePrivateKey } from 'viem/accounts'
+import { Account } from 'viem/tempo'
+import { client } from './viem.config'
+
+// 1. Define root account
+const account = Account.from({ privateKey: '0x...' })
+
+// 2. Define access key attached to the root account
+const accessKey = Account.fromP256(generatePrivateKey(), {
+  access: account,
+})
+
+// 3. Authorize the access key
+const { receipt } = await client.accessKey.authorizeSync({
+  accessKey,
+})
+
+console.log('Transaction hash:', receipt.transactionHash)
+// @log: Transaction hash: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+```
+
+```ts twoslash [viem.config.ts] filename="viem.config.ts"
+// [!include ~/snippets/tempo/viem.config.ts:setup]
+```
+
+:::
+
+:::tip
+By deferring a key authorization to a later transaction, you can bundle it with another operation,
+which enables an end-user to not pay for the authorization upfront.
+
+```ts twoslash
+import { Account, Actions } from 'viem/tempo'
+import { generatePrivateKey } from 'viem/accounts'
+import { client } from './viem.config'
+
+const account = Account.from({ privateKey: '0x...' })
+const accessKey = Account.fromP256(generatePrivateKey(), {
+  access: account,
+})
+
+// [!code focus:start]
+// 1. Sign the key authorization (offline, no transaction sent)
+const keyAuthorization = await Actions.accessKey.signAuthorization(
+  account,
+  {
+    accessKey,
+    expiry: Math.floor((Date.now() + 30_000) / 1000),
+  },
+)
+
+// 2. Attach keyAuthorization to any write action (can be sent with the access key)
+const { receipt } = await client.token.transferSync({
+  account: accessKey,
+  token: '0x20c0000000000000000000000000000000000001',
+  to: '0xcafebabecafebabecafebabecafebabecafebabe',
+  amount: 100n,
+  keyAuthorization,
+})
+// [!code focus:end]
+```
+
+:::
+
+### With Expiry and Spending Limits
+
+You can set an expiry and per-token spending limits when authorizing an access key:
+
+```ts twoslash
+import { generatePrivateKey } from 'viem/accounts'
+import { Account } from 'viem/tempo'
+import { client } from './viem.config'
+
+const account = Account.from({ privateKey: '0x...' })
+const accessKey = Account.fromP256(generatePrivateKey(), {
+  access: account,
+})
+
+const { receipt } = await client.accessKey.authorizeSync({
+  accessKey,
+  expiry: Math.floor((Date.now() + 30_000) / 1000), // [!code focus]
+  limits: [ // [!code focus]
+    { token: '0x20c0000000000000000000000000000000000001', limit: 1000000n }, // [!code focus]
+  ], // [!code focus]
+})
+```
+
+### Asynchronous Usage
+
+The example above uses a `*Sync` variant of the action, that will wait for the transaction to be included before returning.
+
+If you are optimizing for performance, you should use the non-sync `accessKey.authorize` action and wait for inclusion manually:
+
+```ts twoslash
+import { Actions, Account } from 'viem/tempo'
+import { generatePrivateKey } from 'viem/accounts'
+import { client } from './viem.config'
+
+const account = Account.from({ privateKey: '0x...' })
+const accessKey = Account.fromP256(generatePrivateKey(), {
+  access: account,
+})
+
+const hash = await client.accessKey.authorize({
+  accessKey,
+  expiry: Math.floor((Date.now() + 30_000) / 1000),
+})
+const receipt = await client.waitForTransactionReceipt({ hash })
+
+const { args }
+  = Actions.accessKey.authorize.extractEvent(receipt.logs)
+```
+
+## Return Type
+
+```ts
+type ReturnType = {
+  /** The account that authorized the key. */
+  account: Address
+  /** The public key that was authorized. */
+  publicKey: Address
+  /** The signature type. */
+  signatureType: number
+  /** The expiry timestamp. */
+  expiry: bigint
+  /** Transaction receipt */
+  receipt: TransactionReceipt
+}
+```
+
+## Parameters
+
+### accessKey
+
+* **Type:** `Pick<AccessKeyAccount, 'accessKeyAddress' | 'keyType'>`
+
+The access key to authorize.
+
+### expiry (optional)
+
+* **Type:** `number`
+
+Unix timestamp when the key expires.
+
+### limits (optional)
+
+* **Type:** `{ token: Address; limit: bigint }[]`
+
+Spending limits per token.
+
+<WriteParameters />
+
+# `accessKey.getMetadata`
+
+Gets access key information.
+
+## Usage
+
+:::code-group
+
+```ts twoslash [example.ts]
+import { client } from './viem.config'
+
+const key = await client.accessKey.getMetadata({
+  account: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEbb',
+  accessKey: '0x1234567890abcdef1234567890abcdef12345678',
+})
+
+console.log('Key type:', key.keyType)
+// @log: Key type: p256
+console.log('Spend policy:', key.spendPolicy)
+// @log: Spend policy: unlimited
+console.log('Revoked:', key.isRevoked)
+// @log: Revoked: false
+```
+
+```ts twoslash [viem.config.ts] filename="viem.config.ts"
+// [!include ~/snippets/tempo/viem.config.ts:setup]
+```
+
+:::
+
+## Return Type
+
+```ts
+type ReturnType = {
+  /** The access key address. */
+  address: Address
+  /** The key type. */
+  keyType: 'secp256k1' | 'p256' | 'webAuthn'
+  /** The expiry timestamp. */
+  expiry: bigint
+  /** The spending policy. */
+  spendPolicy: 'limited' | 'unlimited'
+  /** Whether the key is revoked. */
+  isRevoked: boolean
+}
+```
+
+## Parameters
+
+### accessKey
+
+* **Type:** `Address | AccessKeyAccount`
+
+The access key address or account.
+
+### account
+
+* **Type:** `Address | Account`
+
+Account address.
+
+<ReadParameters />
+
+# `accessKey.getRemainingLimit`
+
+Gets the remaining spending limit for a key-token pair.
+
+## Usage
+
+:::code-group
+
+```ts twoslash [example.ts]
+import { client } from './viem.config'
+
+const remaining = await client.accessKey.getRemainingLimit({
+  account: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEbb',
+  accessKey: '0x1234567890abcdef1234567890abcdef12345678',
+  token: '0x20c0000000000000000000000000000000000000',
+})
+
+console.log('Remaining limit:', remaining)
+// @log: Remaining limit: 1000000n
+```
+
+```ts twoslash [viem.config.ts] filename="viem.config.ts"
+// [!include ~/snippets/tempo/viem.config.ts:setup]
+```
+
+:::
+
+## Return Type
+
+```ts
+type ReturnType = bigint
+```
+
+The remaining spending amount.
+
+## Parameters
+
+### accessKey
+
+* **Type:** `Address | AccessKeyAccount`
+
+The access key address or account.
+
+### account
+
+* **Type:** `Address | Account`
+
+Account address.
+
+### token
+
+* **Type:** `Address`
+
+The token address.
+
+<ReadParameters />
+
+# `accessKey.revoke`
+
+Revokes an authorized access key.
+
+## Usage
+
+:::code-group
+
+```ts twoslash [example.ts]
+import { client } from './viem.config'
+
+const { receipt } = await client.accessKey.revokeSync({
+  accessKey: '0x1234567890abcdef1234567890abcdef12345678',
+})
+
+console.log('Transaction hash:', receipt.transactionHash)
+// @log: Transaction hash: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+```
+
+```ts twoslash [viem.config.ts] filename="viem.config.ts"
+// [!include ~/snippets/tempo/viem.config.ts:setup]
+```
+
+:::
+
+### Asynchronous Usage
+
+The example above uses a `*Sync` variant of the action, that will wait for the transaction to be included before returning.
+
+If you are optimizing for performance, you should use the non-sync `accessKey.revoke` action and wait for inclusion manually:
+
+```ts twoslash
+import { Actions } from 'viem/tempo'
+import { client } from './viem.config'
+
+const hash = await client.accessKey.revoke({
+  accessKey: '0x1234567890abcdef1234567890abcdef12345678',
+})
+const receipt = await client.waitForTransactionReceipt({ hash })
+
+const { args } 
+  = Actions.accessKey.revoke.extractEvent(receipt.logs)
+```
+
+## Return Type
+
+```ts
+type ReturnType = {
+  /** The account that owned the key. */
+  account: Address
+  /** The public key that was revoked. */
+  publicKey: Address
+  /** Transaction receipt */
+  receipt: TransactionReceipt
+}
+```
+
+## Parameters
+
+### accessKey
+
+* **Type:** `Address | AccessKeyAccount`
+
+The access key to revoke.
+
+<WriteParameters />
+
+# `accessKey.signAuthorization`
+
+Signs a key authorization for an access key. This is a local signing operation — no transaction is sent.
+
+:::info
+If you want to authorize a key and send the transaction in one step, use [`accessKey.authorize`](/tempo/actions/accessKey.authorize) instead.
+:::
+
+## Usage
+
+:::code-group
+
+```ts twoslash [example.ts]
+import { generatePrivateKey } from 'viem/accounts'
+import { Account, Actions } from 'viem/tempo'
+
+// 1. Define root account
+const account = Account.from({ privateKey: '0x...' })
+
+// 2. Define access key attached to the root account
+const accessKey = Account.fromP256(generatePrivateKey(), {
+  access: account,
+})
+
+// 3. Sign the key authorization
+const keyAuthorization = await Actions.accessKey.signAuthorization(
+  account,
+  {
+    accessKey,
+    expiry: Math.floor((Date.now() + 30_000) / 1000),
+  },
+)
+```
+
+:::
+
+### Submitting the Authorization
+
+The signed `keyAuthorization` can be attached to any write action.
+
+```ts
+// Authorize the key alongside a transfer, sent with the access key
+const { receipt } = await client.token.transferSync({
+  account: accessKey,
+  token: '0x20c0000000000000000000000000000000000001',
+  to: '0xcafebabecafebabecafebabecafebabecafebabe',
+  amount: 100n,
+  keyAuthorization,
+})
+```
+
+## Return Type
+
+```ts
+type ReturnType = KeyAuthorization.Signed
+```
+
+A signed key authorization object that can be passed as `keyAuthorization` to any write action.
+
+## Parameters
+
+### account
+
+* **Type:** `RootAccount`
+
+The root account signing the authorization. Must be a local account with signing capabilities (e.g. created via `Account.from`).
+
+### accessKey
+
+* **Type:** `Pick<AccessKeyAccount, 'accessKeyAddress' | 'keyType'>`
+
+The access key to authorize.
+
+### expiry (optional)
+
+* **Type:** `number`
+
+Unix timestamp when the key expires.
+
+### limits (optional)
+
+* **Type:** `{ token: Address; limit: bigint }[]`
+
+Spending limits per token.
+
+# `accessKey.updateLimit`
+
+Updates the spending limit for a specific token on an authorized access key.
+
+## Usage
+
+:::code-group
+
+```ts twoslash [example.ts]
+import { parseUnits } from 'viem'
+import { client } from './viem.config'
+
+const { receipt } = await client.accessKey.updateLimitSync({
+  accessKey: '0x1234567890abcdef1234567890abcdef12345678',
+  token: '0x20c0000000000000000000000000000000000000',
+  limit: parseUnits('100', 6),
+})
+
+console.log('Transaction hash:', receipt.transactionHash)
+// @log: Transaction hash: 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+```
+
+```ts twoslash [viem.config.ts] filename="viem.config.ts"
+// [!include ~/snippets/tempo/viem.config.ts:setup]
+```
+
+:::
+
+### Asynchronous Usage
+
+The example above uses a `*Sync` variant of the action, that will wait for the transaction to be included before returning.
+
+If you are optimizing for performance, you should use the non-sync `accessKey.updateLimit` action and wait for inclusion manually:
+
+```ts twoslash
+import { Actions } from 'viem/tempo'
+import { parseUnits } from 'viem'
+import { client } from './viem.config'
+
+const hash = await client.accessKey.updateLimit({
+  accessKey: '0x1234567890abcdef1234567890abcdef12345678',
+  token: '0x20c0000000000000000000000000000000000000',
+  limit: parseUnits('100', 6),
+})
+const receipt = await client.waitForTransactionReceipt({ hash })
+
+const { args } 
+  = Actions.accessKey.updateLimit.extractEvent(receipt.logs)
+```
+
+## Return Type
+
+```ts
+type ReturnType = {
+  /** The account that owned the key. */
+  account: Address
+  /** The public key. */
+  publicKey: Address
+  /** The token address. */
+  token: Address
+  /** The new spending limit. */
+  limit: bigint
+  /** Transaction receipt */
+  receipt: TransactionReceipt
+}
+```
+
+## Parameters
+
+### accessKey
+
+* **Type:** `Address | AccessKeyAccount`
+
+The access key to update.
+
+### token
+
+* **Type:** `Address`
+
+The token address.
+
+### limit
+
+* **Type:** `bigint`
+
+The new spending limit.
+
+<WriteParameters />
+
 # `amm.burn`
 
 Burns liquidity tokens and receives the underlying token pair. [Learn more about the Fee AMM](https://docs.tempo.xyz/protocol/fees/spec-fee-amm)
@@ -42281,6 +42898,125 @@ Controls how the fee payer handles sponsored transactions:
 * **`'sign-only'`**: Fee payer co-signs the transaction and returns it to the client transport, which then broadcasts it via the default transport.
 
 * **`'sign-and-broadcast'`**: Fee payer co-signs and broadcasts the transaction directly. The fee payer service handles both signing and submission to the blockchain.
+
+# `TempoAddress.format`
+
+Formats a raw Ethereum address (and optional zone ID) into a Tempo address string.
+
+## Usage
+
+```ts twoslash
+import { TempoAddress } from 'viem/tempo'
+
+const address = TempoAddress.format('0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28')
+// @log: 'tempo1qp6z6dwvvc6vq5efyk3ms39une6etu4a9qtj2kk0'
+```
+
+### Zone Address
+
+```ts twoslash
+import { TempoAddress } from 'viem/tempo'
+
+const address = TempoAddress.format(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD28',
+  { zoneId: 1 },
+)
+// @log: 'tempoz1qqqhgtf4e3nrfszn9yj68wzyhj08t90jh55q74d9uj'
+```
+
+## Parameters
+
+### address
+
+* **Type:** `Address`
+
+The raw 20-byte Ethereum address.
+
+### options.zoneId (optional)
+
+* **Type:** `number | bigint`
+
+Zone ID for zone addresses.
+
+## Return Type
+
+`TempoAddress`
+
+The encoded Tempo address string.
+
+# `TempoAddress.parse`
+
+Parses a Tempo address string into a raw Ethereum address and optional zone ID.
+
+## Usage
+
+### Mainnet Address
+
+```ts twoslash
+import { TempoAddress } from 'viem/tempo'
+
+const result = TempoAddress.parse(
+  'tempo1qp6z6dwvvc6vq5efyk3ms39une6etu4a9qtj2kk0',
+)
+// @log: { address: '0x742d35CC6634c0532925a3B844bc9e7595F2Bd28', zoneId: undefined }
+```
+
+### Zone Address
+
+```ts twoslash
+import { TempoAddress } from 'viem/tempo'
+
+const result = TempoAddress.parse(
+  'tempoz1qqqhgtf4e3nrfszn9yj68wzyhj08t90jh55q74d9uj',
+)
+// @log: { address: '0x742d35CC6634c0532925a3B844bc9e7595F2Bd28', zoneId: 1 }
+```
+
+## Parameters
+
+### tempoAddress
+
+* **Type:** `string`
+
+The Tempo address string to parse.
+
+## Return Type
+
+```ts
+{
+  address: Address
+  zoneId: number | bigint | undefined
+}
+```
+
+# `TempoAddress.validate`
+
+Validates a Tempo address string.
+
+## Usage
+
+```ts twoslash
+import { TempoAddress } from 'viem/tempo'
+
+const valid = TempoAddress.validate(
+  'tempo1qp6z6dwvvc6vq5efyk3ms39une6etu4a9qtj2kk0',
+)
+// @log: true
+```
+
+## Parameters
+
+### tempoAddress
+
+* **Type:** `string`
+
+The Tempo address string to validate.
+
+## Return Type
+
+`boolean`
+
+Whether the address is valid.
 
 # toMultisigSmartAccount (ZKsync)
 
@@ -53852,6 +54588,7 @@ const { gasPrice } = await publicClient.estimateFeesPerGas({
 # estimateGas \[An Action for estimating gas for a transaction.]
 
 Estimates the gas necessary to complete a transaction without submitting it to the network.
+For a Local Account, `prepare` defaults to `true`; set `prepare: false` to estimate directly with `eth_estimateGas`.
 
 ## Usage
 
@@ -53909,6 +54646,26 @@ import { parseEther } from 'viem'
 
 const gas = await publicClient.estimateGas({
   account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266', // [!code focus]
+  to: '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+  value: parseEther('1')
+})
+```
+
+### prepare (optional)
+
+* **Type:** `boolean | ("blobVersionedHashes" | "chainId" | "fees" | "gas" | "nonce" | "sidecars" | "type")[]`
+* **Default:** `true`
+
+Whether to prepare the transaction request before estimating gas. Set to `false` to estimate directly with `eth_estimateGas`.
+
+```ts twoslash
+// [!include ~/snippets/publicClient.ts]
+// ---cut---
+import { parseEther } from 'viem'
+
+const gas = await publicClient.estimateGas({
+  account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+  prepare: false, // [!code focus]
   to: '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
   value: parseEther('1')
 })
@@ -57000,6 +57757,27 @@ const valid = await publicClient.verifyHash({
 })
 ```
 
+### mode (optional)
+
+* **Type:** `'auto' | 'eoa'`
+* **Default:** `'auto'`
+
+Chooses which verification path to try first before falling back.
+
+Use `'eoa'` when you already know the signature should be verified as an Externally Owned Account and want to avoid unnecessary onchain verification attempts.
+
+```ts twoslash
+// [!include ~/snippets/publicClient.ts]
+// ---cut---
+const valid = await publicClient.verifyHash({
+  address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+  hash: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+  signature:
+    '0x66edc32e2ab001213321ab7d959a2207fcef5190cc9abb6da5b0d2a8a9af2d4d2b0700e2c317c4106f337fd934fbbb0bf62efc8811a78603b33a8265d3b8f8cb1c',
+  mode: 'eoa', // [!code focus]
+})
+```
+
 ### blockNumber (optional)
 
 * **Type:** `bigint`
@@ -57170,6 +57948,27 @@ const valid = await publicClient.verifyMessage({
   message: 'hello world',
   signature: // [!code focus:2]
     '0x66edc32e2ab001213321ab7d959a2207fcef5190cc9abb6da5b0d2a8a9af2d4d2b0700e2c317c4106f337fd934fbbb0bf62efc8811a78603b33a8265d3b8f8cb1c', 
+})
+```
+
+### mode (optional)
+
+* **Type:** `'auto' | 'eoa'`
+* **Default:** `'auto'`
+
+Chooses which verification path to try first before falling back.
+
+Use `'eoa'` when you already know the signature should be verified as an Externally Owned Account and want to avoid unnecessary onchain verification attempts.
+
+```ts twoslash
+// [!include ~/snippets/publicClient.ts]
+// ---cut---
+const valid = await publicClient.verifyMessage({
+  address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+  message: 'hello world',
+  signature:
+    '0x66edc32e2ab001213321ab7d959a2207fcef5190cc9abb6da5b0d2a8a9af2d4d2b0700e2c317c4106f337fd934fbbb0bf62efc8811a78603b33a8265d3b8f8cb1c',
+  mode: 'eoa', // [!code focus]
 })
 ```
 
@@ -62614,9 +63413,9 @@ export const walletClient = createWalletClient({
 
 ## Returns
 
-[`Hash`](/docs/glossary/types#hash)
+[`TransactionReceipt`](/docs/glossary/types#transaction-receipt)
 
-The [Transaction](/docs/glossary/terms#transaction) hash.
+The [Transaction receipt](/docs/glossary/terms#transaction-receipt).
 
 ## Parameters
 
