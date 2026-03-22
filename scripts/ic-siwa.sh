@@ -66,6 +66,7 @@ AGENT_DOC_SOURCES=(
 	"astro|https://docs.astro.build/llms-full.txt"
 	"daisyui|https://daisyui.com/llms.txt"
 	"foundry|https://getfoundry.sh/llms-full.txt"
+	"icp-cli|https://cli.internetcomputer.org/llms.txt"
 	"juno|https://juno.build/llms-full.txt"
 	"oisy|https://docs.oisy.com/llms-full.txt"
 	"reown|https://docs.reown.com/llms-full.txt"

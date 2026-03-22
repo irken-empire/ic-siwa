@@ -7593,6 +7593,8 @@ Source: https://docs.reown.com/advanced/providers/solana-adapter
 
 The WalletConnect Solana Adapter allows you to integrate the WalletConnect protocol into the Wallet Adapter library.
 
+This adapter is compatible with **Solana and SVM-based chains**, including [Solayer Chain](https://solayer.org). Applications built on SVM-compatible networks can use the same Solana adapter for wallet authentication and transaction signing.
+
 <Info>
   If you are not familiar with the Wallet Adapter library it is recommended to use [AppKit
   instead](../../appkit//overview). AppKit now supports multichain, which means you can choose and
@@ -7827,6 +7829,72 @@ interface Metadata {
 Find the complete type definition of the `session` object [here](https://github.com/WalletConnect/walletconnect-monorepo/blob/022e4d492c9862ab9b17c1a7b12884bdcd992ae4/packages/types/src/sign-client/session.ts#L25).
 
 
+# Report an Issue
+Source: https://docs.reown.com/advanced/report-an-issue
+
+Report bugs, share feedback, and get help through the Reown Dashboard
+
+The [Reown Dashboard](https://dashboard.reown.com/) is your single place to report bugs, share feedback, send us a message, and get help resolving issues with our AI-powered support.
+
+## How to Report an Issue
+
+Follow these steps to get in touch with our support team:
+
+### Step 1 - Log in to the Reown Dashboard
+
+Go to [dashboard.reown.com](https://dashboard.reown.com/) and log in with your account.
+
+### Step 2 - Open the Help Center
+
+Once logged in, click the **chat bubble** in the bottom-right corner of the page, or choose **Report a bug** from the **Help Center** sidebar.
+
+<Frame>
+  <img alt="Help Center bubble in the bottom-right corner of the Reown Dashboard" />
+</Frame>
+
+### Step 3 - Choose an Option
+
+From the help desk modal, select the option that best fits your needs:
+
+* **Send us a message** - Reach out directly to our support team.
+* **Create a ticket / Report an issue** - File a bug report or request assistance with a technical problem.
+* **Check our docs** - Browse through our documentation for answers.
+
+<Frame>
+  <img alt="Help desk modal with support options" />
+</Frame>
+
+Our team will review your submission and get back to you as soon as possible.
+
+## Support Response Times
+
+Depending on your plan, you can expect different levels of support:
+
+<CardGroup>
+  <Card title="Pro Plan" icon="bolt" href="/appkit/paid-plans/pro">
+    **Response time & expert issue resolution:** Up to 7 days.
+
+    In-dashboard support with the ability to create support tickets.
+  </Card>
+
+  <Card title="Enterprise Plan" icon="building" href="/appkit/paid-plans/enterprise">
+    **Guaranteed 24-hour response time** and expert issue resolution.
+
+    Prioritized support across multiple channels (email, Slack, Telegram, ticketing system).
+  </Card>
+</CardGroup>
+
+### Upgrade Your Plan
+
+Want faster response times and dedicated support? You can upgrade your plan directly from the [Reown Dashboard](https://dashboard.reown.com/):
+
+1. Log in to [dashboard.reown.com](https://dashboard.reown.com/)
+2. Click the **"Upgrade Now"** button in the top right-hand corner
+3. Choose **[Pro](/appkit/paid-plans/pro)** or **[Enterprise](/appkit/paid-plans/enterprise)** depending on your needs
+
+For a full comparison of all plans and pricing, visit <a href="https://reown.com/pricing">reown.com/pricing</a>.
+
+
 # Content Security Policy (CSP)
 Source: https://docs.reown.com/advanced/security/content-security-policy
 
@@ -7945,7 +8013,7 @@ For security-related inquiries, please visit the [security contact page](https:/
 # WalletKit Migration
 Source: https://docs.reown.com/advanced/walletkit-migration
 
-WalletKit documentation has moved to the WalletConnect Docs. Find links to the new locations for all migrated pages.
+WalletKit documentation has moved to the WalletConnect Docs. Find links to the new locations for all migrated pages, and answers to common questions about the new WalletConnect Dashboard.
 
 The following WalletKit-related pages have been migrated from Reown Docs to the [WalletConnect Docs](https://docs.walletconnect.network). Use the links below to find the updated content.
 
@@ -7958,6 +8026,45 @@ The following WalletKit-related pages have been migrated from Reown Docs to the 
 | Sign API - Wallet Usage       | [Wallet SDK Web - One-click Auth](https://docs.walletconnect.network/wallet-sdk/web/one-click-auth) and platform-specific Usage pages ([Web](https://docs.walletconnect.network/wallet-sdk/web/usage), [iOS](https://docs.walletconnect.network/wallet-sdk/ios/usage), [React Native](https://docs.walletconnect.network/wallet-sdk/react-native/usage)) |
 | WalletConnectModal Usage      | [App SDK Overview](https://docs.walletconnect.network/app-sdk/overview)                                                                                                                                                                                                                                                                                  |
 | WalletConnectModal Resources  | [Wallet SDK Web - Resources](https://docs.walletconnect.network/wallet-sdk/web/resources) and [Wallet SDK React Native - Resources](https://docs.walletconnect.network/wallet-sdk/react-native/resources)                                                                                                                                                |
+
+## WalletConnect Dashboard FAQ
+
+If you are a legacy WalletKit team previously using the Reown Cloud dashboard, the new [WalletConnect Dashboard](https://dashboard.walletconnect.com) is now the place to manage all your wallet projects, integrations, and WalletGuide submissions. Below are answers to common questions about the transition.
+
+<AccordionGroup>
+  <Accordion title="Where should WalletKit teams manage their projects now?">
+    All WalletKit teams should use the new [WalletConnect Dashboard](https://dashboard.walletconnect.com) to manage their projects. This dashboard replaces the Reown Cloud dashboard as the unified hub for wallet and app developers to create projects, submit wallets to WalletGuide, and manage WalletConnect Certification.
+  </Accordion>
+
+  <Accordion title="Will my existing Project ID still work?">
+    Yes. Your existing Project ID will remain the same and will continue to work as expected. There is no need to create a new Project ID or update your integration. Simply log in to [dashboard.walletconnect.com](https://dashboard.walletconnect.com) and you will find your existing projects and Project IDs ready to use.
+  </Accordion>
+
+  <Accordion title="Will my team setup carry over to the new dashboard?">
+    Yes. Your team setup, including team members and project configurations, will remain the same on the new WalletConnect Dashboard. No action is required to migrate your team — everything carries over automatically.
+  </Accordion>
+
+  <Accordion title="How do I log in to the new WalletConnect Dashboard?">
+    You can log in to [dashboard.walletconnect.com](https://dashboard.walletconnect.com) using the same credentials you used for the Reown Cloud dashboard. Your login method (email, social, or wallet-based authentication) remains unchanged.
+  </Accordion>
+
+  <Accordion title="What can I do on the new WalletConnect Dashboard?">
+    The [WalletConnect Dashboard](https://dashboard.walletconnect.com) is the unified home for wallet and app developers. From the dashboard you can:
+
+    * **Create and manage projects** — Set up new projects and obtain Project IDs for your wallet or app.
+    * **Submit your wallet to WalletGuide** — Get your wallet listed in the WalletConnect modal so users can discover and connect with it.
+    * **Manage WalletConnect Certification** — Submit, track, and manage your certification process all in one place.
+    * **View analytics** — Monitor usage and performance of your integrations.
+  </Accordion>
+
+  <Accordion title="Do I need to update any code or configuration?">
+    No code changes are required. Your existing Project IDs and SDK integrations will continue to work without modification. The dashboard change only affects where you manage your projects and settings — it does not impact your application's runtime behavior.
+  </Accordion>
+
+  <Accordion title="Where can I learn more about the new dashboard?">
+    Read the official announcement blog post: [Meet the New WalletConnect Dashboard](https://walletconnect.com/blog/meet-the-new-walletconnect-dashboard). For additional help, join the [WalletConnect Discord](https://discord.gg/walletconnect) and post in the developers forum.
+  </Accordion>
+</AccordionGroup>
 
 
 # Analytics
@@ -9803,11 +9910,22 @@ This FAQ section covers common questions and solutions for using AppKit. The que
   </Accordion>
 
   <Accordion title="How do I remove the 'UX by Reown' branding?">
-    Currently, only enterprise clients can hide "UX by Reown" on the AppKit modal by adjusting this option on our Dashboard. If you are an enterprise client and would like to hide this branding, contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s).
+    Currently, only enterprise clients can hide "UX by Reown" on the AppKit modal by adjusting this
+    option on our Dashboard. If you are an enterprise client and would like to hide this branding,
+    contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s).
   </Accordion>
 
   <Accordion title="How do I increase my project's RPC limits?">
     Reown currently provides 2.5 million requests per 30 days. If you wish to increase this limit, you need to upgrade to AppKit Pro.
+  </Accordion>
+
+  <Accordion title="Is there a limit on self-custodial wallet connections?">
+    There is no fixed number for what counts as "excessive" self-custodial connections. Our Terms of Service reserve the right to limit usage that is clearly abusive or disruptive, such as traffic spikes or automated spamming, and this is assessed case by case. See our [Community Licence](ttps://github.com/reown-com/appkit-react-native?tab=License-1-ov-file#readme) for clearest thresholds before paid plans are needed:
+
+    * **500 MAUs/month:** only authenticated users count toward this, not self-custodial connections
+    * **2.5M RPC calls/month:** only applies if you use Reown's built-in RPC
+
+    **Using your own RPC provider?** The RPC threshold will likely not apply to you. RPC usage may still occur from time to time to fetch users' balances. The only limit that could apply is the general fair use clause in our ToS. If your usage could reasonably be described as a spike attack or sustained automated abuse, that's when it becomes a concern. Normal app traffic is not what this clause is designed for.
   </Accordion>
 </AccordionGroup>
 
@@ -9828,13 +9946,14 @@ This FAQ section covers common questions and solutions for using AppKit. The que
   </Accordion>
 
   <Accordion title="How can I add my web wallet to the wallet list in WalletConnect?">
-    Add your web wallet to WalletConnect by following the steps in this link: [https://docs.reown.com/cloud/explorer-submission](https://docs.reown.com/cloud/explorer-submission).
+    Add your web wallet to WalletConnect by following the steps in this link:
+    [https://docs.reown.com/cloud/explorer-submission](https://docs.reown.com/cloud/explorer-submission).
   </Accordion>
 
   <Accordion title="Can I reinitialize AppKit with different network configurations?">
-    Currently, `createAppKit` can only be called once during the application's lifecycle.
-    It cannot be lazily initialized and then torn down for re-initialization.
-    This means you must pass in all the networks you plan to support during the initial setup.
+    Currently, `createAppKit` can only be called once during the application's lifecycle. It cannot be
+    lazily initialized and then torn down for re-initialization. This means you must pass in all the
+    networks you plan to support during the initial setup.
   </Accordion>
 
   <Accordion title="Why can't I open wallet apps from in-app browsers on Android?">
@@ -9857,6 +9976,62 @@ This FAQ section covers common questions and solutions for using AppKit. The que
     ### For app developers embedding WebViews
 
     If you are building an app that embeds a WebView and want to support wallet connections, you need to explicitly handle deep links in your WebView implementation. See our [troubleshooting guide](/appkit/recipes/troubleshooting#in-app-browser-deeplink-detection) for code examples on how to intercept and handle wallet deep links across different platforms.
+  </Accordion>
+
+  <Accordion title="How do I delete a project?">
+    To delete a project from your [Reown Dashboard](https://dashboard.reown.com/):
+
+    1. Open the **Team** dropdown at the top of the Dashboard and select the team that contains the project you want to delete.
+
+    <Frame>
+      <img alt="Team dropdown in the Reown Dashboard" />
+    </Frame>
+
+    2. Click on the **three dots** (`...`) menu at the end of the project you want to delete.
+
+    <Frame>
+      <img alt="Project options menu showing Rename and Delete actions" />
+    </Frame>
+
+    3. Click **Delete** to remove the project.
+
+    4. Type the name of the project to confirm and click **Delete**.
+
+    <Frame>
+      <img alt="Confirmation dialog to delete a project" />
+    </Frame>
+
+    <Warning>
+      Deleting a project is permanent and cannot be undone. Any integrations using this project's `projectId` will stop working immediately.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="How do I delete a team?">
+    To delete a team from your [Reown Dashboard](https://dashboard.reown.com/):
+
+    1. Open the **Team** dropdown at the top of the Dashboard and select the team you want to delete.
+
+    <Frame>
+      <img alt="Team dropdown in the Reown Dashboard" />
+    </Frame>
+
+    2. Navigate to the team **Settings** page.
+
+    3. Click the **Delete** button at the bottom of the settings page.
+
+    <Frame>
+      <img alt="Delete button on the team settings page" />
+    </Frame>
+
+    4. Type the name of the team to confirm and click **Delete**.
+
+    <Frame>
+      <img alt="Confirmation dialog to delete a team" />
+    </Frame>
+
+    <Warning>
+      Deleting a team is permanent and cannot be undone. All projects within the team will also be deleted, and any integrations using their `projectId` values will stop working immediately.
+    </Warning>
   </Accordion>
 
   <Accordion title="Error Codes">
@@ -9969,37 +10144,6 @@ You can try out this use case in the [demo above](#demo).
 </CardGroup>
 
 
-# Overview
-Source: https://docs.reown.com/appkit/features/index
-
-
-
-While AppKit offers a wide range of features, networks, and authentication methods that make it easy to build interactive and user-friendly blockchain applications, certain features are limited to specific frameworks.
-
-**The following table provides an overview of the features, networks, and authentication methods available in AppKit and the frameworks they support.**
-
-* ✅ - indicates the feature is supported and can be integrated.
-* ❌ - indicates the feature is not supported and cannot be integrated.
-
-|                      | React              | Next.js            | Vue                | JavaScript         | React Native       | Flutter            | Android            | Swift              | Unity (Web)        | Unity (Native)     |
-| -------------------- | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ |
-| ***Features***       |                    |                    |                    |                    |                    |                    |                    |                    |                    |                    |
-| Swaps (EVM Only)     | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>❌</center> |
-| On-Ramp              | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>❌</center> |
-| Multichain Modal     | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
-| Smart Accounts       | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>✅</center> |
-| Notifications        | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
-| Telegram Mini Apps   | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>❌</center> |
-| ***Networks***       |                    |                    |                    |                    |                    |                    |                    |                    |                    |                    |
-| EVM Chains           | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> |
-| Solana               | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> |
-| Bitcoin              | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
-| ***Authentication*** |                    |                    |                    |                    |                    |                    |                    |                    |                    |                    |
-| Email & Social Login | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>✅</center> |
-| One-Click Auth       | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> |
-| SIWX                 | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
-
-
 # Multichain Support
 Source: https://docs.reown.com/appkit/features/multichain
 
@@ -10028,6 +10172,52 @@ AppKit is now multichain. The architecture is designed to support both EVM and n
 
   <Card title="JavaScript" icon="js" href="/appkit/javascript/core/multichain">
     Get started with AppKit Multichain in JavaScript.
+  </Card>
+</CardGroup>
+
+
+# Multiwallet Linking
+Source: https://docs.reown.com/appkit/features/multiwallet-linking
+
+
+
+Multiwallet linking allows your users to connect multiple wallets simultaneously, switch between them seamlessly, and manage the connected wallets directly via your app. It also allows developers to view analytics and build data-driven improvements for wallets using wallet connection history and more.
+
+## Use Cases
+
+With Multiwallet linking you can:
+
+* Manage multiple wallet connections simultaneously
+* Switch between multiple connected wallets
+* Build multi-wallet dashboards or portfolio views
+* Implement wallet comparison features
+* Create advanced wallet and wallet connection management interfaces
+* Display and manage wallet connection history
+* Access the currently active wallet connection
+* Implement wallet-specific features based on the active connection
+* Handle connection state changes with callbacks
+
+## Why use Multiwallet Linking?
+
+* **Build seamless UX**: allow users to connect multiple wallets and choose which wallet to use and when
+* **Deeper insights into user behavior**: with multiwallet linking, users don't need to make 2 profiles to use 2 wallets, removing fragmentation and giving you better insights into user behavior.
+* **Multichain Compatibility**: Multiwallet linking lets you connect Phantom on Solana and Trust on Base for building seamless multichain apps
+
+## Get Started
+
+Multiwallet linking is a paid feature available on Pro and Enterprise plans. Pro and Enterprise customers can enable it via the Reown dashboard toggle and implement it via Hooks, including `useAppKitConnection` & `useAppKitConnections`.
+
+<CardGroup>
+  <Card title="React" icon="react" href="/appkit/react/core/hooks#useappkitconnections">
+    Get started with Multiwallet linking in React
+  </Card>
+
+  <Card title="Next.js" icon="square-n" href="/appkit/next/core/hooks#useappkitconnections">
+    Get started with Multiwallet linking in Next.js
+  </Card>
+
+  <Card title="Vue" icon="vuejs" href="/appkit/vue/core/composables#useappkitconnections">
+    Get started with Multiwallet linking in Vue
   </Card>
 </CardGroup>
 
@@ -13024,7 +13214,7 @@ _appKitModal.openModalView(ReownAppKitModalAllWalletsPage());
 ```
 
 
-# null
+# Deposit with exchange
 Source: https://docs.reown.com/appkit/flutter/payments/deposit-with-exchange
 
 
@@ -15456,7 +15646,7 @@ const themeMode = modal.getThemeMode();
 
 ## Wallet Buttons
 
-Using wallet buttons ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR and also all the social logins.
+Using wallet buttons ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 This feature allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need for the traditional modal.
 
 Follow these steps to use the component:
@@ -15559,11 +15749,11 @@ You can specify a blockchain namespace to target specific chains:
 
 Change the string parameter `name` from `appKitWalletButton.connect(name)` in order to open a different wallet.
 
-| Type          | Options                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                               |
-| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `coinbase`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, and `tokenpocket` |
-| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                      |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, `haha`, `ambire-wallet`, `bitpay`, `blade-wallet`, `brave`, `coinstats`, `kresus-superapp`, `plena-app`, `status`, `tomo-wallet`, `valora`, and `zengo-wallet` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 #### Options for namespace property
 
@@ -15853,9 +16043,8 @@ Source: https://docs.reown.com/appkit/javascript/core/installation
 
 
 
-AppKit provides seamless integration with multiple blockchain ecosystems. . It supports [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum,
-[@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, as well as Bitcoin, TON and other networks. AppKit Core with Universal Provider library, enable compatibility across any blockchain protocol.
-Choose one of these to get started.
+AppKit provides seamless integration with multiple blockchain ecosystems. It supports [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum,
+[@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, as well as Bitcoin, TON, TRON and other networks.
 
 <Note>
   We recommend using [Vite](https://vitejs.dev/guide/#scaffolding-your-first-vite-project) to get
@@ -15864,7 +16053,15 @@ Choose one of these to get started.
 
 ## Installation
 
-**Setting up from scratch? → Try out the [AppKit CLI templates](#alternative-installation) or the [AI-assisted setup](#alternative-installation).**
+Try installing AppKit Skills to get AI-assisted guidance. Your AI coding assistant can help you set up, build, and debug your AppKit integration.
+
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 ## Custom Installation
 
@@ -15985,6 +16182,26 @@ Choose one of these to get started.
 
       ```bash pnpm theme={null}
       pnpm add @reown/appkit @reown/appkit-adapter-ton
+      ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="TRON">
+    <CodeGroup>
+      ```bash npm theme={null}
+      npm install @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash Yarn theme={null}
+      yarn add @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash Bun theme={null}
+      bun add @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash pnpm theme={null}
+      pnpm add @reown/appkit @reown/appkit-adapter-tron
       ```
     </CodeGroup>
   </Tab>
@@ -16445,6 +16662,221 @@ Create a new project on [Reown Dashboard](https://dashboard.reown.com) and obtai
     ```
   </Tab>
 
+  <Tab title="TRON">
+    AppKit TRON is built on top of the AppKit library and provides a set of components and actions to easily connect TRON wallets with your decentralized application.
+
+    On top of your app set up the following configuration.
+
+    ```tsx theme={null}
+    // App.tsx
+    import { createAppKit } from '@reown/appkit'
+    import { TronAdapter } from '@reown/appkit-adapter-tron'
+    import { tronMainnet, tronShastaTestnet } from '@reown/appkit/networks'
+
+    // Import wallet adapters you want to support
+    import { TronLinkAdapter } from '@tronweb3/tronwallet-adapter-tronlink'
+
+    // 1. Get projectId from https://dashboard.reown.com
+    const projectId = 'YOUR_PROJECT_ID'
+
+    // 2. Set the networks
+    const networks = [tronMainnet, tronShastaTestnet]
+
+    // 3. Set up TRON Adapter with wallet adapters
+    const tronAdapter = new TronAdapter({
+      walletAdapters: [
+        new TronLinkAdapter({
+          openUrlWhenWalletNotFound: false,
+          checkTimeout: 3000
+        })
+      ]
+    })
+
+    // 4. Create a metadata object - optional
+    const metadata = {
+      name: 'AppKit',
+      description: 'AppKit TRON Example',
+      url: 'https://example.com', // origin must match your domain & subdomain
+      icons: ['https://avatars.githubusercontent.com/u/179229932']
+    }
+
+    // 5. Create modal
+    const modal = createAppKit({
+      adapters: [tronAdapter],
+      networks,
+      metadata,
+      projectId,
+      features: {
+        analytics: true, // Optional - defaults to your Dashboard configuration
+        email: false,
+        socials: []
+      }
+    })
+
+    // 6. Trigger modal programaticaly
+    const openConnectModalBtn = document.getElementById('open-connect-modal')
+    const openNetworkModalBtn = document.getElementById('open-network-modal')
+
+    openConnectModalBtn.addEventListener('click', () => modal.open())
+    openNetworkModalBtn.addEventListener('click', () => modal.open({ view: 'Networks' }))
+    ```
+
+    ## Install Wallet Adapters
+
+    TRON adapter requires you to install wallet adapters separately. This gives you control over which wallets to support and reduces bundle size.
+
+    <Tabs>
+      <Tab title="TronLink">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-tronlink
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="MetaMask">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Trust Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-trust
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="OKX Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="BitKeep">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Binance Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-binance
+          ```
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+
+    <Note>
+      For a complete list of available TRON wallet adapters, visit the [official wallet adapter documentation](https://walletadapter.org/docs/guide/wallet-reference.html).
+    </Note>
+
+    ### Using Multiple Wallet Adapters
+
+    After installing your desired wallet adapters, import and add them to the `walletAdapters` array when creating the TRON adapter:
+
+    ```tsx theme={null}
+    import { TronLinkAdapter } from '@tronweb3/tronwallet-adapter-tronlink'
+    import { MetaMaskAdapter } from '@tronweb3/tronwallet-adapter-metamask-tron'
+    import { TrustAdapter } from '@tronweb3/tronwallet-adapter-trust'
+    import { OkxWalletAdapter } from '@tronweb3/tronwallet-adapter-okxwallet'
+
+    const tronAdapter = new TronAdapter({
+      walletAdapters: [
+        new TronLinkAdapter({
+          openUrlWhenWalletNotFound: false,
+          checkTimeout: 3000
+        }),
+        new MetaMaskAdapter(),
+        new TrustAdapter(),
+        new OkxWalletAdapter({
+          openUrlWhenWalletNotFound: false
+        })
+      ]
+    })
+    ```
+  </Tab>
+
   <Tab title="Others networks (AppKit Core)">
     <Card title="AppKit Core Example" icon="github" href="https://github.com/reown-com/appkit-web-examples/tree/main/javascript/javascript-core-universal-connector">
       Check the JavaScript AppKit Core example for Sui and Stacks
@@ -16750,16 +17182,16 @@ Create a new project on [Reown Dashboard](https://dashboard.reown.com) and obtai
 If you are starting from scratch, you can use the following methods to set up your project with Reown AppKit.
 
 <AccordionGroup>
-  <Accordion title="Set up Reown AppKit using AI">
-    If you're using Cursor IDE (or another AI based IDE) to build a project with Reown AppKit, Reown provides a `.mdc` file that enhances your development experience. The `reown-appkit.mdc` [file here](https://github.com/reown-com/reown-docs/blob/main/reown-appkit.mdc) contains Cursor-specific rules and type hints for Reown AppKit.
+  <Accordion title="AppKit Skills">
+    AppKit Skills provide AI-powered assistance for building with Reown AppKit. Once installed, your AI coding assistant can help you set up, build, and debug your AppKit integration.
 
-    To use it in your project:
+    To install AppKit Skills, run the following command in your terminal:
 
-    1. Copy the `reown-appkit.mdc` file from this repository
-    2. Create a `.cursor/rules` folder in your project's root directory (if it doesn't exist)
-    3. Place the `.mdc` file in your project's `.cursor/rules` folder
+    ```bash theme={null}
+    npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+    ```
 
-    For more info, refer to [Cursor's documentation](https://docs.cursor.com/context/rules#project-rules).
+    After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
   </Accordion>
 
   <Accordion title="AppKit CLI">
@@ -18704,7 +19136,7 @@ The following list shows the theme variables you can override:
 | `--apkt-z-index`              | The z-index of the modal.                                     | `number` |
 
 
-# null
+# Deposit with exchange
 Source: https://docs.reown.com/appkit/javascript/payments/deposit-with-exchange
 
 
@@ -18825,12 +19257,12 @@ const paymentAssetDetails = {
 ```
 
 
-# AppKit Pay with Exchange - Javascript
+# Pay with Exchange - Javascript
 Source: https://docs.reown.com/appkit/javascript/payments/pay-with-exchange
 
 
 
-**AppKit Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance or Coinbase, with no new wallets, no app switching, and no lost conversions.
+**Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance, with no new wallets, no app switching, and no lost conversions.
 
 ## Quick Start
 
@@ -18913,7 +19345,7 @@ Add the following to your package.json file in order to run the development serv
 
 ## Supported Networks and Assets
 
-For a complete list of supported networks and assets across different exchanges (Coinbase, Binance), please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
+For a complete list of supported networks and assets, please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
 
 ## Assets Configuration
 
@@ -19881,7 +20313,7 @@ Source: https://docs.reown.com/appkit/networks/solana
 
 
 
-The AppKit SDK supports Solana, allowing users to connect their Solana wallets to applications.
+The AppKit SDK supports Solana and SVM-based chains, allowing users to connect their wallets to applications built on Solana and compatible networks such as [Solayer Chain](https://solayer.org).
 
 <Frame>
   <video />
@@ -19912,6 +20344,147 @@ The AppKit SDK supports Solana, allowing users to connect their Solana wallets t
 
   <Card title="React Native" icon="react" href="/appkit/react-native/core/installation#solana">
     Get started with AppKit in React Native.
+  </Card>
+</CardGroup>
+
+
+# Reown AppKit Supported Chains
+Source: https://docs.reown.com/appkit/networks/supported-chains
+
+
+
+Reown AppKit provides native SDK support for a specific set of blockchain networks. This page lists the chains you can integrate directly using the AppKit SDK.
+
+<Note>
+  Looking for the full list of chains supported by the WalletConnect protocol? See the [WalletConnect Cloud Supported Chains](/cloud/chains/chain-list) page.
+</Note>
+
+## Natively Supported Chains
+
+| Chain                                                       | Platforms                                                                                 |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **EVM** (Ethereum, Polygon, Arbitrum, Optimism, Base, etc.) | React, Next.js, Vue, JavaScript, Svelte, Nuxt, React Native, Flutter, Android, iOS, Unity |
+| **Solana**                                                  | React, Next.js, Vue, JavaScript, React Native                                             |
+| **Bitcoin**                                                 | React, Next.js, Vue, JavaScript, React Native                                             |
+| **TON**                                                     | React, Next.js, Vue, JavaScript, Svelte, Nuxt                                             |
+| **TRON**                                                    | React, Vue, JavaScript                                                                    |
+| **Polkadot**                                                | Flutter                                                                                   |
+
+### EVM Chains
+
+AppKit supports all EVM-compatible chains. As long as the chain is included in [Viem's chain definitions](https://github.com/wevm/viem/blob/main/src/chains/index.ts), AppKit will support it. This includes Ethereum, Polygon, Arbitrum, Optimism, Base, Avalanche, BNB Smart Chain, and many more.
+
+<Card title="EVM Setup Guide" icon="ethereum" href="/appkit/networks/evm">
+  Get started with EVM chains in AppKit.
+</Card>
+
+### Solana
+
+AppKit supports Solana on web frameworks and React Native. You can connect Solana wallets and interact with the Solana network directly through the SDK.
+
+<Card title="Solana Setup Guide" icon="circle-nodes" href="/appkit/networks/solana">
+  Get started with Solana in AppKit.
+</Card>
+
+### Bitcoin
+
+AppKit supports Bitcoin wallet connections through WBIPs and the Bitcoin Wallet Standard. Supported wallets include Xverse, OKX, Leather, and Phantom.
+
+<Card title="Bitcoin Setup Guide" icon="bitcoin-sign" href="/appkit/networks/bitcoin">
+  Get started with Bitcoin in AppKit.
+</Card>
+
+### TON
+
+AppKit supports TON on web frameworks. You can connect TON wallets and interact with the TON network directly through the SDK.
+
+<Card title="TON Setup Guide" icon="circle-nodes" href="/appkit/networks/ton">
+  Get started with TON in AppKit.
+</Card>
+
+### TRON
+
+AppKit supports TRON on web frameworks. You can connect TRON wallets and interact with the TRON network directly through the SDK.
+
+<Card title="TRON Setup Guide" icon="circle-nodes" href="/appkit/networks/tron">
+  Get started with TRON in AppKit.
+</Card>
+
+### Polkadot
+
+AppKit supports Polkadot on Flutter. For Polkadot integration details on other platforms, refer to the [Polkadot integration guide](/advanced/multichain/polkadot/dapp-integration-guide).
+
+## Other Chains via WalletConnect Protocol
+
+Chains not listed above can still work with WalletConnect at the protocol level for dApp-wallet communication. The [WalletConnect Cloud Supported Chains](/cloud/chains/chain-list) page lists all chains available through the protocol, including Cosmos, Sui, Stacks, Near, Stellar, and more.
+
+For RPC method references on these chains, see the [Multi-Chain RPC Reference](/advanced/multichain/rpc-reference/ethereum-rpc).
+
+
+# TON
+Source: https://docs.reown.com/appkit/networks/ton
+
+
+
+The AppKit SDK supports TON (The Open Network), allowing users to connect their TON wallets to applications.
+
+**AppKit provides a simple, secure, and seamless in-app experience for users looking to transact within web3.**
+
+<Card title="Try Demo" href="https://lab.reown.com/appkit/?name=ton" />
+
+## Get Started
+
+<CardGroup>
+  <Card title="React" icon="react" href="/appkit/react/core/installation#ton">
+    Get started with AppKit in React.
+  </Card>
+
+  <Card title="Next.js" icon="square-n" href="/appkit/next/core/installation#ton">
+    Get started with AppKit in Next.js.
+  </Card>
+
+  <Card title="Vue" icon="vuejs" href="/appkit/vue/core/installation#ton">
+    Get started with AppKit in Vue.
+  </Card>
+
+  <Card title="JavaScript" icon="js" href="/appkit/javascript/core/installation#ton">
+    Get started with AppKit in JavaScript.
+  </Card>
+
+  <Card title="Svelte" icon="code" href="/appkit/svelte/core/installation#ton">
+    Get started with AppKit in Svelte.
+  </Card>
+
+  <Card title="Nuxt" icon="code" href="/appkit/nuxt/core/installation#ton">
+    Get started with AppKit in Nuxt.
+  </Card>
+</CardGroup>
+
+
+# TRON
+Source: https://docs.reown.com/appkit/networks/tron
+
+
+
+The AppKit SDK supports TRON, allowing users to connect their TRON wallets to applications.
+
+**AppKit provides a simple, secure, and seamless in-app experience for users looking to transact within web3.**
+
+<Card title="Try Demo" href="https://lab.reown.com/appkit/?name=tron" />
+
+## Get Started
+
+<CardGroup>
+  <Card title="React" icon="react" href="/appkit/react/core/installation#tron">
+    Get started with AppKit in React.
+  </Card>
+
+  <Card title="Vue" icon="vuejs" href="/appkit/vue/core/installation#tron">
+    Get started with AppKit in Vue.
+  </Card>
+
+  <Card title="JavaScript" icon="js" href="/appkit/javascript/core/installation#tron">
+    Get started with AppKit in JavaScript.
   </Card>
 </CardGroup>
 
@@ -20503,7 +21076,7 @@ All React components support the same properties as their HTML element counterpa
   <img />
 </Frame>
 
-Using the wallet button components ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR and also all the social logins.
+Using the wallet button components ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 This component allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need for the traditional modal.
 
 Follow these steps to use the component:
@@ -20587,11 +21160,11 @@ export function WalletButtons() {
 
 #### Options for wallet property
 
-| Type          | Options                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                               |
-| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `coinbase`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, and `tokenpocket` |
-| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                      |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, `haha`, `ambire-wallet`, `bitpay`, `blade-wallet`, `brave`, `coinstats`, `kresus-superapp`, `plena-app`, `status`, `tomo-wallet`, `valora`, and `zengo-wallet` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 #### Options for namespace property
 
@@ -20993,7 +21566,7 @@ This is particularly useful when you need to access Bitcoin public keys for tran
 
 The direct wallet connection hook that enables connectivity to specific wallets without opening the modal. Use this hook when you want to provide direct wallet buttons, create a customized wallet selection interface, or implement social login options.
 
-Using the wallet button hooks ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR and also all the social logins.
+Using the wallet button hooks ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 This hook allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
 Execute this command to install the library for use it:
 
@@ -21044,14 +21617,14 @@ const { isReady, isPending, connect } = useAppKitWallet({
 
 #### Options for the connect parameter
 
-AppKit supports the [top 32 wallets](https://github.com/reown-com/appkit/blob/main/packages/wallet-button/src/utils/ConstantsUtil.ts#L11-L44), WalletConnect, social logins, and email authentication:
+AppKit supports more than 40 of the top wallets globally ([see full list](https://github.com/reown-com/appkit/blob/main/packages/wallet-button/src/utils/ConstantsUtil.ts#L11-L55)), WalletConnect, social logins, and email authentication:
 
-| Type          | Options                                                                                                                                                                                                                                                                                                                                                           |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                   |
-| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, and `tokenpocket` |
-| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                          |
-| Email         | `email`                                                                                                                                                                                                                                                                                                                                                           |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, `haha`, `ambire-wallet`, `bitpay`, `blade-wallet`, `brave`, `coinstats`, `kresus-superapp`, `plena-app`, `status`, `tomo-wallet`, `valora`, and `zengo-wallet` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Email         | `email`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 #### Use Cases
 
@@ -22023,8 +22596,8 @@ Source: https://docs.reown.com/appkit/next/core/installation
 
 
 
-AppKit provides seamless integration with multiple blockchain ecosystems. . It supports [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum,
-[@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, as well as Bitcoin, TON and other networks. AppKit Core with Universal Provider library, enable compatibility across any blockchain protocol.
+AppKit provides seamless integration with multiple blockchain ecosystems. It supports [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum,
+[@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, as well as Bitcoin, TON and other networks.
 
 <Note>
   These steps are specific to [Next.js](https://nextjs.org/) app router. For other React frameworks
@@ -22033,9 +22606,15 @@ AppKit provides seamless integration with multiple blockchain ecosystems. . It s
 
 ## Installation
 
-**If you prefer referring to a video tutorial for this, please [click here](#video-tutorial).**
+Try installing AppKit Skills to get AI-assisted guidance. Your AI coding assistant can help you set up, build, and debug your AppKit integration.
 
-**Setting up from scratch? → Try out the [AppKit CLI templates](#alternative-installation) or the [AI-assisted setup](#alternative-installation).**
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 ## Custom Installation
 
@@ -23094,16 +23673,16 @@ const nextConfig = {
 If you are starting from scratch, you can use the following methods to set up your project with Reown AppKit.
 
 <AccordionGroup>
-  <Accordion title="Set up Reown AppKit using AI">
-    If you're using Cursor IDE (or another AI based IDE) to build a project with Reown AppKit, Reown provides a `.mdc` file that enhances your development experience. The `reown-appkit.mdc` [file here](https://github.com/reown-com/reown-docs/blob/main/reown-appkit.mdc) contains Cursor-specific rules and type hints for Reown AppKit.
+  <Accordion title="AppKit Skills">
+    AppKit Skills provide AI-powered assistance for building with Reown AppKit. Once installed, your AI coding assistant can help you set up, build, and debug your AppKit integration.
 
-    To use it in your project:
+    To install AppKit Skills, run the following command in your terminal:
 
-    1. Copy the `reown-appkit.mdc` file from this repository
-    2. Create a `.cursor/rules` folder in your project's root directory (if it doesn't exist)
-    3. Place the `.mdc` file in your project's `.cursor/rules` folder
+    ```bash theme={null}
+    npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+    ```
 
-    For more info, refer to [Cursor's documentation](https://docs.cursor.com/context/rules#project-rules).
+    After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
   </Accordion>
 
   <Accordion title="AppKit CLI">
@@ -25160,7 +25739,7 @@ The following list shows the theme variables you can override:
 
 ## Wallet Buttons
 
-Wallet buttons are components that allow users to connect their wallets to your dApp. They provide a simple and easy way to connect to the top 20 wallets, WalletConnect QR, and all the social logins.
+Wallet buttons are components that allow users to connect their wallets to your dApp. They provide a simple and easy way to connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 You can also call them directly using hooks. Please check the [components](/appkit/next/core/components#walletButtons) and [hooks](/appkit/next/core/hooks#useappkitwallet) documentation for more information.
 
 <Frame>
@@ -25351,12 +25930,12 @@ const paymentAssetDetails = {
 ```
 
 
-# AppKit Pay with Exchange - Next.js
+# Pay with Exchange - Next.js
 Source: https://docs.reown.com/appkit/next/payments/pay-with-exchange
 
 
 
-**AppKit Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance or Coinbase, with no new wallets, no app switching, and no lost conversions.
+**Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance, with no new wallets, no app switching, and no lost conversions.
 
 ## Quickstart
 
@@ -25483,7 +26062,7 @@ Or handle the payment result in the UI by displaying the payment status:
 
 ## Supported Networks and Assets
 
-For a complete list of supported networks and assets across different exchanges (Coinbase, Binance), please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
+For a complete list of supported networks and assets, please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
 
 ## Assets Configuration
 
@@ -26384,6 +26963,16 @@ Choose one of these to get started.
 
 ## Installation
 
+Try installing AppKit Skills to get AI-assisted guidance. Your AI coding assistant can help you set up, build, and debug your AppKit integration.
+
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
+
 <Tabs>
   <Tab title="Wagmi">
     <CodeGroup>
@@ -27145,6 +27734,18 @@ Create a new project on [Reown Dashboard](https://dashboard.reown.com) and obtai
     ```
   </Tab>
 </Tabs>
+
+## AppKit Skills
+
+AppKit Skills provide AI-powered assistance for building with Reown AppKit. Once installed, your AI coding assistant can help you set up, build, and debug your AppKit integration.
+
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 
 # Multichain
@@ -28499,7 +29100,7 @@ Source: https://docs.reown.com/appkit/nuxt/core/wallet-buttons
   <img />
 </Frame>
 
-Using the wallet button composable ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR, and all the social logins.
+Using the wallet button composable ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 
 Follow these steps to use the composable:
 
@@ -28603,11 +29204,11 @@ onMounted(() => {
 
 #### Options for wallet property
 
-| Type          | Options                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                         |
-| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, and more |
-| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, `haha`, `ambire-wallet`, `bitpay`, `blade-wallet`, `brave`, `coinstats`, `kresus-superapp`, `plena-app`, `status`, `tomo-wallet`, `valora`, and `zengo-wallet` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 
 # On-Ramp
@@ -28760,25 +29361,39 @@ function openSwaps() {
 ```
 
 
-# Overview
+# About Reown SDK
 Source: https://docs.reown.com/appkit/overview
 
 
 
-**Reown AppKit** is an open-source all-in-one SDK with a generous free tier and the official gateway to the WalletConnect Network for delivering smooth wallet connections, transactions, logins, and more within your app - designed to onboard millions and scale with data-driven precision. It abstracts the complexity of blockchain infrastructure so you can focus on building apps that users love.
+**The Reown SDK (AppKit)** is an open-source all-in-one SDK for building seamless onchain apps. Offering smooth wallet connections, transactions, logins, and more, the Reown SDK is designed to onboard millions and scale with data-driven precision. It abstracts the complexity of blockchain infrastructure so you can focus on building apps that users love.
 
-**AppKit includes:**
+**The Reown SDK (AppKit) includes:**
 
-* Onboarding through email, social logins, and wallet connections
-* Multichain compatible (EVM, Solana, Bitcoin, etc.)
-* Access 600+ wallets with millions of users
-* Transaction UX flows (chain/stablecoin abstraction)
-* Payment solutions (Pay with Wallet, Pay with Exchange, and Subscriptions)
+**Accounts & Authentication**
+
+* Connections to 600+ wallets via the WalletConnect Network (SIWE)
+* [Email & social logins](/appkit/authentication/socials)
+* [Multichain authentication (SIWX)](/appkit/authentication/siwx/default)
+* [Smart Accounts](/appkit/features/smart-accounts)
+
+**Payments Solutions**
+
+* [In-platform Swap feature](/appkit/features/swaps)
+* [In-platform Onramps](/appkit/features/onramp)
+* [Pay with Exchange](/appkit/payments/pay-with-exchange)
+* [Deposit with Exchange](/appkit/payments/deposit-with-exchange)
+
+**Multichain Tools**
+
+* [Multichain Support](/appkit/features/multichain)
+* [Chain Abstraction](/appkit/features/chain-abstraction)
+
+**Flexible Frameworks & Platform Support**
+
 * Mobile and mini-app support
 * Built-in security (transaction screening and domain verification)
-* SDKs for **React, React Native, Flutter, Kotlin, Swift, Unity**, and more
-
-<video />
+* A choice of Frameworks, including; **React, React Native, Flutter, Kotlin, Swift, Unity** & more
 
 ### Demo
 
@@ -28786,7 +29401,7 @@ Source: https://docs.reown.com/appkit/overview
 
 <br />
 
-**Ready to get started? Check out the Quickstart section [here](#quickstart). Learn more about all the features AppKit offers [here](#features).**
+**Ready to get started? Check out the Quickstart section [here](#quickstart).**
 
 ## Quickstart
 
@@ -28803,7 +29418,7 @@ Source: https://docs.reown.com/appkit/overview
     Get started with AppKit in Vue.
   </Card>
 
-  <Card title="Svelte" icon="https://mintcdn.com/reown-5552f0bb/A4W6XT2Aw01Kav72/images/icons/svelte.svg?fit=max&auto=format&n=A4W6XT2Aw01Kav72&q=85&s=3b031683d978ea838e7a9e5a1e1aeb7c" href="./svelte/core/installation">
+  <Card title="Svelte" icon="https://mintcdn.com/reown-5552f0bb/y6FfJGDgiHdFLuuy/images/icons/svelte.svg?fit=max&auto=format&n=y6FfJGDgiHdFLuuy&q=85&s=ac80fcae3436e349d376fa7598bd4d32" href="./svelte/core/installation">
     Get started with AppKit in Svelte.
   </Card>
 
@@ -28836,67 +29451,53 @@ Source: https://docs.reown.com/appkit/overview
   </Card>
 </CardGroup>
 
-## Features
+## Framework Support
 
-<Frame>
-  <img alt="AppKit banner" />
-</Frame>
+While AppKit offers a wide range of features, networks, and authentication methods that make it easy to build interactive and user-friendly blockchain applications, certain features are limited to specific frameworks.
 
-#### Framework Agnostic
+**The following table provides an overview of the features, networks, and authentication methods available in AppKit and the frameworks they support.**
 
-Integrate effortlessly with popular frameworks like React, Vue, Svelte, vanilla JavaScript, and more.
+* ✅ - indicates the feature is supported and can be integrated.
+* ❌ - indicates the feature is not supported and cannot be integrated.
 
-#### EIP-6963 Support
+|                      | React              | Next.js            | Vue                | JavaScript         | React Native       | Flutter            | Android            | Swift              | Unity (Web)        | Unity (Native)     |
+| -------------------- | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ | ------------------ |
+| ***Features***       |                    |                    |                    |                    |                    |                    |                    |                    |                    |                    |
+| Swaps (EVM Only)     | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>❌</center> |
+| On-Ramp              | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>❌</center> |
+| Multichain Modal     | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
+| Smart Accounts       | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>✅</center> |
+| Notifications        | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
+| Telegram Mini Apps   | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>❌</center> |
+| ***Networks***       |                    |                    |                    |                    |                    |                    |                    |                    |                    |                    |
+| EVM Chains           | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> |
+| Solana               | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> |
+| Bitcoin              | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
+| ***Authentication*** |                    |                    |                    |                    |                    |                    |                    |                    |                    |                    |
+| Email & Social Login | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>✅</center> | <center>✅</center> |
+| One-Click Auth       | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> |
+| SIWX                 | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>✅</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> | <center>❌</center> |
 
-Seamlessly connect browser extension wallets for an enhanced user experience. Learn more about **EIP-6963 [here](https://eips.ethereum.org/EIPS/eip-6963).**
+## Reown SDK (AppKit) vs AppKit Core
 
-#### Email & Social Login
+### What is AppKit Core?
 
-Expand your app’s reach by enabling users to connect using their email or social accounts. Implement these features with minimal code and leverage Smart Account functionality for advanced capabilities.
+AppKit Core is a **chain-agnostic** implementation that uses the Universal Provider/Universal Connector for blockchain interactions. Whereas the Reown SDK (AppKit) includes chain-specific adapters and full UI, AppKit Core offers a minimal, chain-agnostic foundation.
 
-#### On-Ramp
+The Reown SDK is best for most builders, but AppKit Core is ideal for developers who want to build more flexible custom-built solutions—those that don't need built-in features from day one.
 
-Allow users to securely purchase crypto with fiat, directly within your app, supporting over 100 cryptocurrencies.
+***
 
-#### Customizable UI
-
-Choose between light and dark modes, accent colors, or fully customize the interface with your own branding.
-
-#### Multi-Chain Ready
-
-Easily configure support for EVM and non-EVM chains, giving users access to multiple blockchain networks.
-
-#### Hundreds of Wallets
-
-Connect with popular wallets like MetaMask, Rainbow, Coinbase, and many more to maximize accessibility.
-
-#### Transaction History
-
-Display all user transactions directly in the account view for added transparency.
-
-#### Swaps
-
-Simplify token swapping for users with AppKit Modal, allowing secure, in-app swaps with just one line of code.
-
-#### One-Click Auth
-
-Streamline user authentication with WalletConnect v2 integration. Users can sign in and connect to your app with just one tap, supporting multi-chain and multi-account signing.
-
-#### Smart Accounts
-
-Enhance security and user convenience with features like multi-signature authorization and automated transaction workflows.
-
-#### Solana Support
-
-Bring the Solana blockchain to your application with simple, secure wallet connections and seamless transaction support.
-
-#### Notifications
-
-Engage your users with web3-native notifications sent straight to their wallets or through in-app and Web3Inbox notifications.
-
-#### Telegram MiniApps
-
-Build Web3 mini-apps for Telegram with a prebuilt interface for connecting self-custodial wallets or enabling wallet creation via email or social login.
+| Feature                                       | Reown SDK (AppKit) | AppKit Core |
+| :-------------------------------------------- | :----------------: | :---------: |
+| Swaps                                         |          ✅         |      ❌      |
+| Onramps                                       |          ✅         |      ❌      |
+| Smart Accounts                                |          ✅         |      ❌      |
+| Pre-Built Modal UI                            |          ✅         |      ❌      |
+| Chain-specific adapters                       |          ✅         |      ❌      |
+| Wallet Connections via WalletConnect Protocol |          ✅         |      ✅      |
+| Multichain support                            |          ✅         |      ✅      |
+| Multichain auth (SIWX)                        |          ✅         |      ✅      |
 
 
 # Enterprise Plan
@@ -29134,88 +29735,52 @@ For access to additional networks or assets, contact us [via our form here](http
 </CardGroup>
 
 
-# One-Click Checkout
-Source: https://docs.reown.com/appkit/payments/one-click-checkout
-
-
-
-**AppKit Pay One-Click Checkout** enables lightning-fast crypto payments with just **one tap**; no manual wallet connections, no network switching, and no guesswork.
-
-<Frame>
-  <video />
-</Frame>
-
-Designed for mobile-first commerce, this feature uses Reown's vast ecosystem of wallets and onchain UX infrastructure to deliver:
-
-* **Instant wallet recognition**: Automatically detects the user’s preferred wallet.
-* **Pre-filled transaction details**: No need to copy/paste, scan QR codes, or toggle apps.
-* **Conversion-optimized UX**: Fewer steps = more completed payments.
-
-Perfect for merchants and payment providers who want to **maximize conversions** and offer a **modern checkout experience** that rivals Web2.
-
-***One click. One user journey. Zero friction.***
-
-<Note>
-  This feature is currently in early access and is about to launch soon.     Wallets will need to support `wallet_checkout` method for this feature to work as expected.
-
-  We recommend checking with us to ensure that target wallet providers support the necessary functionality. If you are interested in getting early access or learning more, contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s).
-</Note>
-
-
 # Payments
 Source: https://docs.reown.com/appkit/payments/overview
 
 
 
-**Reown** is building the payment connective layer for the financial internet, unlocking stablecoin-native flows for any token source: wallets, exchanges or fiat.
+Reown offers a comprehensive Payments toolkit, supporting all levels of users, multiple chains and diverse asset types. Instead of a single rigid flow, Reown provides modular solutions for different financial needs, giving you access to hundreds of millions of users via 600+ wallets and multiple exchanges, with support for EVM, Bitcoin, Solana, Ton and Tron networks.
 
-Today’s payment stack is fragmented. **Reown aims to tie it together**. With one integration using our SDK, platforms can accept value from wherever users hold it and turn it into deposits, purchases, or investments.
+Reown's all-in-one toolkit for creating seamless payment flows includes:
 
-This is **only possible through WalletConnect**, the connective layer that lets any wallet, on any chain, connect to any platform, securely and at scale. Reown transforms this universal access into universal payment rails; powering seamless, secure and globally compliant payments
+1. **Onramps**: Let users buy cryptocurrencies with fiat currencies, like dollars or euros directly in-app.
 
-These solutions provided by Reown give providers access to hundreds of millions of users via 600+ wallets and multiple exchanges, with support for EVM, Bitcoin, and Solana.
+2. **Swaps**: Let users swap coins and tokens seamlessly, directly in-app.
 
-<Frame>
-  <video />
-</Frame>
+3. **Pay with Self Custodial Wallet**: Let users pay with their self custodial wallets like MetaMask, Trust, Ledger, and more. This flow is bundled together with the **Pay with Exchange** flow.
 
-## Current Problems with Payments
+4. **Pay with Exchange**: Let users pay directly from Centralized Exchanges (CEXs) like Binance.
 
-**Users hold value everywhere but businesses are stuck building for each source in isolation.**
+5. **Deposit with Exchange**: Let users deposit funds into their Centralized Exchanges (CEXs) wallets, like Binance, directly in-app.
 
-1. **Fragmented token sources**: Wallets, exchanges, and fiat on-ramps all require separate payment flows.
-2. **UX friction**: Copy-pasting, KYC loops, and gas confusion kill conversion, especially on mobile.
-3. **Feature silos**: Staking, deposits, and investments need distinct integrations, slowing time-to-market.
-
-**As a result, companies either build wallet-only flows or maintain costly parallel stacks. A unifying rail across all capital source is missing.**
-
-## How Reown Solves These Problems
-
-Reown powers modern payment experiences like:
-
-1. **Pay with Self Custodial Wallet**: Let users pay with their self custodial wallets like MetaMask, Trust, Ledger, and more. This flow is bundled together with the **Pay with Exchange** flow.
-
-2. **Pay with Exchange**: Let users pay directly from Centralized Exchanges (CEXs) like Binance, Coinbase, and more.
-
-3. **1-Click Checkout**: Fast, mobile-optimized, self-custodial and crypto native checkout flows (coming soon).
+## Payment feature demos
 
 <Frame>
   <video />
 </Frame>
 
-With **multi-platform SDKs**, **battle-tested infrastructure**, and **exclusive analytics**, AppKit Pay helps payment providers reduce integration time, improve conversion, and stay ahead of the competition—without building from scratch.
-
-***One integration. Infinite reach. Real crypto payments, done right.***
+<Frame>
+  <video />
+</Frame>
 
 ## Get Started
 
 <CardGroup>
-  <Card title="Pay with Exchange and Self Custodial Wallets" icon="money-check-dollar" href="/appkit/payments/pay-with-exchange">
-    Get started with AppKit Pay with Exchange and self-custodial wallets.
+  <Card title="Onramps" icon="cart-plus" href="/appkit/features/onramp">
+    Get started with Reown Onramps.
   </Card>
 
-  <Card title="One-Click Checkout" icon="cart-shopping" href="/appkit/payments/one-click-checkout">
-    Get started with AppKit Pay One-Click Checkout.
+  <Card title="Swaps" icon="rotate" href="/appkit/features/swaps">
+    Get started with Reown Swaps.
+  </Card>
+
+  <Card title="Pay with Exchange and Self Custodial Wallets" icon="money-check-dollar" href="/appkit/payments/pay-with-exchange">
+    Get started with Pay with Exchange and self-custodial wallets.
+  </Card>
+
+  <Card title="Deposit with Exchange" icon="building-columns" href="/appkit/payments/deposit-with-exchange">
+    Get started with Deposit with Exchange.
   </Card>
 </CardGroup>
 
@@ -29225,10 +29790,10 @@ Source: https://docs.reown.com/appkit/payments/pay-with-exchange
 
 
 
-**AppKit Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their **Centralized Exchange (CEX) accounts** like Binance or Coinbase, **with no new wallets, no app switching, and no lost conversions.** This flow is bundled together with the **Pay with Self-Custodial Wallets** flow.
+**Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their **Centralized Exchange (CEX) accounts** like Binance, **with no new wallets, no app switching, and no lost conversions.** This flow is bundled together with the **Pay with Self-Custodial Wallets** flow.
 
 <Warning>
-  Coinbase is currently not available in the AppKit Pay with Exchange flow. Further information will be available soon.
+  Currently, Binance is the only exchange compatible with the Pay with Exchange flow, but we will be adding more centralized exchanges in the future.
 </Warning>
 
 <Frame>
@@ -29251,7 +29816,7 @@ With **72% of crypto users holding funds on exchanges**, **Pay with Exchange** h
 
 ## Demo
 
-Want to see AppKit Pay with Exchange in action? Try out the live demo to experience Reown AppKit's AppKit Pay with Exchange flow firsthand.
+Want to see Pay with Exchange in action? Try out the live demo to experience Reown's Pay with Exchange flow firsthand.
 
 <CardGroup>
   <Card icon="flask" title="Try Demo" href="https://appkit-pay-ecommerce-demo.reown.com" />
@@ -29259,18 +29824,9 @@ Want to see AppKit Pay with Exchange in action? Try out the live demo to experie
 
 ## Networks and Assets Supported
 
-Currently, AppKit Pay with Exchange and Self-Custodial Wallets supports the following assets on the following networks:
+Currently, Pay with Exchange and Self-Custodial Wallets supports the following assets on the following networks:
 
 **Asset -> Network**
-
-<Warning>
-  Coinbase is currently not available in the AppKit Pay with Exchange flow. Further information will be available soon.
-</Warning>
-
-**Coinbase**
-
-* USDC -> Ethereum, Optimism, Arbitrum, Base, Polygon, Solana
-* USDT -> Ethereum
 
 **Binance**
 
@@ -29282,27 +29838,27 @@ Currently, AppKit Pay with Exchange and Self-Custodial Wallets supports the foll
 
 For access to additional networks or assets, contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s).
 
-## Interested in getting early access?
+## Interested in Pay with Exchange?
 
-This feature is currently in early access. If you are **interested in getting early access** or learning more, **contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s).**
+This feature is for Enterprise clients only. If you're interested in joining our Enterprise tier, please fill out our [contact form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s).
 
 ## Get Started
 
 <CardGroup>
   <Card title="React" icon="react" href="/appkit/react/payments/pay-with-exchange">
-    Get started with AppKit Pay with Exchange and self-custodial wallets in React.
+    Get started with Pay with Exchange and self-custodial wallets in React.
   </Card>
 
   <Card title="Next.js" icon="square-n" href="/appkit/next/payments/pay-with-exchange">
-    Get started with AppKit Pay with Exchange and self-custodial wallets in Next.js.
+    Get started with Pay with Exchange and self-custodial wallets in Next.js.
   </Card>
 
   <Card title="Vue" icon="vuejs" href="/appkit/vue/payments/pay-with-exchange">
-    Get started with AppKit Pay with Exchange and self-custodial wallets in Vue.
+    Get started with Pay with Exchange and self-custodial wallets in Vue.
   </Card>
 
   <Card title="JavaScript" icon="js" href="/appkit/javascript/payments/pay-with-exchange">
-    Get started with AppKit Pay with Exchange and self-custodial wallets in JavaScript.
+    Get started with Pay with Exchange and self-custodial wallets in JavaScript.
   </Card>
 </CardGroup>
 
@@ -29310,7 +29866,7 @@ This feature is currently in early access. If you are **interested in getting ea
 
 <AccordionGroup>
   <Accordion title="What is 'Pay with Exchange'?">
-    Pay with Exchange is a flow that allows users to pay in crypto directly from their Centralized Exchange (CEX) accounts; starting with **Binance** and **Coinbase**.
+    Pay with Exchange is a flow that allows users to pay in crypto directly from their Centralized Exchange (CEX) accounts, starting with **Binance**.
 
     It allows users to complete payments without needing to move funds into a wallet first.
   </Accordion>
@@ -29322,11 +29878,7 @@ This feature is currently in early access. If you are **interested in getting ea
   </Accordion>
 
   <Accordion title="Which exchanges are supported?">
-    Coinbase and Binance. More exchanges will be added, so contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s) to inquire.
-
-    <Warning>
-      Coinbase is currently not available in the AppKit Pay with Exchange flow. Further information will be available soon.
-    </Warning>
+    Currently, Binance is the only exchange compatible with the Pay with Exchange flow, but we will be adding more centralized exchanges in the future. Contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s) to inquire.
   </Accordion>
 
   <Accordion title="What crypto assets and networks are supported?">
@@ -33487,7 +34039,7 @@ Both components accept the following optional props:
   <img />
 </Frame>
 
-Using the wallet button components ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR, and all the social logins.
+Using the wallet button components ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 This component allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
 
 Follow these steps to use the component:
@@ -33573,11 +34125,11 @@ export function WalletConnector() {
 
 #### Options for wallet property
 
-| Type          | Options                                                                                                                                                                                                                                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | walletConnect                                                                                                                                                                                                                                                                                              |
-| Wallets       | metamask, trust, coinbase, rainbow, coinbase, jupiter, solflare, coin98, magic-eden, backpack, frontier, xverse, okx, bitget, leather, binance, uniswap, safepal, bybit, phantom, ledger, timeless-x, safe, zerion, oneinch, crypto-com, imtoken, kraken, ronin, robinhood, exodus, argent and tokenpocket |
-| Social logins | google, github, apple, facebook, x, discord and farcaster                                                                                                                                                                                                                                                  |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | walletConnect                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Wallets       | metamask, trust, coinbase, rainbow, jupiter, solflare, coin98, magic-eden, backpack, frontier, xverse, okx, bitget, leather, binance, uniswap, safepal, bybit, phantom, ledger, timeless-x, safe, zerion, oneinch, crypto-com, imtoken, kraken, ronin, robinhood, exodus, argent, tokenpocket, haha, ambire-wallet, bitpay, blade-wallet, brave, coinstats, kresus-superapp, plena-app, status, tomo-wallet, valora, and zengo-wallet |
+| Social logins | google, github, apple, facebook, x, discord and farcaster                                                                                                                                                                                                                                                                                                                                                                             |
 
 #### Options for namespace property
 
@@ -33730,6 +34282,401 @@ customRpcUrls: {
 ```
 
 AppKit will prioritize these URLs over the default ones.
+
+
+# Headless
+Source: https://docs.reown.com/appkit/react/core/headless
+
+
+
+<Frame>
+  <img alt="Descriptive alt text" />
+</Frame>
+
+<Note>
+  Headless is available on paid plans only. Contact us [via our form here](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s) to get access.
+</Note>
+
+AppKit Headless allows developers to build a fully customizable "Connect" experience powered by AppKit's existing features without using the AppKit modal. Headless exposes wallet discovery, rendering WalletConnect QR codes, and social provider flows via simple hooks and utility functions.
+
+## Installation
+
+Headless requires AppKit to be configured with the `headless` flag. See the [installation](./installation) docs before getting started and make sure you're enabling headless as expected.
+
+```tsx theme={null}
+createAppKit({
+  ...
+  features: {
+    headless: true
+  }
+})
+```
+
+## useAppKitWallets
+
+The essential hook for accessing all types of wallets and methods to build your custom connection user interface.
+
+<CodeGroup>
+  ```tsx useAppKitWallets.tsx theme={null}
+  const { wallets, wcWallets, isFetchingWallets, isFetchingWcUri, isInitialized, wcUri, connectingWallet, page, count, fetchWallets, connect, resetWcUri } =
+    useAppKitWallets()
+  ```
+</CodeGroup>
+
+### Returns
+
+<ResponseField name="wallets" type="WalletItem[]">
+  List of wallets for the initial connect view including WalletConnect wallets and injected wallets
+  together. If the user doesn't have any injected wallets, it'll fill the list with the most ranked
+  WalletConnect wallets.
+</ResponseField>
+
+<ResponseField name="wcWallets" type="WalletItem[]">
+  List of WalletConnect wallets from Wallet Guide API. Useful to display all available WalletConnect
+  wallets in a separate Search Wallets view.
+</ResponseField>
+
+<ResponseField name="isFetchingWallets" type="boolean">
+  Boolean that indicates if WalletConnect wallets are being fetched.
+</ResponseField>
+
+<ResponseField name="isFetchingWcUri" type="boolean">
+  Boolean that indicates if a WalletConnect URI is being fetched.
+</ResponseField>
+
+<ResponseField name="isInitialized" type="boolean">
+  Boolean that indicates if the AppKit is initialized. It's useful to render a fallback UI when the
+  AppKit initializes and detects all injected wallets.
+</ResponseField>
+
+<ResponseField name="wcUri" type="string | undefined">
+  The current WalletConnect URI for QR code display. This is set when connecting to a WalletConnect
+  wallet. Reset with resetWcUri().
+</ResponseField>
+
+<ResponseField name="connectingWallet" type="WalletItem | undefined">
+  The wallet currently being connected to. This is set when a connection is initiated and cleared
+  when it completes or fails. For WalletConnect wallets, resetWcUri() should be called to clear the
+  state.
+</ResponseField>
+
+<ResponseField name="page" type="number">
+  The current page number of WalletConnect wallets.
+</ResponseField>
+
+<ResponseField name="count" type="number">
+  The total number of available WalletConnect wallets based on the AppKit configurations and given
+  parameters.
+</ResponseField>
+
+<ResponseField name="fetchWallets" type="(options?: { page?: number; query?: string; }) => Promise<void>">
+  Function to fetch WalletConnect wallets from the explorer API. Allows you to list, search, and
+  paginate through the wallets.
+</ResponseField>
+
+<ResponseField name="connect" type="(wallet: WalletItem, namespace?: ChainNamespace) => Promise<void>">
+  Function to connect to a wallet. For WalletConnect wallets: initiates WC connection and returns
+  the URI with the `wcUri` state. For injected connectors: triggers the extension/wallet directly.
+</ResponseField>
+
+<ResponseField name="resetWcUri" type="() => void">
+  Function to reset the WC URI. Useful to keep the `connectingWallet` state in sync with the WC URI.
+  Can be called when the QR code is closed.
+</ResponseField>
+
+# Examples
+
+## Build a Connect UI
+
+<Frame>
+  <img alt="Descriptive alt text" />
+</Frame>
+
+The `useAppKitWallets` hook returns a list of injected and WalletConnect wallets that let you render directly in the connect page.
+
+If you configure your AppKit as multi-chain, we suggest rendering a namespace selection component where users should select which namespace to connect when using browser extensions. This could be achieved with the `connectors` array of the `WalletItem`.
+
+If a user selects a WalletConnect wallet, you can show the QR code to the users and let them scan it with their preferred wallets. To handle the QR flows, you can use the `isFetchingWcUri`, `wcUri`, and `resetWcUri` props from the `useAppKitWallets` hook.
+
+<CodeGroup>
+  ```tsx ConnectView.tsx theme={null}
+  import React, { useState } from 'react'
+  import type { WalletItem } from '@reown/appkit'
+  import type { ChainNamespace } from '@reown/appkit/networks'
+  import { useAppKitWallets } from '@reown/appkit/react'
+  import { NamespaceSelectionDialog } from './NamespaceDialog'
+  import { WalletConnectQRDialog } from './WalletConnectQRDialog'
+
+  function ConnectView() {
+    const { wallets, connect } = useAppKitWallets()
+    const [selectedWallet, setSelectedWallet] = useState<WalletItem | null>(null)
+
+    async function handleConnect(wallet: WalletItem, namespace?: ChainNamespace) {
+      await connect(wallet, namespace)
+        .then(() => {
+          toast({ title: 'Connected', status: 'success' })
+        })
+        .catch(() => {
+          toast({ title: 'Connection declined', status: 'error' })
+        })
+    }
+
+    return (
+      <>
+        {wallets.map(wallet => (
+          <WalletListItem
+            key={wallet.id}
+            wallet={wallet}
+            onConnect={() => {
+              if (wallet.connectors.length > 1) {
+                setSelectedWallet(wallet)
+              } else {
+                handleConnect(wallet, wallet.connectors[0]?.chain)
+              }
+            }}
+          />
+        ))}
+        <NamespaceSelectionDialog
+          wallet={selectedWallet}
+          onSelect={handleConnect}
+          onClose={() => setSelectedWallet(null)}
+        />
+        <WalletConnectQRDialog />
+      </>
+    )
+  }
+  ```
+
+  ```tsx WalletListItem.tsx theme={null}
+  export function WalletListItem({ wallet, onConnect }) {
+    const { connectingWallet } = useAppKitWallets()
+
+    return (
+      <button onClick={onConnect}>
+        <img url={wallet.imageUrl} />
+        <span>{wallet.name}</span>
+        {wallet.connectors.map(item => {
+          return <img {item.chainImageUrl} alt={item.chain} />
+        })}
+        {connectingWallet?.id === wallet.id ? "connecting..." : null}
+      </button>
+    )
+  }
+  ```
+
+  ```tsx NamespaceDialog.tsx theme={null}
+  import { ChevronRightIcon } from 'lucide-react'
+  import Image from 'next/image'
+
+  import type { WalletItem } from '@reown/appkit'
+  import type { ChainNamespace } from '@reown/appkit/networks'
+
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+  } from '@/components/ui/dialog'
+  import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item'
+
+  interface NamespaceSelectionDialogProps {
+    wallet: WalletItem | null
+    onSelect?: (wallet: WalletItem, namespace: ChainNamespace) => void
+    onClose?: () => void
+  }
+
+  const CHAIN_NAME_MAP: Record<string, string> = {
+    eip155: 'EVM Networks',
+    solana: 'Solana',
+    polkadot: 'Polkadot',
+    bip122: 'Bitcoin',
+    cosmos: 'Cosmos',
+    sui: 'Sui',
+    stacks: 'Stacks',
+    ton: 'TON'
+  }
+
+  export function NamespaceSelectionDialog({
+    wallet,
+    onSelect,
+    onClose
+  }: NamespaceSelectionDialogProps) {
+    if (!wallet) return null
+
+    return (
+      <Dialog open={!!wallet} onOpenChange={open => !open && onClose?.()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect to {wallet.name}</DialogTitle>
+            <DialogDescription>
+              {wallet.name} supports multiple chains. Select a chain you want to connect to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {wallet.connectors.map(connector => (
+              <Item key={connector.chain} onClick={() => onSelect?.(wallet, connector.chain)}>
+                {connector.chainImageUrl && (
+                  <ItemMedia className="rounded-md overflow-hidden w-8 h-8">
+                    <Image
+                      src={connector.chainImageUrl}
+                      alt={connector.chain}
+                      width={32}
+                      height={32}
+                    />
+                  </ItemMedia>
+                )}
+                <ItemContent>
+                  <ItemTitle>{CHAIN_NAME_MAP[connector.chain] || connector.chain}</ItemTitle>
+                </ItemContent>
+                <ItemActions>
+                  <ChevronRightIcon className="size-4" />
+                </ItemActions>
+              </Item>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+  ```
+
+  ```tsx WalletConnectQRDialog.tsx theme={null}
+  import QRCode from 'react-qr-code'
+  import Image from 'next/image'
+  import { Loader2Icon } from 'lucide-react'
+
+  import { useAppKitWallets } from '@reown/appkit/react'
+
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+  } from '@/components/ui/dialog'
+
+  export function WalletConnectQRDialog() {
+    const { wcUri, connectingWallet, isFetchingWcUri, resetWcUri } = useAppKitWallets()
+
+    if (!connectingWallet || connectingWallet.isInjected) {
+      return null
+    }
+
+    return (
+      <Dialog
+        open={Boolean(wcUri)}
+        onOpenChange={open => {
+          if (!open) {
+            resetWcUri()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <Image
+                src={connectingWallet.imageUrl}
+                alt={connectingWallet.name}
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <DialogTitle>Connect to {connectingWallet.name}</DialogTitle>
+            </div>
+            <DialogDescription>
+              Scan the QR code with {connectingWallet.name} to connect to your app.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-6">
+            {isFetchingWcUri ? (
+              <Loader2Icon className="animate-spin size-8" />
+            ) : (
+              <QRCode
+                value={wcUri}
+                size={256}
+                style={{ height: 'auto', maxWidth: '100%', width: 'auto' }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+  ```
+</CodeGroup>
+
+## Search and Connect to WalletConnect Wallets
+
+<Frame>
+  <img alt="Descriptive alt text" />
+</Frame>
+
+WalletConnect supports 500+ wallets. You can let users search for their own wallets to connect to your app.
+
+<CodeGroup>
+  ```tsx AllWalletsView.tsx theme={null}
+  import React, { useState, useEffect } from 'react'
+  import { useAppKitWallets } from '@reown/appkit/react'
+
+  function AllWalletsView() {
+    const { wcWallets, isFetchingWcUri, isFetchingWallets, fetchWallets, connect, page } =
+      useAppKitWallets()
+    const [inputValue, setInputValue] = useState('')
+    const searchQuery = useDebounceValue(inputValue, 500)
+
+    useEffect(() => {
+      fetchWallets?.()
+    }, [])
+
+    useEffect(() => {
+      if (searchQuery.length > 0) {
+        fetchWallets?.({ query: searchQuery })
+      } else {
+        fetchWallets?.()
+      }
+    }, [searchQuery])
+
+    function handleLoadMore() {
+      if (searchQuery.length > 0) {
+        fetchWallets?.({ page: page + 1, query: searchQuery })
+      } else {
+        fetchWallets?.({ page: page + 1 })
+      }
+    }
+
+    return (
+      <>
+        <input
+          type="text"
+          placeholder="Search wallets..."
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+        />
+        {isFetchingWallets && <div>Loading wallets...</div>}
+        {wcWallets.map(wallet => {
+          return <WalletListItem key={wallet.id} wallet={wallet} onConnect={connect} />
+        })}
+        <button onClick={handleLoadMore} disabled={isFetchingWallets}>
+          Load More
+        </button>
+      </>
+    )
+  }
+  ```
+</CodeGroup>
+
+## Demo
+
+<Columns>
+  <Card title="Headless Playground" icon="cubes" href="https://appkit-headless.vercel.app">
+    You can check our demo app to play around with an example Headless implementation
+  </Card>
+
+  <Card title="Source code" icon="github" href="https://github.com/reown-com/appkit/tree/main/examples/next-appkit-headless">
+    See the source code of the example Headless implementation.
+  </Card>
+</Columns>
 
 
 # Hooks
@@ -33981,7 +34928,7 @@ This is particularly useful when you need to access Bitcoin public keys for tran
 
 The direct wallet connection hook that enables connectivity to specific wallets without opening the modal. Use this hook when you want to provide direct wallet buttons, create a customized wallet selection interface, or implement social login options.
 
-Using the wallet button hooks ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR and also all the social logins.
+Using the wallet button hooks ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 This hook allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
 Execute this command to install the library for use it:
 
@@ -34032,14 +34979,14 @@ const { isReady, isPending, connect } = useAppKitWallet({
 
 #### Options for the connect parameter
 
-AppKit supports the [top 32 wallets](https://github.com/reown-com/appkit/blob/main/packages/wallet-button/src/utils/ConstantsUtil.ts#L11-L44), WalletConnect, social logins, and email authentication:
+AppKit supports more than 40 of the top wallets globally ([see full list](https://github.com/reown-com/appkit/blob/main/packages/wallet-button/src/utils/ConstantsUtil.ts#L11-L55)), WalletConnect, social logins, and email authentication:
 
-| Type          | Options                                                                                                                                                                                                                                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | walletConnect                                                                                                                                                                                                                                                                                              |
-| Wallets       | metamask, trust, coinbase, rainbow, coinbase, jupiter, solflare, coin98, magic-eden, backpack, frontier, xverse, okx, bitget, leather, binance, uniswap, safepal, bybit, phantom, ledger, timeless-x, safe, zerion, oneinch, crypto-com, imtoken, kraken, ronin, robinhood, exodus, argent and tokenpocket |
-| Social logins | google, github, apple, facebook, x, discord and farcaster                                                                                                                                                                                                                                                  |
-| Email         | email                                                                                                                                                                                                                                                                                                      |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | walletConnect                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Wallets       | metamask, trust, coinbase, rainbow, jupiter, solflare, coin98, magic-eden, backpack, frontier, xverse, okx, bitget, leather, binance, uniswap, safepal, bybit, phantom, ledger, timeless-x, safe, zerion, oneinch, crypto-com, imtoken, kraken, ronin, robinhood, exodus, argent, tokenpocket, haha, ambire-wallet, bitpay, blade-wallet, brave, coinstats, kresus-superapp, plena-app, status, tomo-wallet, valora, and zengo-wallet |
+| Social logins | google, github, apple, facebook, x, discord and farcaster                                                                                                                                                                                                                                                                                                                                                                             |
+| Email         | email                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 #### Enhanced Multichain Examples
 
@@ -35339,15 +36286,19 @@ Source: https://docs.reown.com/appkit/react/core/installation
 
 
 AppKit provides seamless integration with multiple blockchain ecosystems. It supports [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum,
-[@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, as well as Bitcoin, TON and other networks. AppKit Core with Universal Provider library, enable compatibility across any blockchain protocol.
-
-Choose one of these to get started.
+[@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, as well as Bitcoin, TON, TRON and other networks.
 
 ## Installation
 
-**If you prefer referring to a video tutorial for this, please [click here](#video-tutorial).**
+Try installing AppKit Skills to get AI-assisted guidance. Your AI coding assistant can help you set up, build, and debug your AppKit integration.
 
-**Setting up from scratch? → Try out the [AppKit CLI templates](#alternative-installation) or the [AI-assisted setup](#alternative-installation).**
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 ## Custom Installation
 
@@ -35479,6 +36430,26 @@ Choose one of these to get started.
     </CodeGroup>
   </Tab>
 
+  <Tab title="TRON">
+    <CodeGroup>
+      ```bash npm theme={null}
+      npm install @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash Yarn theme={null}
+      yarn add @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash Bun theme={null}
+      bun add @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash pnpm theme={null}
+      pnpm add @reown/appkit @reown/appkit-adapter-tron
+      ```
+    </CodeGroup>
+  </Tab>
+
   <Tab title="Others networks (AppKit Core)">
     <CodeGroup>
       ```bash npm theme={null}
@@ -35510,30 +36481,56 @@ Create a new project on [Reown Dashboard](https://dashboard.reown.com) and obtai
 
 ## Implementation
 
-### `AppKitProvider` Component
+AppKit providers two different approaches on React to initialize it.
 
-AppKit now provides an `AppKitProvider` React component for easy integration in React applications. This component wraps your app and provides the AppKit context to all child components.
+<Tabs>
+  <Tab title="AppKitProvider">
+    Use `AppKitProvider` React component for easy integration in React applications. This component wraps your app and provides the AppKit context to all child components.
 
-```tsx theme={null}
-import { AppKitProvider } from '@reown/appkit/react'
+    ```tsx theme={null}
+    import { AppKitProvider } from '@reown/appkit/react'
 
-function App() {
-  return (
-    <AppKitProvider
-      projectId="YOUR_PROJECT_ID"
-      networks={
-        [
-          /* Your Networks */
-        ]
-      }
-    >
-      {/* Your App */}
-    </AppKitProvider>
-  )
-}
-```
+    function App() {
+      return (
+        <AppKitProvider
+          projectId="YOUR_PROJECT_ID"
+          networks={
+            [
+              /* Your Networks */
+            ]
+          }
+        >
+          {/* Your App */}
+        </AppKitProvider>
+      )
+    }
+    ```
+  </Tab>
 
-### Framework Specific Implementation
+  <Tab title="createAppKit">
+    Use `createAppKit` method from `@reown/appkit/react` to initialize AppKit instance and call it on the root of your application with desired parameters depending on your use case.
+
+    ```tsx theme={null}
+    import { createAppKit } from '@reown/appkit/react'
+
+    createAppKit({
+      networks: [
+        /* Your networks */
+      ],
+      adapters: [
+        /* Your adapters */
+      ],
+      ...appKitProps
+    })
+
+    function App() {
+      return <>{children}</>
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Adapter Configuration
 
 <Tabs>
   <Tab title="Wagmi">
@@ -35977,6 +36974,218 @@ function App() {
     ```
   </Tab>
 
+  <Tab title="TRON">
+    AppKit TRON provides a set of React components and hooks to easily connect TRON wallets with your application.
+
+    On top of your app set up the following configuration, making sure that all functions are called outside any React component to avoid unwanted rerenders.
+
+    ```tsx theme={null}
+    // App.tsx
+    import { createAppKit } from '@reown/appkit/react'
+    import { TronAdapter } from '@reown/appkit-adapter-tron'
+    import { tronMainnet, tronShastaTestnet } from '@reown/appkit/networks'
+
+    // Import wallet adapters you want to support
+    import { TronLinkAdapter } from '@tronweb3/tronwallet-adapter-tronlink'
+
+    // 1. Get projectId from https://dashboard.reown.com
+    const projectId = 'YOUR_PROJECT_ID'
+
+    // 2. Set the networks
+    const networks = [tronMainnet, tronShastaTestnet]
+
+    // 3. Set up TRON Adapter with wallet adapters
+    const tronAdapter = new TronAdapter({
+      walletAdapters: [
+        new TronLinkAdapter({
+          openUrlWhenWalletNotFound: false,
+          checkTimeout: 3000
+        })
+      ]
+    })
+
+    // 4. Create a metadata object - optional
+    const metadata = {
+      name: 'AppKit',
+      description: 'AppKit TRON Example',
+      url: 'https://example.com', // origin must match your domain & subdomain
+      icons: ['https://avatars.githubusercontent.com/u/179229932']
+    }
+
+    // 5. Create modal
+    createAppKit({
+      adapters: [tronAdapter],
+      networks,
+      metadata,
+      projectId,
+      features: {
+        analytics: true, // Optional - defaults to your Dashboard configuration
+        email: false,
+        socials: []
+      }
+    })
+
+    export default function App() {
+      return <YourApp />
+    }
+    ```
+
+    ## Install Wallet Adapters
+
+    TRON adapter requires you to install wallet adapters separately. This gives you control over which wallets to support and reduces bundle size.
+
+    <Tabs>
+      <Tab title="TronLink">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-tronlink
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="MetaMask">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Trust Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-trust
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="OKX Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="BitKeep">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Binance Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-binance
+          ```
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+
+    <Note>
+      For a complete list of available TRON wallet adapters, visit the [official wallet adapter documentation](https://walletadapter.org/docs/guide/wallet-reference.html).
+    </Note>
+
+    ### Using Multiple Wallet Adapters
+
+    After installing your desired wallet adapters, import and add them to the `walletAdapters` array when creating the TRON adapter:
+
+    ```tsx theme={null}
+    import { TronLinkAdapter } from '@tronweb3/tronwallet-adapter-tronlink'
+    import { MetaMaskAdapter } from '@tronweb3/tronwallet-adapter-metamask-tron'
+    import { TrustAdapter } from '@tronweb3/tronwallet-adapter-trust'
+    import { OkxWalletAdapter } from '@tronweb3/tronwallet-adapter-okxwallet'
+
+    const tronAdapter = new TronAdapter({
+      walletAdapters: [
+        new TronLinkAdapter({
+          openUrlWhenWalletNotFound: false,
+          checkTimeout: 3000
+        }),
+        new MetaMaskAdapter(),
+        new TrustAdapter(),
+        new OkxWalletAdapter({
+          openUrlWhenWalletNotFound: false
+        })
+      ]
+    })
+    ```
+  </Tab>
+
   <Tab title="Others networks (AppKit Core)">
     <Card title="AppKit Core Example" icon="github" href="https://github.com/reown-com/appkit-web-examples/tree/main/react/react-core-universal-connector">
       Check the React AppKit Core example for Sui
@@ -36292,16 +37501,16 @@ function App() {
 If you are starting from scratch, you can use the following methods to set up your project with Reown AppKit.
 
 <AccordionGroup>
-  <Accordion title="Set up Reown AppKit using AI">
-    If you're using Cursor IDE (or another AI based IDE) to build a project with Reown AppKit, Reown provides a `.mdc` file that enhances your development experience. The `reown-appkit.mdc` [file here](https://github.com/reown-com/reown-docs/blob/main/reown-appkit.mdc) contains Cursor-specific rules and type hints for Reown AppKit.
+  <Accordion title="AppKit Skills">
+    AppKit Skills provide AI-powered assistance for building with Reown AppKit. Once installed, your AI coding assistant can help you set up, build, and debug your AppKit integration.
 
-    To use it in your project:
+    To install AppKit Skills, run the following command in your terminal:
 
-    1. Copy the `reown-appkit.mdc` file from this repository
-    2. Create a `.cursor/rules` folder in your project's root directory (if it doesn't exist)
-    3. Place the `.mdc` file in your project's `.cursor/rules` folder
+    ```bash theme={null}
+    npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+    ```
 
-    For more info, refer to [Cursor's documentation](https://docs.cursor.com/context/rules#project-rules).
+    After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
   </Accordion>
 
   <Accordion title="AppKit CLI">
@@ -38248,7 +39457,7 @@ The following list shows the theme variables you can override:
 
 ## Wallet Buttons
 
-Wallet buttons are components that allow users to connect their wallets to your dApp. They provide a simple and easy way to connect to the top 20 wallets, WalletConnect QR, and all the social logins.
+Wallet buttons are components that allow users to connect their wallets to your dApp. They provide a simple and easy way to connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 You can also call them directly using hooks. Please check the [components](/appkit/react/core/components#walletButtons) and [hooks](/appkit/react/core/hooks#useappkitwallet) documentation for more information.
 
 <Frame>
@@ -38319,402 +39528,6 @@ This guide focuses on the most common ways Dapps interact with wallets using the
     ```
   </Tab>
 </Tabs>
-
-
-# Headless
-Source: https://docs.reown.com/appkit/react/early-access/headless
-
-
-
-<Frame>
-  <img alt="Descriptive alt text" />
-</Frame>
-
-<Info>
-  💡 Headless is in early-access at the moment and available to limited users. [Contact
-  us](https://share.hsforms.com/1_oWa8QkwRXi6oR0nZ_SIxQnxw6s) to get access.
-</Info>
-
-AppKit Headless allows developers to build a fully customizable "Connect" experience powered by AppKit's existing features without using the AppKit modal. Headless exposes wallet discovery, rendering WalletConnect QR codes, and social provider flows via simple hooks and utility functions.
-
-## Installation
-
-Headless requires AppKit to be configured with the `headless` flag. See the [installation](../core/installation) docs before getting started and make sure you're enabling headless as expected.
-
-```tsx theme={null}
-createAppKit({
-  ...
-  features: {
-    headless: true
-  }
-})
-```
-
-## useAppKitWallets
-
-The essential hook for accessing all types of wallets and methods to build your custom connection user interface.
-
-<CodeGroup>
-  ```tsx useAppKitWallets.tsx theme={null}
-  const { wallets, wcWallets, isFetchingWallets, isFetchingWcUri, isInitialized, wcUri, connectingWallet, page, count, fetchWallets, connect, resetWcUri } =
-    useAppKitWallets()
-  ```
-</CodeGroup>
-
-### Returns
-
-<ResponseField name="wallets" type="WalletItem[]">
-  List of wallets for the initial connect view including WalletConnect wallets and injected wallets
-  together. If the user doesn't have any injected wallets, it'll fill the list with the most ranked
-  WalletConnect wallets.
-</ResponseField>
-
-<ResponseField name="wcWallets" type="WalletItem[]">
-  List of WalletConnect wallets from Wallet Guide API. Useful to display all available WalletConnect
-  wallets in a separate Search Wallets view.
-</ResponseField>
-
-<ResponseField name="isFetchingWallets" type="boolean">
-  Boolean that indicates if WalletConnect wallets are being fetched.
-</ResponseField>
-
-<ResponseField name="isFetchingWcUri" type="boolean">
-  Boolean that indicates if a WalletConnect URI is being fetched.
-</ResponseField>
-
-<ResponseField name="isInitialized" type="boolean">
-  Boolean that indicates if the AppKit is initialized. It's useful to render a fallback UI when the
-  AppKit initializes and detects all injected wallets.
-</ResponseField>
-
-<ResponseField name="wcUri" type="string | undefined">
-  The current WalletConnect URI for QR code display. This is set when connecting to a WalletConnect
-  wallet. Reset with resetWcUri().
-</ResponseField>
-
-<ResponseField name="connectingWallet" type="WalletItem | undefined">
-  The wallet currently being connected to. This is set when a connection is initiated and cleared
-  when it completes or fails. For WalletConnect wallets, resetWcUri() should be called to clear the
-  state.
-</ResponseField>
-
-<ResponseField name="page" type="number">
-  The current page number of WalletConnect wallets.
-</ResponseField>
-
-<ResponseField name="count" type="number">
-  The total number of available WalletConnect wallets based on the AppKit configurations and given
-  parameters.
-</ResponseField>
-
-<ResponseField name="fetchWallets" type="(options?: { page?: number; query?: string; }) => Promise<void>">
-  Function to fetch WalletConnect wallets from the explorer API. Allows you to list, search, and
-  paginate through the wallets.
-</ResponseField>
-
-<ResponseField name="connect" type="(wallet: WalletItem, namespace?: ChainNamespace) => Promise<void>">
-  Function to connect to a wallet. For WalletConnect wallets: initiates WC connection and returns
-  the URI with the `wcUri` state. For injected connectors: triggers the extension/wallet directly.
-</ResponseField>
-
-<ResponseField name="resetWcUri" type="() => void">
-  Function to reset the WC URI. Useful to keep the `connectingWallet` state in sync with the WC URI.
-  Can be called when the QR code is closed.
-</ResponseField>
-
-# Examples
-
-## Build a Connect UI
-
-<Frame>
-  <img alt="Descriptive alt text" />
-</Frame>
-
-The `useAppKitWallets` hook returns a list of injected and WalletConnect wallets that let you render directly in the connect page.
-
-If you configure your AppKit as multi-chain, we suggest rendering a namespace selection component where users should select which namespace to connect when using browser extensions. This could be achieved with the `connectors` array of the `WalletItem`.
-
-If a user selects a WalletConnect wallet, you can show the QR code to the users and let them scan it with their preferred wallets. To handle the QR flows, you can use the `isFetchingWcUri`, `wcUri`, and `resetWcUri` props from the `useAppKitWallets` hook.
-
-<CodeGroup>
-  ```tsx ConnectView.tsx theme={null}
-  import React, { useState } from 'react'
-  import type { WalletItem } from '@reown/appkit'
-  import type { ChainNamespace } from '@reown/appkit/networks'
-  import { useAppKitWallets } from '@reown/appkit/react'
-  import { NamespaceSelectionDialog } from './NamespaceDialog'
-  import { WalletConnectQRDialog } from './WalletConnectQRDialog'
-
-  function ConnectView() {
-    const { wallets, connect } = useAppKitWallets()
-    const [selectedWallet, setSelectedWallet] = useState<WalletItem | null>(null)
-
-    async function handleConnect(wallet: WalletItem, namespace?: ChainNamespace) {
-      await connect(wallet, namespace)
-        .then(() => {
-          toast({ title: 'Connected', status: 'success' })
-        })
-        .catch(() => {
-          toast({ title: 'Connection declined', status: 'error' })
-        })
-    }
-
-    return (
-      <>
-        {wallets.map(wallet => (
-          <WalletListItem
-            key={wallet.id}
-            wallet={wallet}
-            onConnect={() => {
-              if (wallet.connectors.length > 1) {
-                setSelectedWallet(wallet)
-              } else {
-                handleConnect(wallet, wallet.connectors[0]?.chain)
-              }
-            }}
-          />
-        ))}
-        <NamespaceSelectionDialog
-          wallet={selectedWallet}
-          onSelect={handleConnect}
-          onClose={() => setSelectedWallet(null)}
-        />
-        <WalletConnectQRDialog />
-      </>
-    )
-  }
-  ```
-
-  ```tsx WalletListItem.tsx theme={null}
-  export function WalletListItem({ wallet, onConnect }) {
-    const { connectingWallet } = useAppKitWallets()
-
-    return (
-      <button onClick={onConnect}>
-        <img url={wallet.imageUrl} />
-        <span>{wallet.name}</span>
-        {wallet.connectors.map(item => {
-          return <img {item.chainImageUrl} alt={item.chain} />
-        })}
-        {connectingWallet?.id === wallet.id ? "connecting..." : null}
-      </button>
-    )
-  }
-  ```
-
-  ```tsx NamespaceDialog.tsx theme={null}
-  import { ChevronRightIcon } from 'lucide-react'
-  import Image from 'next/image'
-
-  import type { WalletItem } from '@reown/appkit'
-  import type { ChainNamespace } from '@reown/appkit/networks'
-
-  import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle
-  } from '@/components/ui/dialog'
-  import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item'
-
-  interface NamespaceSelectionDialogProps {
-    wallet: WalletItem | null
-    onSelect?: (wallet: WalletItem, namespace: ChainNamespace) => void
-    onClose?: () => void
-  }
-
-  const CHAIN_NAME_MAP: Record<string, string> = {
-    eip155: 'EVM Networks',
-    solana: 'Solana',
-    polkadot: 'Polkadot',
-    bip122: 'Bitcoin',
-    cosmos: 'Cosmos',
-    sui: 'Sui',
-    stacks: 'Stacks',
-    ton: 'TON'
-  }
-
-  export function NamespaceSelectionDialog({
-    wallet,
-    onSelect,
-    onClose
-  }: NamespaceSelectionDialogProps) {
-    if (!wallet) return null
-
-    return (
-      <Dialog open={!!wallet} onOpenChange={open => !open && onClose?.()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Connect to {wallet.name}</DialogTitle>
-            <DialogDescription>
-              {wallet.name} supports multiple chains. Select a chain you want to connect to.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2">
-            {wallet.connectors.map(connector => (
-              <Item key={connector.chain} onClick={() => onSelect?.(wallet, connector.chain)}>
-                {connector.chainImageUrl && (
-                  <ItemMedia className="rounded-md overflow-hidden w-8 h-8">
-                    <Image
-                      src={connector.chainImageUrl}
-                      alt={connector.chain}
-                      width={32}
-                      height={32}
-                    />
-                  </ItemMedia>
-                )}
-                <ItemContent>
-                  <ItemTitle>{CHAIN_NAME_MAP[connector.chain] || connector.chain}</ItemTitle>
-                </ItemContent>
-                <ItemActions>
-                  <ChevronRightIcon className="size-4" />
-                </ItemActions>
-              </Item>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-  ```
-
-  ```tsx WalletConnectQRDialog.tsx theme={null}
-  import QRCode from 'react-qr-code'
-  import Image from 'next/image'
-  import { Loader2Icon } from 'lucide-react'
-
-  import { useAppKitWallets } from '@reown/appkit/react'
-
-  import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle
-  } from '@/components/ui/dialog'
-
-  export function WalletConnectQRDialog() {
-    const { wcUri, connectingWallet, isFetchingWcUri, resetWcUri } = useAppKitWallets()
-
-    if (!connectingWallet || connectingWallet.isInjected) {
-      return null
-    }
-
-    return (
-      <Dialog
-        open={Boolean(wcUri)}
-        onOpenChange={open => {
-          if (!open) {
-            resetWcUri()
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <Image
-                src={connectingWallet.imageUrl}
-                alt={connectingWallet.name}
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-              <DialogTitle>Connect to {connectingWallet.name}</DialogTitle>
-            </div>
-            <DialogDescription>
-              Scan the QR code with {connectingWallet.name} to connect to your app.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6">
-            {isFetchingWcUri ? (
-              <Loader2Icon className="animate-spin size-8" />
-            ) : (
-              <QRCode
-                value={wcUri}
-                size={256}
-                style={{ height: 'auto', maxWidth: '100%', width: 'auto' }}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-  ```
-</CodeGroup>
-
-## Search and Connect to WalletConnect Wallets
-
-<Frame>
-  <img alt="Descriptive alt text" />
-</Frame>
-
-WalletConnect supports 500+ wallets. You can let users search for their own wallets to connect to your app.
-
-<CodeGroup>
-  ```tsx AllWalletsView.tsx theme={null}
-  import React, { useState, useEffect } from 'react'
-  import { useAppKitWallets } from '@reown/appkit/react'
-
-  function AllWalletsView() {
-    const { wcWallets, isFetchingWcUri, isFetchingWallets, fetchWallets, connect, page } =
-      useAppKitWallets()
-    const [inputValue, setInputValue] = useState('')
-    const searchQuery = useDebounceValue(inputValue, 500)
-
-    useEffect(() => {
-      fetchWallets?.()
-    }, [])
-
-    useEffect(() => {
-      if (searchQuery.length > 0) {
-        fetchWallets?.({ query: searchQuery })
-      } else {
-        fetchWallets?.()
-      }
-    }, [searchQuery])
-
-    function handleLoadMore() {
-      if (searchQuery.length > 0) {
-        fetchWallets?.({ page: page + 1, query: searchQuery })
-      } else {
-        fetchWallets?.({ page: page + 1 })
-      }
-    }
-
-    return (
-      <>
-        <input
-          type="text"
-          placeholder="Search wallets..."
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-        />
-        {isFetchingWallets && <div>Loading wallets...</div>}
-        {wcWallets.map(wallet => {
-          return <WalletListItem key={wallet.id} wallet={wallet} onConnect={connect} />
-        })}
-        <button onClick={handleLoadMore} disabled={isFetchingWallets}>
-          Load More
-        </button>
-      </>
-    )
-  }
-  ```
-</CodeGroup>
-
-## Demo
-
-<Columns>
-  <Card title="Headless Playground" icon="cubes" href="https://appkit-headless.vercel.app">
-    You can check our demo app to play around with an example Headless implementation
-  </Card>
-
-  <Card title="Source code" icon="github" href="https://github.com/reown-com/appkit/tree/main/examples/next-appkit-headless">
-    See the source code of the example Headless implementation.
-  </Card>
-</Columns>
 
 
 # Deposit with Exchange - React
@@ -38835,12 +39648,12 @@ const paymentAssetDetails = {
 ```
 
 
-# AppKit Pay with Exchange - React
+# Pay with Exchange - React
 Source: https://docs.reown.com/appkit/react/payments/pay-with-exchange
 
 
 
-**AppKit Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance or Coinbase, with no new wallets, no app switching, and no lost conversions.
+**Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance, with no new wallets, no app switching, and no lost conversions.
 
 ## Quickstart
 
@@ -38967,7 +39780,7 @@ Or handle the payment result in the UI by displaying the payment status:
 
 ## Supported Networks and Assets
 
-For a complete list of supported networks and assets across different exchanges (Coinbase, Binance), please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
+For a complete list of supported networks and assets, please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
 
 ## Assets Configuration
 
@@ -41412,7 +42225,7 @@ Let's dive in!
 
 ## What are wallet buttons?
 
-Using the wallet button components ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR, and all the social logins. This component allows you to customize your dApp, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
+Using the wallet button components ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins. This component allows you to customize your dApp, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
 
 ## Installation
 
@@ -41521,11 +42334,11 @@ export default WalletConnection;
 
 You can use the wallet button component with any of the following options:
 
-| Type          | Options                                                                                                                                                                                                                                                                                          |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| QR Code       | walletConnect                                                                                                                                                                                                                                                                                    |
-| Wallets       | metamask, trust, coinbase, rainbow, jupiter, solflare, coin98, magic-eden, backpack, frontier, xverse, okx, bitget, leather, binance, uniswap, safepal, bybit, phantom, ledger, timeless-x, safe, zerion, oneinch, crypto-com, imtoken, kraken, ronin, robinhood, exodus, argent and tokenpocket |
-| Social logins | google, github, apple, facebook, x, discord and farcaster                                                                                                                                                                                                                                        |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | walletConnect                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Wallets       | metamask, trust, coinbase, rainbow, jupiter, solflare, coin98, magic-eden, backpack, frontier, xverse, okx, bitget, leather, binance, uniswap, safepal, bybit, phantom, ledger, timeless-x, safe, zerion, oneinch, crypto-com, imtoken, kraken, ronin, robinhood, exodus, argent, tokenpocket, haha, ambire-wallet, bitpay, blade-wallet, brave, coinstats, kresus-superapp, plena-app, status, tomo-wallet, valora, and zengo-wallet |
+| Social logins | google, github, apple, facebook, x, discord and farcaster                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## Namespace options
 
@@ -41669,7 +42482,7 @@ export const appKitStore = writable(appKit);
   <img />
 </Frame>
 
-Using the wallet button functions ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR, and all the social logins.
+Using the wallet button functions ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 This allows to customize dApps, enabling users to connect their wallets effortlessly, all without the need to open the traditional modal.
 
 Follow these steps to use wallet buttons:
@@ -41769,11 +42582,11 @@ You can specify a blockchain namespace to target specific chains:
 
 #### Options for wallet property
 
-| Type          | Options                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                         |
-| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, and more |
-| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, `haha`, `ambire-wallet`, `bitpay`, `blade-wallet`, `brave`, `coinstats`, `kresus-superapp`, `plena-app`, `status`, `tomo-wallet`, `valora`, and `zengo-wallet` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 #### Options for namespace property
 
@@ -42093,6 +42906,16 @@ Choose one of these to get started.
 </Note>
 
 ## Installation
+
+Try installing AppKit Skills to get AI-assisted guidance. Your AI coding assistant can help you set up, build, and debug your AppKit integration.
+
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 <Tabs>
   <Tab title="Wagmi">
@@ -42811,6 +43634,18 @@ Or use other AppKit web components:
     ```
   </Tab>
 </Tabs>
+
+## AppKit Skills
+
+AppKit Skills provide AI-powered assistance for building with Reown AppKit. Once installed, your AI coding assistant can help you set up, build, and debug your AppKit integration.
+
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 
 # Multichain
@@ -52390,12 +53225,20 @@ Source: https://docs.reown.com/appkit/vue/core/installation
 
 ## Introduction
 
-AppKit has support for [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum, [@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, Bitcoin and TON.
+AppKit has support for [Wagmi](https://wagmi.sh/) and [Ethers v6](https://docs.ethers.org/v6/) on Ethereum, [@solana/web3.js](https://solana-labs.github.io/solana-web3.js/) on Solana, Bitcoin, TON and TRON.
 Choose one of these to get started.
 
 ## Installation
 
-**Setting up from scratch? → Try out the [AppKit CLI templates](#alternative-installation) or the [AI-assisted setup](#alternative-installation).**
+Try installing AppKit Skills to get AI-assisted guidance. Your AI coding assistant can help you set up, build, and debug your AppKit integration.
+
+To install AppKit Skills, run the following command in your terminal:
+
+```bash theme={null}
+npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+```
+
+After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
 
 ## Custom Installation
 
@@ -52516,6 +53359,26 @@ Choose one of these to get started.
 
       ```bash pnpm theme={null}
       pnpm add @reown/appkit @reown/appkit-adapter-ton
+      ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="TRON">
+    <CodeGroup>
+      ```bash npm theme={null}
+      npm install @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash Yarn theme={null}
+      yarn add @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash Bun theme={null}
+      bun add @reown/appkit @reown/appkit-adapter-tron
+      ```
+
+      ```bash pnpm theme={null}
+      pnpm add @reown/appkit @reown/appkit-adapter-tron
       ```
     </CodeGroup>
   </Tab>
@@ -52973,6 +53836,220 @@ Create a new project on [Reown Dashboard](https://dashboard.reown.com) and obtai
     <template> // Rest of your app ... </template>
     ```
   </Tab>
+
+  <Tab title="TRON">
+    AppKit TRON provides a set of Vue components and composables to easily connect TRON wallets with your application.
+
+    On top of your app set up the following configuration, making sure that all functions are called outside any Vue component to avoid unwanted rerenders.
+
+    In your `App.vue` file set up the following configuration.
+
+    ```tsx theme={null}
+    <script setup lang="ts">
+
+    import { createAppKit } from '@reown/appkit/vue'
+    import { TronAdapter } from '@reown/appkit-adapter-tron'
+    import { tronMainnet, tronShastaTestnet } from '@reown/appkit/networks'
+
+    // Import wallet adapters you want to support
+    import { TronLinkAdapter } from '@tronweb3/tronwallet-adapter-tronlink'
+
+    // 1. Get projectId from https://dashboard.reown.com
+    const projectId = 'YOUR_PROJECT_ID'
+
+    // 2. Set the networks
+    const networks = [tronMainnet, tronShastaTestnet]
+
+    // 3. Set up TRON Adapter with wallet adapters
+    const tronAdapter = new TronAdapter({
+      walletAdapters: [
+        new TronLinkAdapter({
+          openUrlWhenWalletNotFound: false,
+          checkTimeout: 3000
+        })
+      ]
+    })
+
+    // 4. Create a metadata object - optional
+    const metadata = {
+      name: 'AppKit',
+      description: 'AppKit TRON Example',
+      url: 'https://example.com', // origin must match your domain & subdomain
+      icons: ['https://avatars.githubusercontent.com/u/179229932']
+    }
+
+    // 5. Create modal
+    createAppKit({
+      adapters: [tronAdapter],
+      networks,
+      metadata,
+      projectId,
+      features: {
+        analytics: true, // Optional - defaults to your Cloud configuration
+        email: false,
+        socials: []
+      }
+    })
+    </script>
+
+    <template> // Rest of your app ... </template>
+    ```
+
+    ## Install Wallet Adapters
+
+    TRON adapter requires you to install wallet adapters separately. This gives you control over which wallets to support and reduces bundle size.
+
+    <Tabs>
+      <Tab title="TronLink">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-tronlink
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-tronlink
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="MetaMask">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-metamask-tron
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Trust Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-trust
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-trust
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="OKX Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-okxwallet
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="BitKeep">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-bitkeep
+          ```
+        </CodeGroup>
+      </Tab>
+
+      <Tab title="Binance Wallet">
+        <CodeGroup>
+          ```bash npm theme={null}
+          npm install @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash Yarn theme={null}
+          yarn add @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash Bun theme={null}
+          bun add @tronweb3/tronwallet-adapter-binance
+          ```
+
+          ```bash pnpm theme={null}
+          pnpm add @tronweb3/tronwallet-adapter-binance
+          ```
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+
+    <Note>
+      For a complete list of available TRON wallet adapters, visit the [official wallet adapter documentation](https://walletadapter.org/docs/guide/wallet-reference.html).
+    </Note>
+
+    ### Using Multiple Wallet Adapters
+
+    After installing your desired wallet adapters, import and add them to the `walletAdapters` array when creating the TRON adapter:
+
+    ```tsx theme={null}
+    import { TronLinkAdapter } from '@tronweb3/tronwallet-adapter-tronlink'
+    import { MetaMaskAdapter } from '@tronweb3/tronwallet-adapter-metamask-tron'
+    import { TrustAdapter } from '@tronweb3/tronwallet-adapter-trust'
+    import { OkxWalletAdapter } from '@tronweb3/tronwallet-adapter-okxwallet'
+
+    const tronAdapter = new TronAdapter({
+      walletAdapters: [
+        new TronLinkAdapter({
+          openUrlWhenWalletNotFound: false,
+          checkTimeout: 3000
+        }),
+        new MetaMaskAdapter(),
+        new TrustAdapter(),
+        new OkxWalletAdapter({
+          openUrlWhenWalletNotFound: false
+        })
+      ]
+    })
+    ```
+  </Tab>
 </Tabs>
 
 ## Trigger the modal
@@ -53217,16 +54294,16 @@ Create a new project on [Reown Dashboard](https://dashboard.reown.com) and obtai
 If you are starting from scratch, you can use the following methods to set up your project with Reown AppKit.
 
 <AccordionGroup>
-  <Accordion title="Set up Reown AppKit using AI">
-    If you're using Cursor IDE (or another AI based IDE) to build a project with Reown AppKit, Reown provides a `.mdc` file that enhances your development experience. The `reown-appkit.mdc` [file here](https://github.com/reown-com/reown-docs/blob/main/reown-appkit.mdc) contains Cursor-specific rules and type hints for Reown AppKit.
+  <Accordion title="AppKit Skills">
+    AppKit Skills provide AI-powered assistance for building with Reown AppKit. Once installed, your AI coding assistant can help you set up, build, and debug your AppKit integration.
 
-    To use it in your project:
+    To install AppKit Skills, run the following command in your terminal:
 
-    1. Copy the `reown-appkit.mdc` file from this repository
-    2. Create a `.cursor/rules` folder in your project's root directory (if it doesn't exist)
-    3. Place the `.mdc` file in your project's `.cursor/rules` folder
+    ```bash theme={null}
+    npx skills add https://github.com/reown-com/skills --skill appkit --agent '*'
+    ```
 
-    For more info, refer to [Cursor's documentation](https://docs.cursor.com/context/rules#project-rules).
+    After installation, you can ask your AI assistant for help with AppKit setup, implementation, and troubleshooting.
   </Accordion>
 
   <Accordion title="AppKit CLI">
@@ -55179,7 +56256,7 @@ Source: https://docs.reown.com/appkit/vue/core/wallet-buttons
   <img />
 </Frame>
 
-Using the wallet button composable ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to the top 20 wallets, WalletConnect QR, and all the social logins.
+Using the wallet button composable ([Demo in our Lab](https://appkit-lab.reown.com/appkit/?name=wagmi)), you can directly connect to more than 40 of the top wallets globally, WalletConnect QR, and all the social logins.
 
 Follow these steps to use the composable:
 
@@ -55239,11 +56316,11 @@ onMounted(() => {
 
 #### Options for wallet property
 
-| Type          | Options                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                         |
-| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, and more |
-| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                |
+| Type          | Options                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QR Code       | `walletConnect`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Wallets       | `metamask`, `trust`, `coinbase`, `rainbow`, `jupiter`, `solflare`, `coin98`, `magic-eden`, `backpack`, `frontier`, `xverse`, `okx`, `bitget`, `leather`, `binance`, `uniswap`, `safepal`, `bybit`, `phantom`, `ledger`, `timeless-x`, `safe`, `zerion`, `oneinch`, `crypto-com`, `imtoken`, `kraken`, `ronin`, `robinhood`, `exodus`, `argent`, `tokenpocket`, `haha`, `ambire-wallet`, `bitpay`, `blade-wallet`, `brave`, `coinstats`, `kresus-superapp`, `plena-app`, `status`, `tomo-wallet`, `valora`, and `zengo-wallet` |
+| Social logins | `google`, `github`, `apple`, `facebook`, `x`, `discord`, and `farcaster`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 #### Options for namespace property
 
@@ -55414,12 +56491,12 @@ const paymentAssetDetails = {
 ```
 
 
-# AppKit Pay with Exchange - Vue
+# Pay with Exchange - Vue
 Source: https://docs.reown.com/appkit/vue/payments/pay-with-exchange
 
 
 
-**AppKit Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance or Coinbase, with no new wallets, no app switching, and no lost conversions.
+**Pay with Exchange** unlocks a powerful new flow: users can pay in crypto directly from their Centralized Exchange (CEXs) accounts like Binance, with no new wallets, no app switching, and no lost conversions.
 
 ## Quickstart
 
@@ -55546,7 +56623,7 @@ Or handle the payment result in the UI by displaying the payment status:
 
 ## Supported Networks and Assets
 
-For a complete list of supported networks and assets across different exchanges (Coinbase, Binance), please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
+For a complete list of supported networks and assets, please refer to the [Networks and Assets Supported](/appkit/payments/pay-with-exchange#networks-and-assets-supported) section in our Pay with Exchange documentation.
 
 ## Assets Configuration
 
@@ -56259,6 +57336,12 @@ Source: https://docs.reown.com/cloud/chains/chain-list
 
 
 
+<Note>
+  This list shows chains supported at the **WalletConnect Cloud and protocol level**. Being listed here means a chain can use the WalletConnect protocol for dApp-wallet communication, but it does **not** mean every chain is natively supported in Reown AppKit.
+
+  For chains with native Reown AppKit SDK support (EVM, Solana, Bitcoin, TON, and Polkadot), see the [Reown AppKit Supported Chains](/appkit/networks/supported-chains) page.
+</Note>
+
 ## Overview
 
 This page provides a list of chains on the [WalletGuide](https://walletguide.walletconnect.network/). WalletGuide is a tool that allows users to discover wallets and dapps that support their preferred blockchain.
@@ -56268,6 +57351,7 @@ On this page, you can:
 * Filter chains by Mainnet / Testnet
 * Search for chains by name
 * Click on a chain to copy its Chain ID
+* See which chains have native Reown AppKit support
 
 <ChainList />
 
@@ -56508,79 +57592,6 @@ Example of possible origins in the allowlist:
 * Don't reuse a `projectId`.
 * Use the AllowList to limit unauthorized usage.
 * Avoid committing projects keys to the repo. Use env variables instead.
-
-
-# Reown Authentication
-Source: https://docs.reown.com/cloud/reown-authentication
-
-
-
-**Reown Authentication is our flagship SIWX (Sign In With X) solution** - the recommended way to handle user authentication for modern web3 applications. Built specifically for multi-chain environments, it abstracts away the complexity of validating wallets across **EVM, Solana, and Bitcoin networks**.
-
-## Getting Started
-
-Transform your web3 application's authentication experience today. Our [AppKit integration guide](/appkit/authentication/siwx/reown-authentication) will have you up and running in minutes.
-
-**Questions?** Reach out to our team - we're here to help you build the best authentication experience for your users.
-
-## Why Choose Reown Authentication?
-
-### **Production-Ready from Day One**
-
-Skip the complexity of building and maintaining your own authentication infrastructure. Our hosted solution is battle-tested, globally distributed via Cloudflare Workers, and includes built-in rate limiting.
-
-### **Multi-Chain Native**
-
-Reown Authentication supports all the networks supported by AppKit, with Reown Authentication you can seamlessly integrate with:
-
-* **EVM Networks**
-* **Solana Networks**
-* **Bitcoin Networks**
-
-### User Management Dashboard
-
-Monitor and understand your authenticated users through our comprehensive dashboard:
-
-* **Complete user registry** with chain addresses and connection history
-* **Geographic insights** showing where your users connect from
-* **Authentication method tracking** (wallet vs social login)
-* **Real-time connection analytics**
-
-<Frame>
-  <img alt="User Management Dashboard" />
-</Frame>
-
-<br />
-
-<Frame>
-  <img alt="Analytics Dashboard" />
-</Frame>
-
-## How it works
-
-Our SIWX API implements the [Sign In With X (SIWX)](https://chainagnostic.org/CAIPs/caip-122) standard - a chain-agnostic evolution of [Sign In With Ethereum (SIWE)](https://eips.ethereum.org/EIPS/eip-4361).
-
-1. Users sign a cryptographic message with their wallet
-2. Message signature is securely forwarded to our verification servers
-3. Upon successful validation, a JWT token is issued for your application
-4. Seamless integration with your existing authentication flows
-
-## Roadmap
-
-Reown Authentication is rapidly evolving with exciting features on the horizon:
-
-### Available Now
-
-* **User Management Dashboard** - Comprehensive analytics and user management
-* **Multi-chain wallet validation** - EVM, Solana, Bitcoin support
-* **Global infrastructure** - Cloudflare Workers distribution
-* **Custom User Metadata Storage** - Store additional user data
-
-### Coming Soon
-
-* **Email Collection** - Collect user emails during authentication
-* **Webhooks** - Real-time notifications for signup, login, and user events
-* **User Profiles** - Enhanced user identity management
 
 
 # Wallets
