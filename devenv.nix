@@ -418,7 +418,7 @@ in
         name = "candid-gen";
         description = "Regenerate Candid interface from canister code";
         entry = "ic-siwa candid";
-        files = "^canisters/ic_siwa_provider/src/.*\\.rs$";
+        files = "(^canisters/ic_siwa_provider/src/.*\\.rs$|^Cargo\\.toml$|^Cargo\\.lock$)";
         pass_filenames = false;
       };
     };
