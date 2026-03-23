@@ -27,7 +27,7 @@ let
     candid
     candid-extractor
     agent-rs
-    dfx-extensions
+    #dfx-extensions # NOTE: disabled due to openldap SSL cert expiry in upstream dependency
     # IC
     #binaries
     #wasm-binaries
