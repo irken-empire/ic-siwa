@@ -47,7 +47,7 @@
     "url": "https://github.com/irken-empire/ic-siwa"
   },
   "dependencies": {
-    "@icp-sdk/core": "5.1.0"
+    "@icp-sdk/core": "5.2.0"
   },
   "devDependencies": {
     "@types/bun": "1.3.11",
