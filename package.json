@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "eslint": "10.1.0",
+    "eslint": "10.2.0",
     "globals": "17.4.0",
     "icskills": "dfinity/icskills",
     "typescript": "5.9.3",
