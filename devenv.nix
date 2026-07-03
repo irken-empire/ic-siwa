@@ -125,11 +125,11 @@ in
   cachix = {
     enable = true;
     pull = [
-      "irken-empire"
-      "pre-commit-hooks"
-      "devenv.cachix.org"
       "cache.nixos.org"
-      "nix-community.cachix.org"
+      "devenv"
+      "irken-empire"
+      "nix-community"
+      "pre-commit-hooks"
     ];
     push = "irken-empire";
   };
