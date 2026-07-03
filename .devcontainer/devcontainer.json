@@ -1,0 +1,33 @@
+{
+  "containerEnv": {
+    "NIX_REMOTE": "daemon"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "arrterian.nix-env-selector",
+        "astro-build.astro-vscode",
+        "esbenp.prettier-vscode",
+        "github.vscode-github-actions",
+        "gruntfuggly.todo-tree",
+        "johnpapa.vscode-peacock",
+        "mkhl.direnv",
+        "nhoizey.gremlins",
+        "pinage404.nix-extension-pack",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "timonwong.shellcheck",
+        "tuxtina.json2yaml",
+        "vscodevim.vim",
+        "wakatime.vscode-wakatime",
+        "yzhang.markdown-all-in-one"
+      ]
+    }
+  },
+  "image": "ghcr.io/cachix/devenv/devcontainer:latest",
+  "mounts": [
+    "source=/nix,target=/nix,readonly,type=bind"
+  ],
+  "overrideCommand": false,
+  "updateContentCommand": "devenv test"
+}

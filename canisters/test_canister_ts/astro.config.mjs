@@ -10,7 +10,6 @@ export default defineConfig({
     assets: "assets",
   },
   vite: {
-    // @ts-expect-error - Vite plugin type mismatch between Astro and Tailwind
     plugins: [tailwindcss()],
     define: {
       global: "globalThis",

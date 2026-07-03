@@ -57,7 +57,7 @@ let
 
       # Astro
       astro-language-server
-      nodePackages.postcss
+      postcss
       tailwindcss_4
       npm-check-updates
       nodejs
@@ -90,6 +90,7 @@ in
     # General
     #########################
     PROJECT = config.name;
+    CARGO_TARGET_DIR = "target/devenv";
 
     #########################
     # DFX Configuration
@@ -123,9 +124,8 @@ in
   });
 
   cachix = {
-    enable = true;
+    enable = false;
     pull = [
-      "cache.nixos.org"
       "devenv"
       "irken-empire"
       "nix-community"
@@ -280,10 +280,12 @@ in
       cargo-check = {
         enable = true;
         package = config.languages.rust.toolchainPackage;
+        entry = "env CARGO_TARGET_DIR=target/devenv cargo check";
       };
       clippy = {
         enable = true;
         package = config.languages.rust.toolchainPackage;
+        entry = "env CARGO_TARGET_DIR=target/devenv cargo clippy";
         settings = {
           denyWarnings = true;
           offline = true;
@@ -354,6 +356,10 @@ in
       nixfmt.enable = true;
       prettier = {
         enable = true;
+        excludes = [
+          "\\.devcontainer\\.json$"
+          "\\.devcontainer/devcontainer\\.json$"
+        ];
         settings = {
           configPath = ".prettierrc.yaml";
         };
