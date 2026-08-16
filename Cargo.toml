@@ -18,7 +18,7 @@ categories = ["authentication", "cryptography", "wasm"]
 [workspace.dependencies]
 # Internet Computer
 candid = "0.10.26"
-ic-cdk = "0.20.0"
+ic-cdk = "0.20.1"
 ic-cdk-macros = "0.20.0"
 ic-cdk-management-canister = "0.1.1"
 ic-cdk-timers = "1.0.0"
