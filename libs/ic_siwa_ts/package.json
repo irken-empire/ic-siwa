@@ -47,12 +47,12 @@
     "url": "https://github.com/irken-empire/ic-siwa"
   },
   "dependencies": {
-    "@icp-sdk/core": "5.1.0"
+    "@icp-sdk/core": "5.2.1"
   },
   "devDependencies": {
-    "@types/bun": "1.3.11",
-    "eslint": "10.1.0",
-    "prettier": "3.8.1",
+    "@types/bun": "1.3.12",
+    "eslint": "10.2.0",
+    "prettier": "3.8.2",
     "typescript": "5.9.3"
   },
   "peerDependencies": {
