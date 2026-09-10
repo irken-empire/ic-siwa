@@ -90,7 +90,6 @@ in
     # General
     #########################
     PROJECT = config.name;
-    CARGO_TARGET_DIR = "target/devenv";
 
     #########################
     # DFX Configuration
@@ -276,12 +275,10 @@ in
       cargo-check = {
         enable = true;
         package = config.languages.rust.toolchainPackage;
-        entry = "env CARGO_TARGET_DIR=target/devenv cargo check";
       };
       clippy = {
         enable = true;
         package = config.languages.rust.toolchainPackage;
-        entry = "env CARGO_TARGET_DIR=target/devenv cargo clippy";
         settings = {
           denyWarnings = true;
           offline = true;

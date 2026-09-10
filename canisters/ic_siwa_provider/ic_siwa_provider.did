@@ -1,57 +1,108 @@
+// Debug diagnostics response
 type DebugInfo = record {
+  // URI configured for SIWA messages
   uri : text;
+  // Number of entries in signature map
   signature_map_count : nat64;
+  // Number of active auth sessions
   auth_sessions_count : nat64;
+  // Domain configured for SIWA messages
   domain : text;
+  // Number of delegation targets configured
   delegation_targets_count : nat64;
+  // Chain ID
   chain_id : nat64;
+  // Allowed domains (if debug enabled)
   allowed_domains : vec text;
+  // Number of allowed domains configured
   allowed_domains_count : nat64;
+  // Number of active login sessions
   login_sessions_count : nat64;
+  // Rate limit: max total logins
   rate_limit_total : nat32;
+  // Rate limit: max logins per address
   rate_limit_per_address : nat32;
+  // Number of prepared delegations
   prepared_delegations_count : nat64;
+  // Session expiration time in nanoseconds
   session_expiration_ns : nat64;
+  // Rate limit: window in seconds
   rate_limit_window_seconds : nat64;
+  // Delegation targets (canister IDs)
   delegation_targets : vec principal;
+  // Debug mode enabled
   debug_enabled : bool;
 };
+// A delegation that grants a session key the ability to act on behalf of a principal
 type Delegation = record {
+  // The session public key that is being delegated to
   pubkey : blob;
+  // Optional targets (canister IDs) the delegation is valid for
   targets : opt vec principal;
+  // Expiration timestamp in nanoseconds
   expiration : nat64;
 };
+// Canister initialization arguments
 type InitArgs = record {
+  // URI for SIWA messages
   uri : text;
+  // Domain for SIWA messages
   domain : text;
+  // Salt for principal derivation
   salt : text;
+  // Chain ID (Avalanche C-Chain)
   chain_id : nat64;
+  // Optional list of allowed domains
   allowed_domains : opt vec text;
+  // Optional list of allowed canister IDs
   allowed_canisters : opt vec principal;
+  // Optional rate limiting configuration
   rate_limits : opt RateLimitArgs;
+  // Optional delegation targets - canisters that delegations are valid for
   delegation_targets : opt vec principal;
+  // Enable debug endpoints (should be false in production)
   debug : opt bool;
+  // Session expiration in nanoseconds
   session_expiration_time : nat64;
+  // Optional login message expiration in nanoseconds (default: 5 minutes)
   login_expiration_time : opt nat64;
 };
+// Login response with principal, expiration, and canister public key
 type LoginResponse = record {
+  // The derived ICP principal for the user
   user_principal : principal;
+  // The canister's public key for this user (used as root of delegation chain)
   user_canister_pubkey : blob;
+  // Session expiration timestamp in nanoseconds
   expiration : nat64;
 };
+// Request parameters for prepare_login
 type PrepareLoginRequest = record {
+  // Optional URI for the SIWA message (shown in wallet).
+  // Falls back to canister default if not provided.
   uri : opt text;
+  // Optional domain for the SIWA message (shown in wallet).
+  // Must be in allowed_domains whitelist. Falls back to canister default if not provided.
   domain : opt text;
+  // The Avalanche address (0x-prefixed)
   address : text;
 };
+// Response from prepare_login
 type PrepareLoginResponse = record {
+  // Expiration timestamp in nanoseconds
   expiration : nat64;
+  // The SIWA message to be signed
   message : text;
+  // The nonce for this login attempt
   nonce : text;
 };
+// Rate limit configuration for Candid
 type RateLimitArgs = record {
+  // Max total prepare_login calls per window
   max_logins_total : nat32;
+  // Time window in seconds
   window_seconds : nat64;
+  // Max prepare_login calls per address per window
   max_logins_per_address : nat32;
 };
 type Result = variant { Ok : DebugInfo; Err : text };
@@ -62,7 +113,13 @@ type Result_4 = variant { Ok : SignedDelegation; Err : text };
 type Result_5 = variant { Ok : LoginResponse; Err : text };
 type Result_6 = variant { Ok; Err : text };
 type Result_7 = variant { Ok : PrepareLoginResponse; Err : text };
-type SignedDelegation = record { signature : blob; delegation : Delegation };
+// A signed delegation with the signature
+type SignedDelegation = record {
+  // The signature over the delegation hash
+  signature : blob;
+  // The delegation being signed
+  delegation : Delegation;
+};
 service : (InitArgs) -> {
   // Get debug diagnostics (restricted to canister controllers)
   // 
