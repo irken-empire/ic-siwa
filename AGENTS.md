@@ -4,7 +4,7 @@ This document provides guidelines for AI agents interacting with the IC-SIWA pro
 
 ## 🚀 Quick Start Commands
 
-All commands must run inside `devenv shell`. Use the helper script `ic-siwa` for common tasks:
+All commands must run inside `devenv --no-tui shell`. Use the helper script `ic-siwa` for common tasks:
 
 ```bash
 ic-siwa build         # Build all canisters and libraries
@@ -17,15 +17,21 @@ ic-siwa agent-docs    # Download LLM documentation to docs/agents/
 ic-siwa help          # Show all available commands
 ```
 
-**Note:** All commands require devenv shell. Due to 1Password/secretspec unavailability in AI sandboxes, use:
+**Notes:** - All commands require devenv shell. - Due to 1Password/secretspec unavailability in AI sandboxes, use the following:
 
 ```bash
-SECRETSPEC_PROVIDER=env devenv shell --quiet -- <command>
+SECRETSPEC_PROVIDER=env devenv --no-tui shell --quiet -- <command>
 ```
+
+> ⚠️ **CRITICAL WARNING**:
+> Always pass the `--no-tui` flag when running `devenv` commands (e.g., `devenv --no-tui shell`, `devenv --no-tui test`) in automated or AI agent environments.
+> This will disable the interactive terminal interface and prevent commands from getting stuck.
 
 ## Project Overview
 
-IC-SIWA (Sign-In with Avalanche for Internet Computer) is a fork of ic-siwe, adapted for Avalanche authentication on the Internet Computer blockchain. The project provides:
+IC-SIWA (Sign-In with Avalanche for Internet Computer) is a project that allows you to login with Avalanche authentication on the Internet Computer blockchain.
+
+The project provides:
 
 - A canister for handling SIWA authentication (`ic_siwa_provider`)
 - A Rust library for SIWA functionality (`ic_siwa`)
@@ -177,7 +183,7 @@ Context: The project uses devenv (built on Nix) to ensure a reproducible, hermet
 Directives:
 
 - **Strictly usage of `devenv`**: Always assume tools (like dfx, node, bun, rust, juno) are managed via `devenv.nix`.
-- **ALL commands MUST run inside `devenv shell`**:
+- **ALL commands MUST run inside `devenv --no-tui shell`**:
   - This includes `git` (pre-commit hooks need devenv binaries),
   - `cargo`,
   - `bun`,
@@ -188,13 +194,13 @@ Directives:
 - **No Global Installs**: Do not suggest installing global dependencies
   (brew install, apt-get, bun install -g). Instead, suggest adding packages to the
   `devenv.nix` file if a tool is missing.
-- **Shell Awareness**: Ensure commands are run within `devenv shell` or that `direnv` is active.
+- **Shell Awareness**: Ensure commands are run within `devenv --no-tui shell` or that `direnv` is active.
 - Use `devenv up` to start backing services or processes if configured.
-- Any changes to dotenv `.env` will required a `direnv reload` or `devenv shell` to take effect.
+- Any changes to dotenv `.env` will required a `direnv reload` or `devenv --no-tui shell` to take effect.
 - **Secret Management**: For non-secret variables, the dotenv `.env` file is acceptable however always use `secretspec` for managing secrets values like keys.
 - **IMPORTANT:** **1Password Integration** Due to the enablement of `secretspec`, and 1Password being unavailable in the AI Agent sandbox,
   to run devenv shell commands, use this method:
-  - `SECRETSPEC_PROVIDER=env devenv shell --quiet -- <command>`
+  - `SECRETSPEC_PROVIDER=env devenv --no-tui shell --quiet -- <command>`
   - As a fallback, ask the user to execute and paste the result.
   - **See Quick Start section above for command examples.**
 
@@ -203,7 +209,7 @@ Devenv has it's own MCP server available at: <https://mcp.devenv.sh/> which can 
 When the setup is becomes complex create `devenv.nix` and run commands within:
 
 ```bash
-devenv shell -- cli args
+devenv --no-tui shell -- cli args
 ```
 
 See <https://devenv.sh/ad-hoc-developer-environments/>
@@ -228,7 +234,7 @@ ic-siwa version --bump  # Bump version based on conventional commits
 
 ```bash
 # Enter development shell (loads all tools and environment)
-devenv shell
+devenv --no-tui shell
 
 # Or use direnv for automatic loading
 direnv allow

@@ -9,60 +9,209 @@
 import type { Principal } from '@icp-sdk/core/principal';
 import type { ActorMethod } from '@icp-sdk/core/agent';
 
+/**
+ * Debug diagnostics response
+ */
 export interface DebugInfo {
+  /**
+   * URI configured for SIWA messages
+   */
   'uri' : string,
+  /**
+   * Number of entries in signature map
+   */
   'signature_map_count' : bigint,
+  /**
+   * Number of active auth sessions
+   */
   'auth_sessions_count' : bigint,
+  /**
+   * Domain configured for SIWA messages
+   */
   'domain' : string,
+  /**
+   * Number of delegation targets configured
+   */
   'delegation_targets_count' : bigint,
+  /**
+   * Chain ID
+   */
   'chain_id' : bigint,
+  /**
+   * Allowed domains (if debug enabled)
+   */
   'allowed_domains' : Array<string>,
+  /**
+   * Number of allowed domains configured
+   */
   'allowed_domains_count' : bigint,
+  /**
+   * Number of active login sessions
+   */
   'login_sessions_count' : bigint,
+  /**
+   * Rate limit: max total logins
+   */
   'rate_limit_total' : number,
+  /**
+   * Rate limit: max logins per address
+   */
   'rate_limit_per_address' : number,
+  /**
+   * Number of prepared delegations
+   */
   'prepared_delegations_count' : bigint,
+  /**
+   * Session expiration time in nanoseconds
+   */
   'session_expiration_ns' : bigint,
+  /**
+   * Rate limit: window in seconds
+   */
   'rate_limit_window_seconds' : bigint,
+  /**
+   * Delegation targets (canister IDs)
+   */
   'delegation_targets' : Array<Principal>,
+  /**
+   * Debug mode enabled
+   */
   'debug_enabled' : boolean,
 }
+/**
+ * A delegation that grants a session key the ability to act on behalf of a principal
+ */
 export interface Delegation {
+  /**
+   * The session public key that is being delegated to
+   */
   'pubkey' : Uint8Array | number[],
+  /**
+   * Optional targets (canister IDs) the delegation is valid for
+   */
   'targets' : [] | [Array<Principal>],
+  /**
+   * Expiration timestamp in nanoseconds
+   */
   'expiration' : bigint,
 }
+/**
+ * Canister initialization arguments
+ */
 export interface InitArgs {
+  /**
+   * URI for SIWA messages
+   */
   'uri' : string,
+  /**
+   * Domain for SIWA messages
+   */
   'domain' : string,
+  /**
+   * Salt for principal derivation
+   */
   'salt' : string,
+  /**
+   * Chain ID (Avalanche C-Chain)
+   */
   'chain_id' : bigint,
+  /**
+   * Optional list of allowed domains
+   */
   'allowed_domains' : [] | [Array<string>],
+  /**
+   * Optional list of allowed canister IDs
+   */
   'allowed_canisters' : [] | [Array<Principal>],
+  /**
+   * Optional rate limiting configuration
+   */
   'rate_limits' : [] | [RateLimitArgs],
+  /**
+   * Optional delegation targets - canisters that delegations are valid for
+   */
   'delegation_targets' : [] | [Array<Principal>],
+  /**
+   * Enable debug endpoints (should be false in production)
+   */
   'debug' : [] | [boolean],
+  /**
+   * Session expiration in nanoseconds
+   */
   'session_expiration_time' : bigint,
+  /**
+   * Optional login message expiration in nanoseconds (default: 5 minutes)
+   */
   'login_expiration_time' : [] | [bigint],
 }
+/**
+ * Login response with principal, expiration, and canister public key
+ */
 export interface LoginResponse {
+  /**
+   * The derived ICP principal for the user
+   */
   'user_principal' : Principal,
+  /**
+   * The canister's public key for this user (used as root of delegation chain)
+   */
   'user_canister_pubkey' : Uint8Array | number[],
+  /**
+   * Session expiration timestamp in nanoseconds
+   */
   'expiration' : bigint,
 }
+/**
+ * Request parameters for prepare_login
+ */
 export interface PrepareLoginRequest {
+  /**
+   * Optional URI for the SIWA message (shown in wallet).
+   * Falls back to canister default if not provided.
+   */
   'uri' : [] | [string],
+  /**
+   * Optional domain for the SIWA message (shown in wallet).
+   * Must be in allowed_domains whitelist. Falls back to canister default if not provided.
+   */
   'domain' : [] | [string],
+  /**
+   * The Avalanche address (0x-prefixed)
+   */
   'address' : string,
 }
+/**
+ * Response from prepare_login
+ */
 export interface PrepareLoginResponse {
+  /**
+   * Expiration timestamp in nanoseconds
+   */
   'expiration' : bigint,
+  /**
+   * The SIWA message to be signed
+   */
   'message' : string,
+  /**
+   * The nonce for this login attempt
+   */
   'nonce' : string,
 }
+/**
+ * Rate limit configuration for Candid
+ */
 export interface RateLimitArgs {
+  /**
+   * Max total prepare_login calls per window
+   */
   'max_logins_total' : number,
+  /**
+   * Time window in seconds
+   */
   'window_seconds' : bigint,
+  /**
+   * Max prepare_login calls per address per window
+   */
   'max_logins_per_address' : number,
 }
 export type Result = { 'Ok' : DebugInfo } |
@@ -81,8 +230,17 @@ export type Result_6 = { 'Ok' : null } |
   { 'Err' : string };
 export type Result_7 = { 'Ok' : PrepareLoginResponse } |
   { 'Err' : string };
+/**
+ * A signed delegation with the signature
+ */
 export interface SignedDelegation {
+  /**
+   * The signature over the delegation hash
+   */
   'signature' : Uint8Array | number[],
+  /**
+   * The delegation being signed
+   */
   'delegation' : Delegation,
 }
 export interface _SERVICE {

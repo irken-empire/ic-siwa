@@ -46,12 +46,12 @@ jobs:
 
       - id: rust_tests
         name: Run Rust Tests
-        shell: devenv shell --quiet bash -- -e {0}
+        shell: devenv --no-tui shell --quiet bash -- -e {0}
         run: cargo test -p ic_siwa
 
       - id: typescript_tests
         name: Run TypeScript Tests
-        shell: devenv shell --quiet bash -- -e {0}
+        shell: devenv --no-tui shell --quiet bash -- -e {0}
         run: |
           cd libs/ic_siwa_ts
           bun install

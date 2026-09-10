@@ -64,23 +64,17 @@ runs:
         purge-created: P7D
         token: ${{ inputs.github-token }}
 
-    - id: install_devenv
-      name: Install Devenv
+    - id: cachix_tools_install
+      name: Install Cachix Tools
       shell: bash
       run: |
-        nix profile install --accept-flake-config github:cachix/devenv
-
-    - id: install_secretspec
-      name: Install Secretspec
-      shell: bash
-      run: |
-        nix profile add --accept-flake-config nixpkgs#secretspec
+        nix profile install --accept-flake-config nixpkgs#devenv
 
     - id: version_check
       name: Version Check
       shell: bash
       run: |
-        echo "Devenv version: $(devenv --version)"
+        echo "Devenv version: $(devenv --no-tui --version)"
         echo "Secretspec version: $(secretspec --version)"
         echo "Cachix version: $(cachix --version)"
 
@@ -98,4 +92,4 @@ runs:
       env:
         SECRETSPEC_PROVIDER: env
       run: |
-        devenv shell --verbose hello --traditional
+        devenv --no-tui shell --verbose hello --traditional

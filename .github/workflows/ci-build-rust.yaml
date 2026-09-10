@@ -68,7 +68,7 @@ jobs:
       - id: verify_candid
         name: Verify Candid Interface
         if: matrix.canister == 'ic_siwa_provider'
-        shell: devenv shell --quiet bash -- -e {0}
+        shell: devenv --no-tui shell --quiet bash -- -e {0}
         run: |
           candid-extractor target/wasm32-unknown-unknown/release/ic_siwa_provider.wasm > /tmp/extracted.did
 

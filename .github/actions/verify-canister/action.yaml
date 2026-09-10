@@ -21,7 +21,7 @@ runs:
     - id: verify_provider
       name: Verify ic_siwa_provider
       if: inputs.canister == 'ic_siwa_provider'
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: devenv --no-tui shell --quiet bash -- -e {0}
       env:
         DFX_WARNING: "-mainnet_plaintext_identity"
       run: |
@@ -101,7 +101,7 @@ runs:
     - id: verify_test_canister
       name: Verify test_canister_rs
       if: inputs.canister == 'test_canister_rs'
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: devenv --no-tui shell --quiet bash -- -e {0}
       run: |
         # Create anonymous identity silently to prevent seed phrase from being printed
         dfx identity new --storage-mode=plaintext anonymous-ci 2>/dev/null || true
