@@ -23,7 +23,7 @@ inputs:
       nixpkgs:
         follows: nixpkgs
   ic-nix:
-    url: github:ninegua/ic-nix/20260217
+    url: github:ninegua/ic-nix/main
     flake: false
   rust-overlay:
     url: github:oxalica/rust-overlay/stable
@@ -38,4 +38,4 @@ clean:
     - USER
     - GITHUB_TOKEN
 secretspec:
-  enable: true
+  enable: false

@@ -32,7 +32,7 @@ jobs:
 
     defaults:
       run:
-        shell: devenv shell --quiet bash -- -e {0}
+        shell: devenv --no-tui shell --quiet bash -- -e {0}
 
     steps:
       - id: checkout_repository
@@ -57,7 +57,7 @@ jobs:
 
       - id: devenv_test
         name: Run Devenv Test
-        run: devenv test
+        run: devenv --no-tui test
 
       - id: write_summary
         name: Write Results Summary

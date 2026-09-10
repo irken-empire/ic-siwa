@@ -124,12 +124,9 @@ in
   });
 
   cachix = {
-    enable = false;
+    enable = true;
     pull = [
-      "devenv"
       "irken-empire"
-      "nix-community"
-      "pre-commit-hooks"
     ];
     push = "irken-empire";
   };
@@ -146,27 +143,27 @@ in
   packages = lib.optionals (!config.container.isBuilding || config.name == "devenv") devPackages;
 
   enterShell = ''
-    if [[ "''${CI:-false}" == "true" ]];
-    then
+    if [[ "${"CI:-false"}" == "true" ]]; then
       echo "devenv running in CI"
     else
-      # showfigfonts 2>/dev/null | less
       figlet -f slant -w 180 "$(echo "$PROJECT" | tr '[:lower:]-' '[:upper:] ')"
 
-      hello --greeting="Hello ''${USER:-user}, welcome to the $PROJECT project!"
+      hello --greeting="Hello ''${USER:-user}, welcome to the $PROJECT project."
 
-      echo ""
-      echo "#########################"
-      echo "#### Helper scripts #####"
-      echo "#########################"
-      echo "🦾"
-      ${lib.concatStrings (
-        lib.mapAttrsToList (
-          name: value: "printf '🦾 %-20s  %s\\n' '${name}' '${value.description}'\n"
-        ) config.scripts
-      )}
-      echo "🦾"
-      echo "#########################"
+      ${lib.optionalString (config.scripts != { }) ''
+        echo ""
+        echo "#########################"
+        echo "#### Helper scripts #####"
+        echo "#########################"
+        echo "🦾"
+        ${lib.concatStrings (
+          lib.mapAttrsToList (
+            name: value: "printf '🦾 %-20s  %s\\n' '${name}' '${value.description}'\n"
+          ) config.scripts
+        )}
+        echo "🦾"
+        echo "#########################"
+      ''}
     fi
   '';
 
@@ -258,7 +255,6 @@ in
       ".dfx/"
       ".direnv/"
       ".dist/"
-      ".git/"
       "\\.did$"
       "^.vscode/"
       "^contracts/" # Using custom pre-commit hook.

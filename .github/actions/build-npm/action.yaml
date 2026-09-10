@@ -19,7 +19,7 @@ runs:
       run: |
         # Use devenv from repository root
         cd "$GITHUB_WORKSPACE"
-        devenv shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun install"
+        devenv --no-tui shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun install"
 
     - id: build_library
       name: Build Library
@@ -28,7 +28,7 @@ runs:
       run: |
         # Use devenv from repository root
         cd "$GITHUB_WORKSPACE"
-        devenv shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun run build"
+        devenv --no-tui shell --quiet bash -- -c "cd libs/ic_siwa_ts && bun run build"
 
     - id: get_version
       name: Get Version

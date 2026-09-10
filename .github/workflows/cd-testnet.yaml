@@ -169,7 +169,7 @@ jobs:
 
       - id: compute_version
         name: Compute Version
-        shell: devenv shell --quiet bash -- -e {0}
+        shell: devenv --no-tui shell --quiet bash -- -e {0}
         run: |
           RAW_VERSION="${{ inputs.version }}"
 
@@ -228,7 +228,7 @@ jobs:
       - id: generate_changelog
         name: Generate Changelog
         if: steps.compute_version.outputs.skip != 'true'
-        shell: devenv shell --quiet bash -- -e {0}
+        shell: devenv --no-tui shell --quiet bash -- -e {0}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -47,7 +47,7 @@ runs:
     - id: build_wasm
       name: Build WASM Canister
       if: inputs.type == 'rust'
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: devenv --no-tui shell --quiet bash -- -e {0}
       run: |
         echo "Building ${{ inputs.canister }} (Rust WASM)..."
         cargo build --release --target wasm32-unknown-unknown -p ${{ inputs.canister }}
@@ -55,7 +55,7 @@ runs:
     - id: optimize_wasm
       name: Optimize WASM
       if: inputs.type == 'rust' && inputs.optimize == 'true'
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: devenv --no-tui shell --quiet bash -- -e {0}
       run: |
         if command -v ic-wasm &> /dev/null; then
           echo "Optimizing WASM with ic-wasm..."
@@ -70,7 +70,7 @@ runs:
     - id: build_typescript_lib
       name: Build TypeScript Library
       if: inputs.type == 'assets'
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: devenv --no-tui shell --quiet bash -- -e {0}
       run: |
         echo "Building TypeScript library (dependency)..."
         cd libs/ic_siwa_ts
@@ -134,7 +134,7 @@ runs:
     - id: build_assets
       name: Build Assets Canister
       if: inputs.type == 'assets'
-      shell: devenv shell --quiet bash -- -e {0}
+      shell: devenv --no-tui shell --quiet bash -- -e {0}
       env:
         PUBLIC_SIWA_PROVIDER_CANISTER_ID: ${{ steps.read_provider_id.outputs.provider_canister_id }}
         PUBLIC_IC_HOST: ${{ inputs.ic_host }}
