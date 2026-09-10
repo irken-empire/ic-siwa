@@ -68,7 +68,7 @@ runs:
       name: Install Cachix Tools
       shell: bash
       run: |
-        nix profile install --accept-flake-config nixpkgs#devenv nixpkgs#secretspec nixpkgs#cachix
+        nix profile install --accept-flake-config nixpkgs#devenv
 
     - id: version_check
       name: Version Check
